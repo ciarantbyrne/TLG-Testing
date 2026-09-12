@@ -404,7 +404,8 @@ class Creature : public viewer
          */
         /*@{*/
         bool sees( const map &here, const Creature &critter ) const override;
-        bool sees( const map &here, const tripoint_bub_ms &t, bool is_avatar = false,
+        // is_character means that the thing we are trying to see is a character, not that the viewer is one.
+        bool sees( const map &here, const tripoint_bub_ms &t, bool is_character = false,
                    int range_mod = 0 ) const override;
         /*@}*/
 
@@ -531,7 +532,7 @@ class Creature : public viewer
         // Creatures temporarily detect unseen creatures when bumping into them.
         bool stumble_invis( const Creature &attacker, bool stumblemsg = true );
         // Use stumble_invis's system to try and find creatures throwing stuff at us from hiding.
-        bool react_to_ranged( const Creature &player );
+        bool react_to_ranged( const Creature &attacker );
         // Attack an empty location
         bool attack_air( const tripoint_bub_ms &p );
 
@@ -887,6 +888,7 @@ class Creature : public viewer
         int get_part_damage_bandaged( const bodypart_id &id ) const;
         int get_part_drench_capacity( const bodypart_id &id ) const;
         int get_part_wetness( const bodypart_id &id ) const;
+        float get_part_pain_multiplier( const bodypart_id &id ) const;
         units::temperature get_part_temp_cur( const bodypart_id &id ) const;
         units::temperature get_part_temp_conv( const bodypart_id &id ) const;
         int get_part_frostbite_timer( const bodypart_id &id )const;

@@ -1457,6 +1457,7 @@
     "magazine": 100,
     "items": [
       [ "coat_winter", 50 ],
+      [ "coat_winter_xs", 10 ],
       [ "peacoat", 30 ],
       [ "ski_jacket", 40 ],
       [ "greatcoat", 15 ],
@@ -1475,7 +1476,7 @@
       [ "gloves_winter", 40 ],
       [ "gloves_liner", 25 ],
       [ "gloves_leather", 45 ],
-      [ "bellyband", 10 ],
+      [ "bellywrap", 5 ],
       { "item": "scarf", "prob": 20 },
       { "item": "knit_scarf", "prob": 35 },
       { "item": "patchwork_scarf", "prob": 10 },
@@ -1706,7 +1707,7 @@
     "type": "item_group",
     "id": "bags_trip",
     "subtype": "distribution",
-    "entries": [ { "item": "suitcase_l", "prob": 37 }, { "item": "suitcase_m", "prob": 55 }, { "item": "duffelbag", "prob": 8 } ]
+    "entries": [ { "item": "suitcase_large", "prob": 37 }, { "item": "suitcase", "prob": 55 }, { "item": "duffelbag", "prob": 8 } ]
   },
   {
     "type": "item_group",
@@ -1923,7 +1924,6 @@
       { "item": "corset_waist", "prob": 10 },
       { "item": "chestwrap", "prob": 5 },
       { "item": "bellywrap", "prob": 2 },
-      { "item": "bellyband", "prob": 2 },
       { "item": "boots_combat", "prob": 10 },
       { "item": "pants_army", "prob": 10 },
       { "item": "jacket_army", "prob": 10 },
@@ -2355,7 +2355,7 @@
       { "item": "goggles_nv", "prob": 1, "charges": [ 0, 100 ] },
       { "item": "goggles_ir", "prob": 1, "charges": [ 0, 100 ] },
       [ "backpack", 38 ],
-      { "item": "UPS_OFF", "prob": 8, "charges": [ 0, 1000 ] },
+      { "group": "ups_power", "prob": 8 },
       [ "tacvest", 10 ],
       { "group": "molle_backpacks_and_accessories", "prob": 8 },
       [ "duffelbag", 15 ],
@@ -2390,7 +2390,7 @@
       { "item": "mess_kit", "prob": 9 },
       [ "backpack", 38 ],
       [ "briefcase", 10 ],
-      { "item": "UPS_OFF", "prob": 8, "charges": [ 0, 1000 ] },
+      { "item": "UPS_off", "prob": 8, "charges": [ 0, 600 ] },
       [ "chestguard_hard", 20 ],
       [ "armguard_hard", 20 ],
       [ "legguard_hard", 15 ],
@@ -2572,11 +2572,11 @@
       [ "plated_leather_armor_suit", 3 ],
       [ "armor_chitin", 4 ],
       [ "armor_acidchitin", 1 ],
-      [ "junk_platemail_suit", 1 ],
+      { "item": "platemail_suit", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 1 },
       [ "chainmail_hauberk_loose", 1 ],
       [ "chainmail_hauberk", 1 ],
-      { "item": "chainmail_junk_hauberk_loose", "prob": 1 },
-      { "item": "chainmail_junk_hauberk", "prob": 1 }
+      { "item": "chainmail_hauberk_loose", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 1 },
+      { "item": "chainmail_hauberk", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 1 }
     ]
   },
   {
@@ -2631,8 +2631,8 @@
       [ "tire_cuirass", 12 ],
       { "item": "chainmail_vest_loose", "prob": 1 },
       { "item": "chainmail_vest", "prob": 1 },
-      { "item": "chainmail_junk_vest_loose", "prob": 1 },
-      { "item": "chainmail_junk_vest", "prob": 1 }
+      { "item": "chainmail_vest", "prob": 1, "custom-flags": [ "REPLICA_EQUIPMENT" ] },
+      { "item": "chainmail_vest_loose", "prob": 1, "custom-flags": [ "REPLICA_EQUIPMENT" ] }
     ]
   },
   {
@@ -3329,8 +3329,8 @@
         "distribution": [
           { "item": "basket_laundry", "prob": 60 },
           { "item": "straw_basket", "prob": 35 },
-          { "item": "suitcase_l", "prob": 15 },
-          { "item": "suitcase_m", "prob": 25 }
+          { "item": "suitcase_large", "prob": 15 },
+          { "item": "suitcase", "prob": 25 }
         ],
         "prob": 20
       },

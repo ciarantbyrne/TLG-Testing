@@ -398,7 +398,7 @@ std::optional<std::list<item>::iterator> outfit::wear_item( Character &guy, cons
         guy.add_msg_if_npc( _( "<npcname> puts on their %s." ), to_wear.tname() );
     }
 
-    // skip this for unsorted items in debug mode
+    // Skip this for unsorted items in debug mode.
     if( do_sort_items ) {
         new_item_it->on_wear( guy );
 
@@ -407,6 +407,7 @@ std::optional<std::list<item>::iterator> outfit::wear_item( Character &guy, cons
     }
 
     if( do_calc_encumbrance ) {
+        guy.invalidate_tile_eye_level_cache();
         guy.recalc_sight_limits();
         guy.calc_encumbrance();
         guy.calc_discomfort();
@@ -1391,9 +1392,7 @@ static ret_val<void> rigid_test(
 
 ret_val<void> outfit::check_rigid_conflicts( const item &clothing, side s ) const
 {
-
     std::unordered_set<sub_bodypart_id> to_test;
-
     // if not overridden get the actual side of the item
     if( s == side::num_sides ) {
         s = clothing.get_side();
@@ -1435,14 +1434,11 @@ ret_val<void> outfit::check_rigid_conflicts( const item &clothing ) const
     if( !clothing.is_sided() ) {
         return check_rigid_conflicts( clothing, side::BOTH );
     }
-
     ret_val<void> ls = check_rigid_conflicts( clothing, side::LEFT );
     ret_val<void> rs = check_rigid_conflicts( clothing, side::RIGHT );
-
     if( !ls.success() && !rs.success() ) {
         return ls;
     }
-
     return ret_val<void>::make_success();
 }
 
@@ -2748,7 +2744,7 @@ int outfit::clatter_sound() const
 {
     int max_volume = 0;
     for( const item &i : worn ) {
-        // if the item has noise making pockets we should check if they have clatered
+        // if the item has noise making pockets we should check if they have clattered.
         if( i.has_noisy_pockets() ) {
             for( const item_pocket *pocket : i.get_all_contained_pockets() ) {
                 int noise_chance = pocket->get_pocket_data()->activity_noise.chance;

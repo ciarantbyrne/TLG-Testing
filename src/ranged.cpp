@@ -96,6 +96,7 @@ static const ammo_effect_str_id ammo_effect_PLASMA( "PLASMA" );
 static const ammo_effect_str_id ammo_effect_SHATTER_SELF( "SHATTER_SELF" );
 static const ammo_effect_str_id ammo_effect_SHOT( "SHOT" );
 static const ammo_effect_str_id ammo_effect_TANGLE( "TANGLE" );
+static const ammo_effect_str_id ammo_effect_THROWN_ITEM( "THROWN_ITEM" );
 static const ammo_effect_str_id ammo_effect_TRIP( "TRIP" );
 static const ammo_effect_str_id ammo_effect_WHIP( "WHIP" );
 static const ammo_effect_str_id ammo_effect_WIDE( "WIDE" );
@@ -180,7 +181,6 @@ static const skill_id skill_launcher( "launcher" );
 static const skill_id skill_swimming( "swimming" );
 static const skill_id skill_throw( "throw" );
 
-static const trait_id trait_BRAWLER( "BRAWLER" );
 static const trait_id trait_ECHOLOCATION( "ECHOLOCATION" );
 static const trait_id trait_PYROMANIA( "PYROMANIA" );
 
@@ -723,7 +723,7 @@ bool Character::handle_gun_damage( item &it )
 
     const auto &curammo_effects = it.ammo_effects();
     const islot_gun &firing = *it.type->gun;
-    // misfire chance based on dirt accumulation. Formula is designed to make chance of jam highly unlikely at low dirt levels, but levels increase geometrically as the dirt level reaches max (10,000). The number used is just a figure I found reasonable after plugging the number into excel and changing it until the probability made sense at high, medium, and low levels of dirt.
+    // Misfire chance based on dirt accumulation. Formula is designed to make chance of jam highly unlikely at low dirt levels, but levels increase geometrically as the dirt level reaches max (10,000). The number used is just a figure I found reasonable after plugging the number into excel and changing it until the probability made sense at high, medium, and low levels of dirt.
     if( !it.has_flag( flag_NEVER_JAMS ) &&
         x_in_y( dirt_dbl * dirt_dbl * dirt_dbl,
                 1000000000000.0 ) ) {
@@ -954,8 +954,8 @@ bool Character::handle_gun_overheat( item &it )
             return false;
         }
 
-        //Overall the durability of the gun greatly conditions what sort of failures are possible.
-        //A durability above 8 prevents the most serious failures
+        // Overall the durability of the gun greatly conditions what sort of failures are possible.
+        // A durability above 8 prevents the most serious failures.
         int fault_roll = rng( 5, 15 ) - gun_type.durability;
         if( it.faults_potential().count( fault_overheat_explosion ) && fault_roll > 9 ) {
             add_msg_if_player( m_bad,
@@ -1122,7 +1122,7 @@ int Character::fire_gun( map &here, const tripoint_bub_ms &target, int shots, it
         // Add dispersion for shooting in close range.
         const Creature *victim = get_creature_tracker().creature_at( target, true );
         if( victim != nullptr ) {
-            get_tracking_dispersion( &gun, victim, true );
+            dispersion.add_range( get_tracking_dispersion( &gun, victim, true ).max() );
         }
         dealt_projectile_attack shot;
         projectile_attack( shot, proj, &here, pos_bub( here ), aim, dispersion, this, in_veh, wp_attack );
@@ -1532,9 +1532,14 @@ dealt_projectile_attack Character::throw_item( const tripoint_bub_ms &target, co
                        ( thrown.total_contained_volume().value() ) / thrown.get_total_capacity().value() *
                        100;
 
-    // Add some flags to the projectile
+    // Add some ammo_effects to the projectile
     if( weight > 500_gram ) {
         proj_effects.insert( ammo_effect_HEAVY_HIT );
+    }
+
+    // This effect just controls breaking lights and stuff.
+    if( !thrown.is_soft() ) {
+        proj_effects.insert( ammo_effect_THROWN_ITEM );
     }
 
     proj_effects.insert( ammo_effect_NO_ITEM_DAMAGE );
@@ -1661,7 +1666,7 @@ dealt_projectile_attack Character::throw_item( const tripoint_bub_ms &target, co
 
 void practice_archery_proficiency( Character &p, const item &relevant )
 {
-    // Do nothing, we are not doing archery
+    // Do nothing, we are not doing archery.
     if( relevant.gun_skill() != skill_archery ) {
         return;
     }
@@ -1688,12 +1693,12 @@ void practice_archery_proficiency( Character &p, const item &relevant )
             p.practice_proficiency( proficiency_prof_bow_basic, prof_exp );
             return;
         }
-        // We know how to handle a bow, but we are not an expert yet
+        // We know how to handle a bow, but we are not an expert yet.
         else if( !p.has_proficiency( proficiency_prof_bow_expert ) ) {
             p.practice_proficiency( proficiency_prof_bow_expert, prof_exp );
             return;
         }
-        // We are an expert, lets practice to become a master
+        // We are an expert, lets practice to become a master.
         else {
             p.practice_proficiency( proficiency_prof_bow_master, prof_exp );
             return;
@@ -1701,7 +1706,7 @@ void practice_archery_proficiency( Character &p, const item &relevant )
     }
 }
 
-// Apply stamina cost to archery which decreases due to proficiency
+// Apply stamina cost to archery which decreases due to proficiency.
 static void mod_stamina_archery( Character &you, const item &relevant )
 {
     // Set activity level to 12 * str_ratio, with 12 being max (EXPLOSIVE_EXERCISE)
@@ -1709,7 +1714,7 @@ static void mod_stamina_archery( Character &you, const item &relevant )
     const float str_ratio = static_cast<float>( relevant.get_min_str() ) / you.str_cur;
     you.set_activity_level( 12.f * std::clamp( str_ratio, 0.5f, 1.0f ) );
 
-    // Calculate stamina drain based on archery, athletics skill, and effective bow strength ratio
+    // Calculate stamina drain based on archery, athletics skill, and effective bow strength ratio.
     const float archery_skill = you.get_skill_level( skill_archery );
     const float athletics_skill = you.get_skill_level( skill_swimming );
     const float skill_modifier = ( 2.0f * archery_skill + athletics_skill ) / 3.0f;
@@ -1725,16 +1730,15 @@ static void do_aim( Character &you, const item &relevant, const double min_recoi
 {
     const double aim_amount = you.aim_per_move( relevant, you.recoil );
     if( aim_amount > 0 && you.recoil > min_recoil ) {
-        // Increase aim at the cost of moves
+        // Increase aim at the cost of moves.
         you.mod_moves( -1 );
         you.recoil = std::max( min_recoil, you.recoil - aim_amount );
 
-        // Train archery proficiencies if we are doing archery
+        // Train archery proficiencies if we are doing archery.
         if( relevant.gun_skill() == skill_archery && !relevant.has_flag( json_flag_CROSSBOW ) &&
             !relevant.has_flag( flag_WONT_TRAIN_MARKSMANSHIP ) ) {
             practice_archery_proficiency( you, relevant );
-
-            // Only drain stamina on initial draw
+            // Only drain stamina on initial draw.
             if( you.get_moves() == 1 ) {
                 mod_stamina_archery( you, relevant );
             }
@@ -2123,16 +2127,17 @@ static int print_ranged_chance( const catacurses::window &w, int line_number,
             mvwprintw( w, point( column_number, line_number ), label );
             column_number += utf8_width( label ) + 1; // 1 for whitespace after 'Symbols:'
         }
-
         print_confidence_ratings( w, sorted.front().ratings, line_number, width, column_number, col );
-
+        if( time != 0 ) {
+            std::string ras_time = string_format( "<color_light_gray>%1s</color>: %2s",
+                                                  _( "Moves to load" ), time );
+            print_colored_text( w, point( 1, line_number++ ), col, col, ras_time );
+        }
         for( const aim_type_prediction &out : sorted ) {
             std::string col_hl = out.is_default ? "light_green" : "light_gray";
-            std::string desc = time ==  0 ?
-                               string_format( "<color_white>[%s]</color> <color_%s>%s %s</color> | %s: <color_light_blue>%3d</color>",
-                                              out.hotkey, col_hl, out.name, _( "Aim" ), _( "Moves to fire" ), out.moves ) :
-                               string_format( "<color_white>[%s]</color> <color_%s>%s %s</color> | %s: <color_light_blue>%3d</color> (%d)",
-                                              out.hotkey, col_hl, out.name, _( "Aim" ), _( "Moves to fire" ), out.moves, time );
+            std::string desc =
+                string_format( "<color_white>[%s]</color> <color_%s>%s %s</color> | %s: <color_light_blue>%3d</color>",
+                               out.hotkey, col_hl, out.name, _( "Aim" ), _( "Moves to fire" ), out.moves );
 
             print_colored_text( w, point( 1, line_number++ ), col, col, desc );
 
@@ -2222,12 +2227,11 @@ static int print_aim( const target_ui &ui, Character &you, const catacurses::win
     // This is an accuracy estimate for the player.
     // TODO: push the calculations duplicated from Creature::deal_projectile_attack() and
     // Creature::projectile_attack() into shared methods.
-    // Dodge doesn't affect gun attacks
 
     dispersion_sources dispersion = you.get_weapon_dispersion( weapon );
     dispersion.add_range( you.recoil_vehicle() );
 
-    // This could be extracted, to allow more/less verbose displays
+    // This could be extracted, to allow more/less verbose displays.
     static const std::vector<confidence_rating> confidence_config = {{
             { accuracy_critical, '*', "green", translate_marker_context( "aim_confidence", "Great" ) },
             { accuracy_standard, '+', "light_gray", translate_marker_context( "aim_confidence", "Good" ) },
@@ -2691,7 +2695,8 @@ dispersion_sources Character::get_tracking_dispersion( const item *obj, const Cr
     tracking_dispersion += weight_factor;
     if( aware && mobile ) {
         tracking_dispersion += speed * 0.1;
-        tracking_dispersion += dodge * 10.0;
+        // Monsters have less dodge than characters due to fewer bonuses.
+        tracking_dispersion += dodge * ( target->is_monster() ? 15.0 : 10.0 );
     }
     tracking_dispersion *= distance_factor;
     if( rng ) {
@@ -4481,9 +4486,10 @@ void target_ui::panel_spell_info( int &text_y )
             }
         }
     }
-
-    mvwprintz( w_target, point( 1, text_y++ ), c_light_red, _( "Damage: %s" ),
-               casting->damage_string( get_player_character() ) );
+    if( casting->damage( get_player_character() ) != 0 ) {
+        mvwprintz( w_target, point( 1, text_y++ ), c_light_red, _( "Damage: %s" ),
+                   casting->damage_string( get_player_character() ) );
+    }
 
     text_y += fold_and_print( w_target, point( 1, text_y ), getmaxx( w_target ) - 2, clr,
                               casting->description() );
@@ -4574,11 +4580,6 @@ bool gunmode_checks_common( avatar &you, const map &m, std::vector<std::string> 
                             const gun_mode &gmode )
 {
     bool result = true;
-    if( you.has_trait( trait_BRAWLER ) ) {
-        messages.push_back( string_format( _( "Pfft.  You are a brawler; using this %s is beneath you." ),
-                                           gmode->tname() ) );
-        result = false;
-    }
 
     // Check that passed gun mode is valid and we are able to use it
     if( !( gmode && you.can_use( *gmode ) ) ) {

@@ -477,7 +477,8 @@
       [ "mechanism", 2 ],
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
-      [ "stock", 1 ]
+      [ "stock", 1 ],
+      [ "grip", 1 ]
     ],
     "flags": [ "FIRE_TWOHAND" ],
     "melee_damage": { "bash": 12 }
@@ -519,7 +520,8 @@
       [ "mechanism", 2 ],
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
-      [ "stock", 1 ]
+      [ "stock", 1 ],
+      [ "grip", 1 ]
     ],
     "flags": [ "FIRE_TWOHAND" ],
     "melee_damage": { "bash": 12 }
@@ -578,7 +580,8 @@
       [ "rail mount", 2 ],
       [ "sights mount", 1 ],
       [ "stock mount", 1 ],
-      [ "underbarrel mount", 1 ]
+      [ "underbarrel mount", 1 ],
+      [ "grip", 1 ]
     ],
     "//": "This weapon has an extremely high rate of fire, due to the open bolt design. This is based on a cyclic rate of fire of 1150 RPM, which is close to 19 rounds per second. 6 rounds is comparable to to other weapons with similar rates, such as the MAC-11.",
     "modes": [ [ "DEFAULT", "auto", 6 ] ],
@@ -705,8 +708,9 @@
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
       [ "sights mount", 1 ],
-      [ "rail mount", 1],
-      [ "stock", 1 ]
+      [ "rail mount", 1 ],
+      [ "stock", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [
       {
@@ -747,7 +751,8 @@
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
       [ "stock mount", 1 ],
-      [ "underbarrel mount", 1 ]
+      [ "underbarrel mount", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [
       {
@@ -809,7 +814,8 @@
       [ "sights mount", 1 ],
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
-      [ "stock mount", 1 ]
+      [ "stock mount", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [
       { "pocket_type": "MAGAZINE_WELL", "item_restriction": [ "augmag_30rd", "augmag_10rd", "augmag_42rd", "augmag_100rd" ] }
@@ -847,7 +853,8 @@
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
       [ "stock mount", 1 ],
-      [ "underbarrel mount", 1 ]
+      [ "underbarrel mount", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [ { "pocket_type": "MAGAZINE_WELL", "item_restriction": [ "zpap85mag" ] } ],
     "melee_damage": { "bash": 12 }
@@ -988,7 +995,8 @@
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
       [ "stock mount", 1 ],
-      [ "underbarrel", 1 ]
+      [ "underbarrel", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [
       {
@@ -1024,7 +1032,7 @@
     "type": "ITEM",
     "subtypes": [ "GUN" ],
     "name": { "str": "CZ 600 TRAIL rifle" },
-    "description":"A handy bolt-action offering from CZ, the 600 Trail is a box magazine-fed ranch rifle that utilizes an aluminum chassis to keep its overall heft to a minimum.  Possessing an extendable buttstock, extensive modularity, and a quick-swap barrel assembly switchable to accommodate the firing of either .223 or 7.62x39mm ammunition, the rifle was intended for use by backpackers, trail hikers, and preppers.",
+    "description": "A handy bolt-action offering from CZ, the 600 Trail is a box magazine-fed ranch rifle that utilizes an aluminum chassis to keep its overall heft to a minimum.  Possessing an extendable buttstock, extensive modularity, and a quick-swap barrel assembly switchable to accommodate the firing of either .223 or 7.62x39mm ammunition, the rifle was intended for use by backpackers, trail hikers, and preppers.",
     "weight": "1800 g",
     "volume": "2500 ml",
     "longest_side": "384 mm",
@@ -1046,7 +1054,8 @@
       [ "sights", 1 ],
       [ "sling", 1 ],
       [ "stock accessory", 2 ],
-      [ "stock", 1 ]
+      [ "stock", 1 ],
+      [ "grip", 1 ]
     ],
     "flags": [ "FIRE_TWOHAND", "EASY_CLEAN" ],
     "melee_damage": { "bash": 10 }
@@ -1084,7 +1093,8 @@
       [ "sights", 1 ],
       [ "sling", 1 ],
       [ "stock accessory", 1 ],
-      [ "underbarrel", 1 ]
+      [ "underbarrel", 1 ],
+      [ "grip", 1 ]
     ],
     "pocket_data": [
       {

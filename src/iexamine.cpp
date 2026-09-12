@@ -5259,6 +5259,14 @@ void iexamine::pay_gas( Character &you, const tripoint_bub_ms &examp )
     }
 }
 
+void iexamine::ledge_ramp( Character &you, const tripoint_bub_ms &examp )
+{
+    map &here = get_map();
+    if( !here.has_flag_ter( "RAMP_DOWN_HIGH", you.pos_bub() ) ) {
+        ledge( you, examp );
+    }
+}
+
 void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
 {
     enum ledge_actions {
@@ -5349,10 +5357,6 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
             }
             break;
         }
-        /*case ledge_climb_down: {
-            g->climb_down( examp );
-            break;
-        }*/
         case ledge_peek_down: {
             // Peek
             tripoint_bub_ms where = examp;
@@ -5378,27 +5382,6 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
             here.furn( just_below ).obj().examine( you, just_below );
             break;
         }
-        /*case ledge_cling_down: {
-            // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
-            if( !you.move_effects( false ) ) {
-                you.mod_moves( -to_moves<int>( 1_seconds ) );
-                return;
-            }
-
-            if( !here.valid_move( you.pos(), examp, false, true ) ) {
-                // Covered with something
-                return;
-            } else {
-                you.setpos( examp );
-                g->vertical_move( -1, false );
-                if( here.has_flag( ter_furn_flag::TFLAG_DEEP_WATER, you.pos() ) ) {
-                    you.set_underwater( true );
-                    g->water_affect_items( you );
-                    you.add_msg_if_player( _( "You crawl down and dive underwater." ) );
-                }
-            }
-            break;
-        }*/
         case ledge_glide: {
             // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
             if( !you.move_effects( false, examp ) ) {
@@ -5442,7 +5425,7 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
         case ledge_fall_down: {
             if( query_yn( _( "Climbing might be safer.  Really fall from the ledge?" ) ) ) {
                 you.mod_moves( -to_moves<int>( 1_seconds ) );
-                // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
+                // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free.
                 if( !you.move_effects( false, examp ) ) {
                     return;
                 }
@@ -7321,6 +7304,7 @@ iexamine_functions iexamine_functions_from_string( const std::string &function_n
             { "autoclave_full", &iexamine::autoclave_full },
             { "fireplace", &iexamine::fireplace },
             { "ledge", &iexamine::ledge },
+            { "ledge_ramp", &iexamine::ledge_ramp },
             { "autodoc", &iexamine::autodoc },
             { "quern_examine", &iexamine::quern_examine },
             { "smoker_options", &iexamine::smoker_options },
@@ -7358,9 +7342,9 @@ iexamine_functions iexamine_functions_from_string( const std::string &function_n
 
 void iexamine::practice_survival_while_foraging( Character &who )
 {
-    ///\EFFECT_INT Intelligence caps survival skill gains from foraging
+    ///\EFFECT_INT Intelligence caps ecology skill gains from foraging
     const int max_forage_skill = who.int_cur / 3 + 1;
-    ///\EFFECT_SURVIVAL decreases survival skill gain from foraging (NEGATIVE)
+    ///\EFFECT_SURVIVAL decreases ecology skill gain from foraging (NEGATIVE)
     const int max_exp = 2 * ( max_forage_skill - static_cast<int>( who.get_skill_level(
                                   skill_survival ) ) );
     // Award experience for foraging attempt regardless of success

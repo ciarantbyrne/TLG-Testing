@@ -54,7 +54,7 @@
     "charges_per_use": 0,
     "revert_to": "masonrysaw_off",
     "techniques": [ "SWEEP" ],
-    "qualities": [ [ "AXE", 3 ], [ "BUTCHER", -100 ] ],
+    "qualities": [ [ "BUTCHER", -100 ] ],
     "use_action": {
       "type": "effect_on_conditions",
       "menu_text": "Turn off",
@@ -91,7 +91,7 @@
     "type": "ITEM",
     "subtypes": [ "TOOL" ],
     "name": { "str": "electric masonry saw (off)", "str_pl": "electric masonry saws (off)" },
-    "description": "A construction tool for cutting through concrete or other surfaces.  It uses electric motor with integrated battery and is compatible with a UPS.  Using this item will cause it to turn on, turning it into a very powerful but unwieldy melee weapon or a terrible chainsaw.",
+    "description": "A construction tool for cutting through concrete or other surfaces.  Using this item will cause it to turn on, turning it into a very powerful but unwieldy melee weapon or a terrible chainsaw.",
     "weight": "4500 g",
     "volume": "2500 ml",
     "longest_side": "25 cm",
@@ -132,7 +132,7 @@
     "charges_per_use": 0,
     "revert_to": "electric_masonrysaw_off",
     "techniques": [ "SWEEP" ],
-    "qualities": [ [ "AXE", 3 ], [ "BUTCHER", -100 ] ],
+    "qualities": [ [ "BUTCHER", -100 ] ],
     "use_action": [
       {
         "type": "effect_on_conditions",
@@ -259,7 +259,7 @@
     "charges_per_use": 0,
     "revert_to": "heavy_masonrysaw_off",
     "techniques": [ "SWEEP" ],
-    "qualities": [ [ "AXE", 3 ], [ "BUTCHER", -100 ] ],
+    "qualities": [ [ "BUTCHER", -100 ] ],
     "use_action": { "target": "heavy_masonrysaw_off", "msg": "The %s goes quiet.", "menu_text": "Turn off", "type": "transform" },
     "tick_action": {
       "type": "effect_on_conditions",

@@ -88,7 +88,7 @@
       [ [ "copper_fragment", 50 ] ],
       [ [ "bearing", 20 ] ],
       [ [ "battery_car", 2 ] ],
-      [ [ "motor_tiny", 2 ] ],
+      [ [ "motor_small", 2 ] ],
       [ [ "well_pump", 2 ] ],
       [ [ "hinge", 12 ] ],
       [ [ "spring", 2 ] ],
@@ -102,7 +102,7 @@
     ]
   },
   {
-    "result": "12000_gasoline_generator",
+    "result": "gasoline_generator",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
     "time": "2 h",

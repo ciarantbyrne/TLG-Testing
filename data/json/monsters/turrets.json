@@ -23,7 +23,17 @@
     "special_attacks": [
       {
         "type": "gun",
-        "condition": { "not": { "u_has_effect": "blind" } },
+        "condition": {
+          "and": [
+            { "test_eoc": "is_disarmed" },
+            { "not": { "u_has_effect": "maimed_arm" } },
+            { "not": { "u_has_flag": "grab" } },
+            { "not": { "u_has_flag": "grab_filter" } },
+            { "not": { "u_has_effect": "blind" } },
+            { "not": { "u_has_flag": "webbed" } },
+            { "not": { "u_has_flag": "downed" } }
+          ]
+        },
         "cooldown": 1,
         "move_cost": 150,
         "gun_type": "hk_mp5",
@@ -67,6 +77,7 @@
     "melee_damage": [ { "damage_type": "cut", "amount": 0 } ],
     "luminance": 4,
     "special_attacks": [ [ "SEARCHLIGHT", 1 ] ],
+    "upgrades": { "half_life": 14, "into_group": "GROUP_EMPTY" },
     "death_drops": { "groups": [ [ "robots", 1 ], [ "turret_searchlight", 1 ] ] },
     "death_function": {
       "effect": { "id": "death_focused_beam", "hit_self": true },
@@ -113,7 +124,17 @@
     "special_attacks": [
       {
         "type": "gun",
-        "condition": { "not": { "u_has_effect": "blind" } },
+        "condition": {
+          "and": [
+            { "test_eoc": "is_disarmed" },
+            { "not": { "u_has_effect": "maimed_arm" } },
+            { "not": { "u_has_flag": "grab" } },
+            { "not": { "u_has_flag": "grab_filter" } },
+            { "not": { "u_has_effect": "blind" } },
+            { "not": { "u_has_flag": "webbed" } },
+            { "not": { "u_has_flag": "downed" } }
+          ]
+        },
         "cooldown": 1,
         "move_cost": 150,
         "gun_type": "m2browning",
@@ -175,7 +196,17 @@
     "special_attacks": [
       {
         "type": "gun",
-        "condition": { "not": { "u_has_effect": "blind" } },
+        "condition": {
+          "and": [
+            { "test_eoc": "is_disarmed" },
+            { "not": { "u_has_effect": "maimed_arm" } },
+            { "not": { "u_has_flag": "grab" } },
+            { "not": { "u_has_flag": "grab_filter" } },
+            { "not": { "u_has_effect": "blind" } },
+            { "not": { "u_has_flag": "webbed" } },
+            { "not": { "u_has_flag": "downed" } }
+          ]
+        },
         "cooldown": 1,
         "move_cost": 150,
         "gun_type": "m249",
@@ -237,7 +268,17 @@
     "special_attacks": [
       {
         "type": "gun",
-        "condition": { "not": { "u_has_effect": "blind" } },
+        "condition": {
+          "and": [
+            { "test_eoc": "is_disarmed" },
+            { "not": { "u_has_effect": "maimed_arm" } },
+            { "not": { "u_has_flag": "grab" } },
+            { "not": { "u_has_flag": "grab_filter" } },
+            { "not": { "u_has_effect": "blind" } },
+            { "not": { "u_has_flag": "webbed" } },
+            { "not": { "u_has_flag": "downed" } }
+          ]
+        },
         "cooldown": 1,
         "move_cost": 150,
         "gun_type": "m240",
@@ -296,15 +337,26 @@
     "vision_night": 3,
     "weakpoint_sets": [ "wps_turret" ],
     "revert_to_itype": "bot_turret_riot",
+    "upgrades": { "half_life": 14, "into_group": "GROUP_EMPTY" },
     "starting_ammo": { "40x46mm_m1006": 6 },
     "special_attacks": [
       {
         "type": "gun",
-        "condition": { "not": { "u_has_effect": "blind" } },
         "cooldown": 1,
         "move_cost": 150,
         "gun_type": "pseudo_m203",
         "ammo_type": "40x46mm_m1006",
+        "condition": {
+          "and": [
+            { "test_eoc": "is_disarmed" },
+            { "not": { "u_has_effect": "maimed_arm" } },
+            { "not": { "u_has_flag": "grab" } },
+            { "not": { "u_has_flag": "grab_filter" } },
+            { "not": { "u_has_effect": "blind" } },
+            { "not": { "u_has_flag": "webbed" } },
+            { "not": { "u_has_flag": "downed" } }
+          ]
+        },
         "fake_skills": [ [ "gun", 6 ], [ "rifle", 6 ], [ "launcher", 6 ] ],
         "fake_dex": 12,
         "ranges": [ [ 0, 30, "DEFAULT" ] ],

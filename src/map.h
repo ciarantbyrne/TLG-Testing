@@ -162,7 +162,8 @@ struct bash_params {
     bool did_bash = false;
     // Was anything destroyed?
     bool success = false;
-    // Did we bash furniture, terrain or vehicle
+    /* Did we bash furniture, terrain or vehicle? Note: I think this might
+       actually be unused now, but we can keep it in case a need arises. */
     bool bashed_solid = false;
     /*
      * Are we bashing this location from above?
@@ -1247,10 +1248,6 @@ class map
         bash_params bash( const tripoint_bub_ms &p, int str, bool silent = false,
                           bool destroy = false, bool bash_floor = false, bool fire = false,
                           const vehicle *bashing_vehicle = nullptr, bool crystalline_only = false );
-
-        // Effects of attacks/items
-        bool hit_with_acid( const tripoint_bub_ms &p );
-        bool hit_with_fire( const tripoint_bub_ms &p );
 
         /**
          * Returns true if there is furniture for which filter returns true in a 1 tile radius of p.

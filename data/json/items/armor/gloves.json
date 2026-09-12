@@ -39,7 +39,7 @@
     "warmth": 20,
     "material_thickness": 4,
     "environmental_protection": 3,
-    "flags": [ "VARSIZE", "OVERSIZE", "STURDY", "MITTS", "RAINPROOF" ],
+    "flags": [ "OVERSIZE", "STURDY", "MITTS", "RAINPROOF" ],
     "armor": [ { "encumbrance": 70, "coverage": 98, "covers": [ "hand_l", "hand_r" ] } ]
   },
   {
@@ -87,15 +87,6 @@
     "name": { "str": "chainmail gloves", "str_pl": "pairs of chainmail gloves" },
     "proportional": { "weight": 0.75, "volume": 0.75, "price": 0.5 },
     "extend": { "flags": [ "UNDERSIZE", "PREFIX_XS" ] }
-  },
-  {
-    "id": "chainmail_junk_gloves",
-    "type": "ITEM",
-    "subtypes": [ "ARMOR" ],
-    "copy-from": "chainmail_gloves",
-    "name": { "str": "chainmail gloves", "str_pl": "pairs of chainmail gloves" },
-    "replace_materials": { "steel_chain": "budget_steel_chain" },
-    "description": "A pair of gloves made of interlocking rings of low-quality steel wire."
   },
   {
     "id": "fire_gauntlets",
@@ -807,7 +798,7 @@
     "looks_like": "gloves_winter",
     "color": "blue",
     "warmth": 60,
-    "material_thickness": 3,
+    "material_thickness": 0.6,
     "armor": [ { "encumbrance": 20, "coverage": 100, "covers": [ "hand_l", "hand_r" ] } ]
   },
   {
@@ -845,7 +836,7 @@
     "looks_like": "gloves_wool",
     "color": "blue",
     "warmth": 40,
-    "material_thickness": 3,
+    "material_thickness": 0.6,
     "flags": [ "ALLOWS_NATURAL_ATTACKS" ],
     "armor": [
       {
@@ -1091,7 +1082,7 @@
     "looks_like": "gloves_wool",
     "color": "blue",
     "warmth": 70,
-    "material_thickness": 1,
+    "material_thickness": 0.6,
     "flags": [ "UNRESTRICTED", "OUTER", "MITTS" ],
     "armor": [ { "encumbrance": 80, "coverage": 98, "covers": [ "hand_l", "hand_r" ] } ]
   },
@@ -1111,7 +1102,7 @@
     "looks_like": "gloves_wool",
     "color": "blue",
     "warmth": 70,
-    "material_thickness": 1,
+    "material_thickness": 0.6,
     "flags": [ "PREFIX_XS", "UNDERSIZE" ],
     "armor": [ { "encumbrance": 80, "coverage": 98, "covers": [ "hand_l", "hand_r" ] } ]
   },

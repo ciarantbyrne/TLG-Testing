@@ -243,7 +243,8 @@ constexpr inline int operator-( const T &lhs, const fatigue_levels &rhs )
     @details Sleep deprivation, distinct from fatigue, is defined in minutes. Although most
     calculations scale linearly, malus is bestowed only upon reaching the tiers defined below.
     Sleep deprivation is intended to scale with sleep-affecting mutations, but not generally
-    with stimulants. It is the mostly unavoidable consequence for avoiding sleep.
+    with drugs. A cat needs less sleep than a human. A meth addict, whatever they may believe,
+    does not. It is intended to be largely unavoidable.
     @note Sleep deprivation increases fatigue. Fatigue increase scales with the severity of sleep
     deprivation.
 */
@@ -776,6 +777,12 @@ class Character : public Creature, public visitable
         void set_fatigue( fatigue_levels nfatigue );
         void set_sleep_deprivation( int nsleep_deprivation );
 
+        /** Cache helpers for eye_level() */
+        mutable int cached_tile_eye_level_bonus = 0;
+        mutable bool cached_tile_eye_level_bonus_dirty = true;
+        int tile_eye_level_bonus() const;
+        void invalidate_tile_eye_level_cache() const;
+
     protected:
 
         // These accept values in calories, 1/1000s of kcals (or Calories)
@@ -1023,7 +1030,7 @@ class Character : public Creature, public visitable
         void update_needs( int rate_multiplier );
         needs_rates calc_needs_rates() const;
         void calc_sleep_recovery_rate( needs_rates &rates ) const;
-        /** Kills the player if too hungry, stimmed up etc., forces tired player to sleep and prints warnings. */
+        /** Kills the player if too hungry, forces tired player to sleep, and prints warnings. */
         void check_needs_extremes();
         /** Handles the chance to be infected by random diseases */
         void get_sick( bool is_flu = false );
@@ -1576,7 +1583,7 @@ class Character : public Creature, public visitable
           */
         bool enough_working_legs() const;
         /** Returns the number of functioning legs */
-        int get_working_leg_count() const;
+        int get_working_leg_count( bool quadruped_allowed = true ) const;
         /** Returns true if the limb is broken */
         bool is_limb_broken( const bodypart_id &limb ) const;
         /** source of truth of whether a Character can run */
@@ -1715,7 +1722,7 @@ class Character : public Creature, public visitable
 
         /** Picks a random valid mutation and gives it to the Character, possibly removing/changing others along the way */
         void mutate( const int &true_random_chance, bool use_vitamins );
-        void mutate( );
+        void mutate();
         /** Returns true if the player doesn't have the mutation or a conflicting one and it complies with the allowed typing */
         bool mutation_ok( const trait_id &mutation, bool allow_good, bool allow_bad, bool allow_neutral,
                           const vitamin_id &mut_vit ) const;
@@ -2504,8 +2511,9 @@ class Character : public Creature, public visitable
         /** Returns all items that must be taken off before taking off this item */
         std::list<item *> get_dependent_worn_items( const item &it );
         /** Drops an item to the specified location */
-        void drop( item_location loc, const tripoint_bub_ms &where );
-        virtual void drop( const drop_locations &what, const tripoint_bub_ms &target, bool stash = false );
+        void drop( item_location loc, const tripoint_bub_ms &where, bool peeking = false );
+        virtual void drop( const drop_locations &what, const tripoint_bub_ms &target, bool stash = false,
+                           bool peeking = false );
         /** Assigns character activity to pick up items from the given drop_locations.
          *  Requires sufficient storage; items cannot be wielded or worn from this activity.
          */
@@ -3216,10 +3224,6 @@ class Character : public Creature, public visitable
         std::map<bodypart_id, int> get_all_armor_type( const damage_type_id &dt,
                 const std::map<bodypart_id, std::vector<const item *>> &clothing_map ) const;
 
-        int get_stim() const;
-        void set_stim( int new_stim );
-        void mod_stim( int mod );
-
         int get_rad() const;
         void set_rad( int new_rad );
         void mod_rad( int mod );
@@ -3357,11 +3361,14 @@ class Character : public Creature, public visitable
         scenttype_id get_type_of_scent() const;
         /**restore scent after masked_scent effect run out or is removed by water*/
         void restore_scent();
-        /** Modifies intensity of painkillers  */
-        void mod_painkiller( int npkill );
-        /** Sets intensity of painkillers  */
+
+        /** Modifies intensity of painkillers from a given source.  */
+        void mod_painkiller( const efftype_id &source, int amount, int max );
+        /** Sets intensity of painkillers.  */
         void set_painkiller( int npkill );
-        /** Returns intensity of painkillers  */
+        /** Recalculates painkillers from all effects. */
+        void recalculate_painkiller();
+        /** Returns intensity of painkillers.  */
         int get_painkiller() const;
         void react_to_felt_pain( int intensity );
 
@@ -4308,8 +4315,13 @@ class Character : public Creature, public visitable
         bool cache_inventory_is_valid = false;
         mutable bool using_lifting_assist = false;
 
-        int stim;
-        int pkill;
+        struct pkill_source {
+            efftype_id source;
+            int amount;
+        };
+
+        int pkill;                 // Current overall painkiller value.
+        std::vector<pkill_source> pkill_sources;  // Contributions per effect.
 
         int bp_effect_mod = 0;
         int heart_rate_effect_mod = 0;

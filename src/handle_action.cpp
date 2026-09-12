@@ -598,7 +598,7 @@ static void auto_features_warn()
     }
 }
 
-// Establish or release a grab on a vehicle
+// Establish or release a grab on a vehicle, furniture, or creature.
 static void grab()
 {
     avatar &you = get_avatar();
@@ -645,6 +645,15 @@ static void grab()
         }
     }
     if( creatures.creature_at( grabp ) && !creatures.creature_at( grabp )->is_hallucination() ) {
+        Creature *target = creatures.creature_at( grabp );
+        if( ( you.is_underwater() && !target->is_underwater() ) ||
+            ( !you.is_underwater() && target->is_underwater() ) ) {
+            if( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, you.pos_bub() ) ||
+                here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, grabp ) ) {
+                add_msg( _( "You can't grab through the floor." ) );
+                return;
+            }
+        }
         if( you.is_armed() ) {
             add_msg( _( "You'll need your hands free for grappling." ) );
             return;
@@ -655,11 +664,10 @@ static void grab()
         }
         // TODO: Dynamically calculate stamina cost.
         if( you.get_stamina() < 400 ) {
-            you.add_msg_if_player( ( "You're too exhausted to wrestle anything." ) );
+            you.add_msg_if_player( _( "You're too exhausted to wrestle anything." ) );
             return;
         }
-        if( creatures.creature_at( grabp )->is_monster() &&
-            creatures.creature_at( grabp )->as_monster()->has_flag( mon_flag_GRAB_IMMUNE ) ) {
+        if( target->is_monster() && target->as_monster()->has_flag( mon_flag_GRAB_IMMUNE ) ) {
             add_msg( _( "You can't grab %s." ), creatures.creature_at( grabp )->disp_name() );
             return;
         }
@@ -676,18 +684,19 @@ static void grab()
 
         bool tolerate = false;
         // Friends will tolerate grabs, enemies are already mad. Neutral NPCs will not tolerate grabs unless they are helpless.
-        if( creatures.creature_at( grabp )->is_npc() ) {
-            tolerate = creatures.creature_at( grabp )->as_npc()->is_player_ally() ||
-                       creatures.creature_at( grabp )->as_npc()->is_enemy() ||
-                       creatures.creature_at( grabp )->as_npc()->has_effect( effect_narcosis ) ||
-                       !creatures.creature_at( grabp )->as_npc()->enough_working_legs();
+        if( target->is_npc() ) {
+            npc *target_npc = target->as_npc();
+            tolerate = target_npc->is_player_ally() ||
+                       target_npc->is_enemy() ||
+                       target_npc->has_effect( effect_narcosis ) ||
+                       !target_npc->enough_working_legs();
             // You can grab your pets.
-        } else if( creatures.creature_at( grabp )->is_monster() ) {
-            tolerate = creatures.creature_at( grabp )->as_monster()->is_pet();
+        } else if( target->is_monster() ) {
+            tolerate = target->as_monster()->is_pet();
         }
 
-        if( creatures.creature_at( grabp )->is_npc() && !tolerate ) {
-            if( !query_yn( _( "Really attack %s?" ), creatures.creature_at( grabp )->disp_name() ) ) {
+        if( target->is_npc() && !tolerate ) {
+            if( !query_yn( _( "Really attack %s?" ), target->disp_name() ) ) {
                 return;
             }
         }
@@ -696,8 +705,8 @@ static void grab()
         item weap =  null_item_reference();
         you.mod_moves( -100 - you.attack_speed( weap ) / weary_mult );
         you.as_character()->burn_energy_arms( -120 );
-        if( creatures.creature_at( grabp )->is_monster() ) {
-            monster *z = creatures.creature_at( grabp )->as_monster();
+        if( target->is_monster() ) {
+            monster *z = target->as_monster();
             // TODO: Force this to use unarmed skill for one-handed or multilimb grabs. Will need to
             // write an optional member into hit_roll to name a weapon skill.
             // TODO TWO: Grabbing with whip-type weapons? Definitely no one should tolerate that.
@@ -716,7 +725,7 @@ static void grab()
                     accuracy_penalty = -8.0f;
                 }
             }
-            int hitspread = creatures.creature_at( grabp )->deal_melee_attack( you.as_character(),
+            int hitspread = target->deal_melee_attack( you.as_character(),
                             you.as_character()->hit_roll() + accuracy_penalty );
             if( hitspread < 0 && !tolerate ) {
                 add_msg( m_warning, _( "You reach for %s, but fail to make contact!" ), z->disp_name() );
@@ -730,9 +739,9 @@ static void grab()
             you.add_effect( effect_grabbing, 1_days, true, 1 );
             you.grab_1.set( victimptr, grab_strength );
         } else {
-            Character *guy = creatures.creature_at( grabp )->as_character();
+            Character *guy = target->as_character();
             if( guy->is_npc() && !tolerate ) {
-                int hitspread = creatures.creature_at( grabp )->deal_melee_attack( you.as_character(),
+                int hitspread = target->deal_melee_attack( you.as_character(),
                                 you.as_character()->hit_roll() );
                 if( hitspread < 0 ) {
                     add_msg( m_warning, _( "You reach for %s, but fail to make contact!" ), guy->disp_name() );
@@ -1813,12 +1822,12 @@ static void fire()
         reach_attack( you );
         return;
     }
-    // try firing gun
+    // Try firing gun.
     if( weapon && weapon->is_gun() && !weapon->gun_current_mode().melee() ) {
         avatar_action::fire_wielded_weapon( you );
         return;
     }
-    // try firing turrets
+    // Try firing turrets.
     if( const optional_vpart_position ovp = here.veh_at( you.pos_abs() ) ) {
         if( turret_data turret_here = ovp->vehicle().turret_query( you.pos_abs() ) ) {
             if( avatar_action::fire_turret_manual( you, here, turret_here ) ) {
@@ -1830,7 +1839,7 @@ static void fire()
             }
         }
     }
-    // offer to draw a gun from worn holster
+    // Offer to draw a gun from worn holster.
     std::vector<std::string> options;
     std::vector<std::function<void()>> actions;
     you.worn.fire_options( you, options, actions );
@@ -2974,12 +2983,6 @@ bool game::do_regular_action( action_id &act, avatar &player_character,
         case ACTION_TOGGLE_AUTO_PULP_BUTCHER:
             // Set Auto pulp or butcher to x
             set_next_option( "AUTO_PULP_BUTCHER" );
-            auto_features_warn();
-            break;
-
-        case ACTION_TOGGLE_AUTO_MINING:
-            // Set Auto Mining to x
-            set_next_option( "AUTO_MINING" );
             auto_features_warn();
             break;
 

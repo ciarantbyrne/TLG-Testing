@@ -785,7 +785,6 @@ std::optional<int> iuse::antiparasitic( Character *p, item *, const tripoint_bub
 
 std::optional<int> iuse::anticonvulsant( Character *p, item *, const tripoint_bub_ms & )
 {
-    p->add_msg_if_player( _( "You take some anticonvulsant medication." ) );
     /** @EFFECT_STR reduces duration of anticonvulsant medication */
     time_duration duration = 8_hours - p->str_cur * rng( 0_turns, 10_minutes );
     if( p->has_trait( trait_TOLERANCE ) ) {
@@ -989,7 +988,6 @@ std::optional<int> iuse::oxygen_bottle( Character *p, item *it, const tripoint_b
     } else if( p->has_effect( effect_asthma ) ) {
         p->remove_effect( effect_asthma );
     }
-    p->mod_painkiller( 2 );
     return 1;
 }
 
@@ -1226,7 +1224,6 @@ static void marloss_common( Character &p, item &it, const trait_id &current_colo
         p.mod_fatigue( 5 );
     } else if( effect <= 6 ) { // Radiation cleanse is below
         p.add_msg_if_player( m_good, _( "You feel better all over." ) );
-        p.mod_painkiller( 30 );
         p.mod_pain( -40 );
         if( effect == 6 ) {
             p.set_rad( 0 );
@@ -1377,7 +1374,6 @@ std::optional<int> iuse::mycus( Character *p, item *, const tripoint_bub_ms & )
         p->add_msg_if_player( m_neutral,
                               _( "It tastes amazing, and you finish it quickly." ) );
         p->add_msg_if_player( m_good, _( "You feel better all over." ) );
-        p->mod_painkiller( 30 );
         p->set_rad( 0 );
         p->healall( 4 ); // Can't make you a whole new person, but not for lack of trying
         p->add_msg_if_player( m_good,
@@ -1444,9 +1440,9 @@ std::optional<int> iuse::mycus( Character *p, item *, const tripoint_bub_ms & )
             p->mod_fatigue( 5 );
             p->add_morale( morale_marloss, 25, 200 ); // still covers up mutation pain
         }
-    } else if( p->has_trait( trait_THRESH_MYCUS ) ) {
-        p->mod_painkiller( 5 );
-    } else { // In case someone gets one without having been adapted first.
+    }
+    if( !p->has_trait( trait_THRESH_MYCUS ) ) {
+        // In case someone gets one without having been adapted first.
         // Marloss is the Mycus' method of co-opting humans.  Mycus fruit is for symbiotes' maintenance and development.
         p->add_msg_if_player(
             _( "This tastes really weird!  You're not sure it's good for you…" ) );
@@ -1539,7 +1535,7 @@ std::optional<int> iuse::petfood( Character *p, item *it, const tripoint_bub_ms 
         if( petfood.feed.empty() ) {
             p->add_msg_if_player( m_good, _( "The %1$s is your pet now!" ), mon->get_name() );
         } else {
-            p->add_msg_if_player( m_good, petfood.feed, mon->get_name() );
+            p->add_msg_if_player( m_good, _( petfood.feed ), mon->get_name() );
         }
 
         mon->friendly = -1;
@@ -1797,7 +1793,7 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             return 0;
         }
 
-        //get the fishables around the trap's spot
+        // Get the fishables around the trap's spot.
         std::unordered_set<tripoint_bub_ms> fishable_locations = g->get_fishable_locations_bub(
                     MAX_VIEW_DISTANCE, pos );
         std::vector<monster *> fishables = g->get_fishable_monsters( fishable_locations );
@@ -1805,31 +1801,23 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             player.practice( skill_survival, rng( 3, 10 ) );
             if( !fishables.empty() ) {
                 monster *chosen_fish = random_entry( fishables );
-                // reduce the abstract fish_population marker of that fish
+                // Reduce the abstract fish_population marker of that fish.
                 chosen_fish->fish_population -= 1;
                 if( chosen_fish->fish_population <= 0 ) {
-                    g->catch_a_monster( chosen_fish, pos, p, 300_hours ); //catch the fish!
+                    g->catch_a_monster( chosen_fish, pos, p ); // Catch the fish!
                 } else {
                     here.add_item_or_charges( pos, item::make_corpse( chosen_fish->type->id,
-                                              calendar::turn + rng( 0_turns,
-                                                      3_hours ) ) );
+                                              calendar::turn ) );
                 }
             } else {
-                //there will always be a chance that the player will get lucky and catch a fish
-                //not existing in the fishables vector. (maybe it was in range, but wandered off)
-                //lets say it is a 5% chance per fish to catch
+                // There will always be a chance that the player will get lucky and catch a fish
+                // not existing in the fishables vector, as fish can always be hiding or whatever.
                 if( one_in( 20 ) ) {
                     const std::vector<mtype_id> fish_group = MonsterGroupManager::GetMonstersFromGroup(
                                 GROUP_FISH, true );
                     const mtype_id &fish_mon = random_entry_ref( fish_group );
-                    //Yes, we can put fishes in the trap like knives in the boot,
-                    //and then get fishes via activation of the item,
-                    //but it's not as comfortable as if you just put fishes in the same tile with the trap.
-                    //Also: corpses and comestibles do not rot in containers like this, but on the ground they will rot.
-                    //we don't know when it was caught so use a random turn
-                    here.add_item_or_charges( pos, item::make_corpse( fish_mon, it->birthday() + rng( 0_turns,
-                                              3_hours ) ) );
-                    break; //this can happen only once
+                    here.add_item_or_charges( pos, item::make_corpse( fish_mon, calendar::turn ) );
+                    break;
                 }
             }
         }
@@ -3135,6 +3123,9 @@ std::optional<int> iuse::molotov_lit( Character *p, item *it, const tripoint_bub
         const time_duration target_duration = 1_minutes;
         const time_duration base_age = ( fd_fire->half_life / 2 ) - target_duration;
         for( const tripoint_bub_ms &pt : here.points_in_radius( pos, 2, 0 ) ) {
+            if( here.clear_path( pos, pt, 2, 1, 100 ) && one_in( 3 ) ) {
+                here.add_field( pt, fd_fuel );
+            }
             if( here.clear_path( pos, pt, 2, 1, 100 ) && one_in( 2 ) ) {
                 here.add_field( pt, fd_fire, rng( 1, 2 ), base_age );
             }
@@ -4665,7 +4656,7 @@ std::optional<int> iuse::spray_can( Character *p, item *it, const tripoint_bub_m
             if( critter->in_species( species_ROBOT ) ) {
                 critter->add_effect( effect_blind, rng( 5_seconds, 10_seconds ) );
             } else {
-                critter->add_effect( effect_blind, rng( 3_seconds, 6_seconds ) );
+                critter->add_effect( effect_blind, rng( 4_seconds, 8_seconds ) );
             }
         }
         viewer &player_view = get_player_view();
@@ -4926,7 +4917,6 @@ std::optional<int> iuse::jet_injector( Character *p, item *it, const tripoint_bu
         p->add_msg_if_player( _( "You inject yourself with the jet injector." ) );
         // Intensity is 2 here because intensity = 1 is the comedown
         p->add_effect( effect_jetinjector, 20_minutes, false, 2 );
-        p->mod_painkiller( 20 );
         p->healall( 5 );
         p->vitamin_mod( vitamin_amphetamine, 18 );
     }
@@ -4954,7 +4944,6 @@ std::optional<int> iuse::stimpack( Character *p, item *it, const tripoint_bub_ms
         p->add_msg_if_player( _( "You inject yourself with the stimulants." ) );
         // Intensity is 2 here because intensity = 1 is the comedown.
         p->add_effect( effect_stimpack, 25_minutes, false, 2 );
-        p->mod_painkiller( 2 );
         p->mod_fatigue( -100 );
         p->mod_stamina( p->get_stamina_max() * 0.20 ); // 20% of max stamina.
         p->vitamin_mod( vitamin_amphetamine, 10 );
@@ -6198,20 +6187,16 @@ static void item_save_monsters( Character &p, item &it, const std::vector<monste
     if( monster_photos.empty() ) {
         monster_photos = ",";
     }
-
     for( monster * const &monster_p : monster_vec ) {
         const std::string mtype = monster_p->type->id.str();
         const std::string name = monster_p->name();
-
-        // position of <monster type string>
+        // Position of <monster type string>
         const size_t mon_str_pos = monster_photos.find( "," + mtype + "," );
-
-        // monster gets recorded by the character, add to known types
+        // Monster gets recorded by the character, add to known types.
         p.set_knows_creature_type( monster_p->type->id );
-
-        if( mon_str_pos == std::string::npos ) { // new monster
+        if( mon_str_pos == std::string::npos ) { // New monster.
             monster_photos += string_format( "%s,%d,", mtype, photo_quality );
-        } else { // replace quality character, if new photo is better
+        } else { // Replace quality character, if new photo is better.
             const size_t quality_num_pos = mon_str_pos + mtype.size() + 2;
             const size_t next_comma = monster_photos.find( ',', quality_num_pos );
             const int old_quality =
@@ -6382,7 +6367,6 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
         tripoint_bub_ms aim_point{ *aim_point_ };
         bool incorrect_focus = false;
         tripoint_range<tripoint_bub_ms> aim_bounds = here.points_in_radius( aim_point, 2 );
-
         std::vector<tripoint_bub_ms> trajectory = line_to( p->pos_bub(), aim_point, 0, 0 );
         trajectory.push_back( aim_point );
 
@@ -6408,8 +6392,7 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
             monster *const mon = creatures.creature_at<monster>( trajectory_point, true );
             Character *const guy = creatures.creature_at<Character>( trajectory_point );
             if( mon || guy || trajectory_point == aim_point ) {
-                int dist = rl_dist( p->pos_bub(), trajectory_point );
-
+                int dist = trig_dist( p->pos_bub(), trajectory_point );
                 int camera_bonus = it->has_flag( flag_CAMERA_PRO ) ? 10 : 0;
                 int photo_quality = 20 - rng( dist, dist * 2 ) * 2 + rng( camera_bonus / 2, camera_bonus );
                 if( photo_quality > 5 ) {
@@ -6421,10 +6404,8 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                 if( p->is_blind() ) {
                     photo_quality /= 2;
                 }
-
                 if( mon ) {
                     monster &z = *mon;
-
                     // shoot past small monsters and hallucinations
                     if( trajectory_point != aim_point && ( z.type->size <= creature_size::small ||
                                                            z.is_hallucination() ||
@@ -6438,7 +6419,7 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                     } else if( trajectory_point != aim_point ) { // shoot past mon that will be in photo anyway
                         continue;
                     }
-                    // get a special message if the target is a hallucination
+                    // Get a special message if the target is a hallucination.
                     if( trajectory_point == aim_point && ( z.is_hallucination() ||
                                                            z.type->in_species( species_HALLUCINATION ) ) ) {
                         p->add_msg_if_player( _( "Strange… there's nothing in the center of this picture?" ) );
@@ -6447,10 +6428,10 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                     if( trajectory_point == aim_point && guy->is_hallucination() ) {
                         p->add_msg_if_player( _( "Strange… %s isn't visible on the picture?" ), guy->get_name() );
                     } else if( !aim_bounds.is_point_inside( trajectory_point ) ) {
-                        // take a photo of the monster that's in the way
+                        // Take a photo of the monster that's in the way.
                         p->add_msg_if_player( m_warning, _( "%s got in the way of your photo." ), guy->get_name() );
                         incorrect_focus = true;
-                    } else if( trajectory_point != aim_point ) {  // shoot past guy that will be in photo anyway
+                    } else if( trajectory_point != aim_point ) {  // Shoot past guy that will be in photo anyway.
                         continue;
                     }
                 }
@@ -7221,7 +7202,7 @@ std::optional<int> iuse::sextant( Character *p, item *, const tripoint_bub_ms &p
     if( debug_mode ) {
         // Debug mode always shows all sun angles
         const float azimuth = to_degrees( sun_position.first );
-        p->add_msg_if_player( m_neutral, "Sun altitude %.1f°, azimuth %.1f°", altitude, azimuth );
+        p->add_msg_if_player( m_neutral, _( "Sun altitude %.1f°, azimuth %.1f°" ), altitude, azimuth );
     } else if( g->is_sheltered( pos ) ) {
         p->add_msg_if_player( m_neutral, _( "You can't see the Sun from here." ) );
     } else if( altitude > 0 ) {

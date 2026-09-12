@@ -125,7 +125,7 @@ std::string durability( item const &it, unsigned int /* quantity */,
 std::string wheel_diameter( item const &it, unsigned int /* quantity */,
                             segment_bitset const &/* segments */ )
 {
-    if( it.is_wheel() && it.type->wheel->diameter > 0 ) {
+    if( it.is_wheel() && !it.is_tool() && it.type->wheel->diameter > 0 ) {
         return string_format( pgettext( "vehicle adjective", "%d\" " ), it.type->wheel->diameter );
     }
     return {};
@@ -376,9 +376,7 @@ std::string food_status( item const &it, unsigned int /* quantity */,
 {
     std::string tagtext;
     if( it.goes_bad() || it.is_food() ) {
-        if( it.has_own_flag( flag_DIRTY ) ) {
-            tagtext += _( " (dirty)" );
-        } else if( it.rotten() ) {
+        if( it.rotten() ) {
             tagtext += _( " (rotten)" );
         } else if( it.has_flag( flag_MUSHY ) ) {
             tagtext += _( " (mushy)" );

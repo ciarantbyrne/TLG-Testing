@@ -365,13 +365,14 @@ bool aim_activity_actor::check_gun_ability_to_shoot( Character &who, item &it )
 {
 
     if( it.has_fault_flag( "RUINED_GUN" ) ) {
-        who.add_msg_if_player( m_bad, _( "Your %s is little more than an awkward club now." ), it.tname() );
+        who.add_msg_if_player( m_bad, _( "Your %s is completely ruined.  It will never fire again." ),
+                               it.tname() );
         return false;
     }
 
-    // if it's a simple fault, character can try to fix it on the fly
+    // If it's a simple fault, character can try to fix it on the fly.
     if( faults::random_of_type_item_has( it, gun_mechanical_simple ) != fault_id::NULL_ID() ) {
-        // fixing fault should cost more than 1 second
+        // Fixing fault should cost more than 1 second
         // but until game running the next activity actor without ever verifying
         // was the previous one successful or not will be resolved,
         // it would be safer to limit it somewhat
@@ -379,21 +380,22 @@ bool aim_activity_actor::check_gun_ability_to_shoot( Character &who, item &it )
         who.recoil = MAX_RECOIL;
         if( one_in( std::max( 7.0f, ( 15.0f - ( 4.0f * who.get_skill_level( skill_gun ) ) ) ) ) ) {
             who.add_msg_if_player( m_good,
-                                   _( "Your %s has some mechanical malfunction.  You tried to quickly fix it, and it works now!" ),
+                                   _( "You quickly fix your malfunctioning %s." ),
                                    it.tname() );
             it.remove_single_fault_of_type( gun_mechanical_simple );
             it.set_var( "u_know_round_in_chamber", true );
         } else {
             who.add_msg_if_player( m_bad,
-                                   _( "Your %s has some mechanical malfunction.  You tried to quickly fix it, but failed!" ),
+                                   _( "Your %s has a mechanical malfunction.  You try to quickly fix it, but fail!" ),
                                    it.tname() );
             return false;
         }
     }
-
+    // TODO: Add a cooling safety override mod.
+    // TODO ALSO: Add a craftable mod for a better cooling system.
     if( it.has_fault_flag( "OVERHEATED_GUN" ) ) {
         who.add_msg_if_player( m_warning,
-                               _( "Your %s is too hot, and little screen signalizes the gun is inoperable." ), it.tname() );
+                               _( "Your %s is too hot and will not fire until it has cooled." ), it.tname() );
         return false;
     }
 
@@ -881,8 +883,8 @@ static hack_result hack_attempt( Character &who, item_location &tool )
         who.practice( skill_computer, 20 );
     }
 
-    // only skilled supergenius never cause short circuits, but the odds are low for people
-    // with moderate skills
+    // Only skilled supergeniuses never cause short circuits, but the odds are low for people
+    // with moderate skills.
     const int hack_stddev = 5;
     int success = std::ceil( normal_roll( hack_level( who, tool ), hack_stddev ) );
     if( success < 0 ) {
@@ -1804,7 +1806,7 @@ void read_activity_actor::do_turn( player_activity &act, Character &who )
         who.burn_energy_all( -1 );
     }
 
-    // do not spam the message log
+    // Do not spam the message log.
     if( calendar::once_every( 5_minutes ) ) {
         add_msg_debug( debugmode::DF_ACT_READ, "%s reading time = %s",
                        who.name, to_string_writable( time_duration::from_moves( act.moves_left ) ) );
@@ -1930,7 +1932,7 @@ bool read_activity_actor::player_read( avatar &you )
         const int book_fun = learner->book_fun_for( *book, *learner );
         if( book_fun != 0 ) {
             learner->add_morale( morale_book,
-                                 book_fun, book_fun * 10,
+                                 book_fun, book_fun,
                                  2_hours, 1_hours, true,
                                  book->type );
         }
@@ -3344,7 +3346,7 @@ void efile_activity_actor::completed_processing_current_efile( player_activity &
                 const item &new_efile = efile;
                 added_efile = new_efile;
             }
-            //instead of moving the recipe e-file, instead try to combine it with an existing one
+            // Instead of moving the recipe e-file, instead try to combine it with an existing one.
             if( added_efile.typeId()->memory_card_data ) {
                 item *edevice_recipe_catalog = edevice->get_recipe_catalog();
                 if( edevice_recipe_catalog != nullptr ) {
@@ -3797,8 +3799,7 @@ static void rod_fish( Character &who, const std::vector<monster *> &fishables )
     map &here = get_map();
     constexpr auto caught_corpse = []( Character & who, map & here, const mtype & corpse_type ) {
         item corpse = item::make_corpse( corpse_type.id,
-                                         calendar::turn + rng( 0_turns,
-                                                 3_hours ) );
+                                         calendar::turn );
         corpse.set_var( "activity_var", who.name );
         item_location loc = here.add_item_or_charges_ret_loc( who.pos_bub(), corpse );
         if( who.is_avatar() ) {
@@ -3808,23 +3809,25 @@ static void rod_fish( Character &who, const std::vector<monster *> &fishables )
             who.may_activity_occupancy_after_end_items_loc.push_back( loc );
         }
     };
-    //if the vector is empty (no fish around) the player is still given a small chance to get a (let us say it was hidden) fish
+    // If the vector is empty (no fish around) the player is still given a small chance to get a (let us say it was hidden) fish.
     if( fishables.empty() ) {
         const std::vector<mtype_id> fish_group = MonsterGroupManager::GetMonstersFromGroup(
                     GROUP_FISH, true );
         const mtype_id fish_mon = random_entry_ref( fish_group );
         caught_corpse( who, here, fish_mon.obj() );
+        who.practice( skill_survival, 10, 5 );
     } else {
         monster *chosen_fish = random_entry( fishables );
         chosen_fish->fish_population -= 1;
         if( chosen_fish->fish_population <= 0 ) {
             Character *who_ptr = &who;
-            g->catch_a_monster( chosen_fish, who.pos_bub(), who_ptr, 50_hours );
+            g->catch_a_monster( chosen_fish, who.pos_bub(), who_ptr );
         } else {
             if( chosen_fish->type != nullptr ) {
                 caught_corpse( who, here, *( chosen_fish->type ) );
             }
         }
+        who.practice( skill_survival, 10, 5 );
     }
 }
 
@@ -3878,8 +3881,8 @@ void fish_activity_actor::do_turn( player_activity &, Character &who )
         who.add_msg_if_player( m_good, _( "You feel a tug on your line!" ) );
         rod_fish( who, fishables );
     }
-    if( calendar::once_every( 60_minutes ) ) {
-        who.practice( skill_survival, rng( 1, 3 ) );
+    if( calendar::once_every( 10_minutes ) ) {
+        who.practice( skill_survival, 10, 5 );
     }
 }
 
@@ -3982,10 +3985,8 @@ std::unique_ptr<activity_actor> open_gate_activity_actor::deserialize( JsonValue
 void consume_activity_actor::start( player_activity &act, Character &guy )
 {
     int moves = 0;
-    Character &player_character = get_player_character();
-    //TODO: why use both `player_character` and `guy`?
-    auto player_will_eat = [this, &moves, &player_character, &guy]( const item & it ) {
-        ret_val<edible_rating> ret = player_character.will_eat( it, true );
+    auto character_will_eat = [this, &moves, &guy]( const item & it ) {
+        ret_val<edible_rating> ret = guy.will_eat( it, true );
         if( !ret.success() ) {
             canceled = true;
             uistate.consume_uistate.clear();
@@ -3995,9 +3996,9 @@ void consume_activity_actor::start( player_activity &act, Character &guy )
     };
 
     if( consume_location ) {
-        player_will_eat( *consume_location );
+        character_will_eat( *consume_location );
     } else if( !consume_item.is_null() ) {
-        player_will_eat( consume_item );
+        character_will_eat( consume_item );
     } else {
         debugmsg( "Item/location to be consumed should not be null." );
         canceled = true;
@@ -5297,7 +5298,7 @@ void harvest_activity_actor::finish( player_activity &act, Character &who )
     bool got_anything = false;
     for( const harvest_entry &entry : here.get_harvest( target ).obj() ) {
         /* Assuming perfect visibility and 10 perception, entry.difficulty is the
-           survival skill that would be required to reach the cap. 0 entry.difficulty
+           ecology skill that would be required to reach the cap. 0 entry.difficulty
            bypasses the hard cap. */
         int difficulty = entry.difficulty * 3 + 13;
         int forage_roll = rng( 0, difficulty );
@@ -5585,7 +5586,7 @@ static void stop_grab( Character &who )
     if( avatar *a = dynamic_cast<avatar *>( &who ) ) {
         a->grab( object_type::NONE );
     } else {
-        debugmsg( "who in grabbing is not an avatar??" );
+        debugmsg( "A non-player character is grabbing somehow." );
     }
 }
 
@@ -6831,13 +6832,13 @@ void play_with_pet_activity_actor::finish( player_activity &act, Character &who 
     if( !who.has_trait( trait_PSYCHOPATH ) && !who.has_trait( trait_NUMB ) ) {
         who.add_morale( morale_play_with_pet, 10, 10, 5_hours, 25_minutes );
         if( !playstr.empty() ) {
-            who.add_msg_if_player( m_good, playstr, pet_name );
+            who.add_msg_if_player( m_good, _( playstr ), pet_name );
         }
         who.add_msg_if_player( m_good, _( "Playing with your %s has lifted your spirits a bit." ),
                                pet_name );
     } else {
         if( !playstr.empty() ) {
-            who.add_msg_if_player( m_good, playstr, pet_name );
+            who.add_msg_if_player( m_good, _( playstr ), pet_name );
         }
         who.add_msg_if_player( _( "Your %s seems to enjoy the interaction, but you feel nothing." ),
                                pet_name );
@@ -7528,6 +7529,7 @@ void chop_logs_activity_actor::finish( player_activity &act, Character &who )
             who.may_activity_occupancy_after_end_items_loc.push_back( loc );
         }
     }
+    who.practice( skill_survival, 5, 4 );
     here.ter_set( pos, ter_t_dirt );
     who.add_msg_if_player( m_good, _( "You finish chopping wood." ) );
 
@@ -7682,7 +7684,7 @@ void chop_tree_activity_actor::finish( player_activity &act, Character &who )
             }
         }
     }
-    who.practice( skill_survival, 3, 3 );
+    who.practice( skill_survival, 20, 4 );
     here.cut_down_tree( pos, direction.xy() );
 
     who.add_msg_if_player( m_good, _( "You finish chopping down a tree." ) );
@@ -9098,7 +9100,7 @@ void pulp_activity_actor::do_turn( player_activity &act, Character &you )
 
     float pulp_power = sqrt( adjusted_bash + adjusted_cut + adjusted_stab + you.get_arm_str() );
 
-    // Multiplier to get the chance right + some bonus for survival skill.
+    // Multiplier to get the chance right + some bonus for ecology skill.
     pulp_power *= 20 + you.get_skill_level( skill_survival ) * 5;
     int moves = 0;
     for( auto pos_iter = placement.cbegin(); pos_iter != placement.end();/*left - out*/ ) {
@@ -9160,7 +9162,7 @@ void pulp_activity_actor::do_turn( player_activity &act, Character &you )
                 }
 
                 // Mix of Isaac Clarke stomps and swinging your weapon.
-                you.burn_energy_all( -you.get_standard_stamina_cost() );
+                you.burn_energy_all( you.get_base_melee_stamina_cost() );
 
                 you.recoil = MAX_RECOIL;
 

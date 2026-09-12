@@ -53,7 +53,7 @@
     "coverage": 30,
     "connect_groups": "WALL",
     "connects_to": "WALL",
-    "flags": [ "TRANSPARENT", "NOITEM", "PERMEABLE", "MINEABLE", "BURROWABLE" ],
+    "flags": [ "TRANSPARENT", "NOITEM", "PERMEABLE", "BURROWABLE" ],
     "bash": {
       "str_min": 60,
       "str_max": 210,
@@ -98,9 +98,9 @@
       "byproducts": [ { "item": "pipe", "count": 6 }, { "item": "wire", "count": [ 4, 20 ] } ]
     },
     "bash": {
-      "str_min": 7,
+      "str_min": 8,
       "str_max": 30,
-      "str_min_blocked": 7,
+      "str_min_blocked": 8,
       "str_max_blocked": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -134,9 +134,9 @@
       "byproducts": [ { "item": "pipe", "count": 6 }, { "item": "wire", "count": [ 4, 20 ] } ]
     },
     "bash": {
-      "str_min": 7,
+      "str_min": 8,
       "str_max": 30,
-      "str_min_blocked": 7,
+      "str_min_blocked": 8,
       "str_max_blocked": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -173,7 +173,7 @@
       "byproducts": [ { "item": "pipe", "count": 6 }, { "item": "wire", "count": [ 4, 20 ] } ]
     },
     "bash": {
-      "str_min": 7,
+      "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -639,7 +639,7 @@
       "byproducts": [ { "item": "pipe", "count": 6 }, { "item": "wire", "count": [ 4, 16 ] } ]
     },
     "bash": {
-      "str_min": 7,
+      "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -1272,17 +1272,7 @@
     "move_cost": 3,
     "coverage": 38,
     "concealment": 38,
-    "flags": [
-      "TRANSPARENT",
-      "NOITEM",
-      "THIN_OBSTACLE",
-      "MOUNTABLE",
-      "SHORT",
-      "AUTO_WALL_SYMBOL",
-      "MINEABLE",
-      "BURROWABLE",
-      "PERMEABLE"
-    ],
+    "flags": [ "TRANSPARENT", "NOITEM", "THIN_OBSTACLE", "MOUNTABLE", "SHORT", "AUTO_WALL_SYMBOL", "BURROWABLE", "PERMEABLE" ],
     "connect_groups": "RAILING",
     "connects_to": "RAILING",
     "bash": {

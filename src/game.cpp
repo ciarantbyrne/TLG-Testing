@@ -1574,18 +1574,16 @@ void game::set_driving_view_offset( const point_rel_ms &p )
         driving_view_offset.raw(); // TODO: Implement -= etc. for relative coordinates.
 }
 
-void game::catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p,
-                            const time_duration &catch_duration ) // catching function
+void game::catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p )
 {
     map &here = get_map();
 
-    //spawn the corpse, rotten by a part of the duration
-    here.add_item_or_charges( pos, item::make_corpse( fish->type->id, calendar::turn + rng( 0_turns,
-                              catch_duration ) ) );
+    // Apawn the corpse, rotten by a part of the duration.
+    here.add_item_or_charges( pos, item::make_corpse( fish->type->id, calendar::turn ) );
     if( u.sees( here, pos ) ) {
         u.add_msg_if_player( m_good, _( "You caught a %s." ), fish->type->nname() );
     }
-    //quietly kill the caught
+    // Quietly kill whatever we caught.
     fish->no_corpse_quiet = true;
     fish->die( &here, p );
 }
@@ -1700,7 +1698,7 @@ bool game::cancel_activity_query( const std::string &text )
             u.remove_effect( effect_asked_to_train );
         } else if( u.activity.id() == ACT_TRAIN ) {
             for( npc &n : all_npcs() ) {
-                // If the player is the only student, cancel the teacher's activity
+                // If the player is the only student, cancel the teacher's activity.
                 if( n.getID().get_value() == u.activity.index && n.activity.values.size() == 1 ) {
                     n.cancel_activity();
                 }
@@ -2414,6 +2412,7 @@ int game::inventory_item_menu( item_location locThisItem,
                     u.takeoff( locThisItem.obtain( u ) );
                     break;
                 case 'd':
+
                     u.drop( locThisItem, u.pos_bub() );
                     break;
                 case 'U':
@@ -2775,7 +2774,6 @@ input_context get_default_mode_input_context()
     ctxt.register_action( "reload_tileset" );
     ctxt.register_action( "toggle_auto_features" );
     ctxt.register_action( "toggle_auto_pulp_butcher" );
-    ctxt.register_action( "toggle_auto_mining" );
     ctxt.register_action( "toggle_auto_foraging" );
     ctxt.register_action( "toggle_auto_pickup" );
     ctxt.register_action( "toggle_thief_mode" );
@@ -3132,14 +3130,11 @@ void game::bury_screen() const
     const int days = to_days<int>( survived );
 
     if( days > 0 ) {
-        // NOLINTNEXTLINE(cata-translate-string-literal)
-        sTemp = string_format( "%dd %dh %dm", days, hours, minutes );
+        sTemp = string_format( pgettext( "time duration", "%dd %dh %dm" ), days, hours, minutes );
     } else if( hours > 0 ) {
-        // NOLINTNEXTLINE(cata-translate-string-literal)
-        sTemp = string_format( "%dh %dm", hours, minutes );
+        sTemp = string_format( pgettext( "time duration", "%dh %dm" ), hours, minutes );
     } else {
-        // NOLINTNEXTLINE(cata-translate-string-literal)
-        sTemp = string_format( "%dm", minutes );
+        sTemp = string_format( pgettext( "time duration", "%dm" ), minutes );
     }
 
     center_print( w_rip, iInfoLine++, c_white, sTemp );
@@ -3930,7 +3925,7 @@ void game::display_faction_epilogues()
                                                point( std::max( 0, ( TERMX - FULL_SCREEN_WIDTH ) / 2 ),
                                                       std::max( 0, ( TERMY - FULL_SCREEN_HEIGHT ) / 2 ) ) );
                 };
-                scrollable_text( new_win, elem.second.name,
+                scrollable_text( new_win, _( elem.second.name ),
                                  std::accumulate( epilogue.begin() + 1, epilogue.end(), epilogue.front(),
                 []( std::string lhs, const std::string & rhs ) -> std::string {
                     return std::move( lhs ) + "\n" + rhs;
@@ -6584,8 +6579,8 @@ void game::pickup( const tripoint_bub_ms &p )
     u.pick_up( game_menus::inv::pickup( p ) );
 }
 
-//Shift player by one tile, look_around(), then restore previous position.
-//represents carefully peeking around a corner, hence the large move cost.
+// Shift player by one tile, look_around(), then restore previous position.
+// represents carefully peeking around a corner, hence the large move cost.
 void game::peek()
 {
     map &here = get_map();
@@ -6643,6 +6638,9 @@ void game::peek( const tripoint_bub_ms &p )
     if( result.peek_action && *result.peek_action == PA_BLIND_THROW ) {
         item_location loc;
         avatar_action::plthrow( u, loc, p );
+    }
+    if( result.peek_action && *result.peek_action == PA_PEEK_DROP ) {
+        avatar_action::peek_drop( game_menus::inv::multidrop( u ), p );
     }
     here.invalidate_map_cache( p.z() );
     here.invalidate_visibility_cache();
@@ -7313,6 +7311,7 @@ look_around_result game::look_around(
     ctxt.register_action( "EXTENDED_DESCRIPTION" );
     ctxt.register_action( "SELECT" );
     if( peeking ) {
+        ctxt.register_action( "peek_drop" );
         ctxt.register_action( "throw_blind" );
     }
     if( !select_zone ) {
@@ -7565,6 +7564,8 @@ look_around_result game::look_around(
             ly = ly + vec->y();
             center.x() = center.x() + vec->x();
             center.y() = center.y() + vec->y();
+        } else if( action == "peek_drop" ) {
+            result.peek_action = PA_PEEK_DROP;
         } else if( action == "throw_blind" ) {
             result.peek_action = PA_BLIND_THROW;
         } else if( action == "zoom_in" ) {
@@ -7577,7 +7578,7 @@ look_around_result game::look_around(
             mark_main_ui_adaptor_resize();
         }
     } while( action != "QUIT" && action != "CONFIRM" && action != "SELECT" && action != "TRAVEL_TO" &&
-             action != "throw_blind" );
+             action != "peek_drop" && action != "throw_blind" );
 
     if( center.z() != old_levz ) {
         here.invalidate_map_cache( old_levz );
@@ -9067,21 +9068,20 @@ static void butcher_submenu( const std::vector<map_stack::iterator> &corpses, in
             for( const harvest_entry &entry : dead_mon->harvest.obj() ) {
                 if( entry.type == harvest_drop_skin && !( corpses[index]->has_flag( flag_SKINNED ) ||
                         corpses[index]->damage() >= corpses[index]->max_damage() ||
-                        ( corpses[index]->has_flag( flag_QUARTERED ) ) || ( corpses[index]->has_flag( flag_PULPED ) ) ||
-                        ( corpses[index]->has_flag( flag_GIBBED ) ) ) ) {
+                        ( corpses[index]->has_flag( flag_QUARTERED ) ) || corpses[index]->has_flag( flag_PULPED ) ) ) {
                     has_skin = true;
                 }
                 if( entry.type == harvest_drop_offal && !( corpses[index]->has_flag( flag_QUARTERED ) ||
                         corpses[index]->has_flag( flag_FIELD_DRESS ) ||
                         corpses[index]->has_flag( flag_FIELD_DRESS_FAILED ) ||
-                        ( corpses[index]->has_flag( flag_PULPED ) ) || ( corpses[index]->has_flag( flag_GIBBED ) ) ) ) {
+                        corpses[index]->has_flag( flag_PULPED ) ) ) {
                     has_organs = true;
                 }
                 if( entry.type == harvest_drop_blood && dead_mon->bleed_rate > 0 &&
                     !( corpses[index]->has_flag( flag_QUARTERED ) ||
                        corpses[index]->has_flag( flag_FIELD_DRESS ) ||
                        corpses[index]->has_flag( flag_FIELD_DRESS_FAILED ) || corpses[index]->has_flag( flag_BLED ) ||
-                       ( corpses[index]->has_flag( flag_PULPED ) ) || ( corpses[index]->has_flag( flag_GIBBED ) ) ) ) {
+                       corpses[index]->has_flag( flag_PULPED ) ) ) {
                     has_blood = true;
                 }
                 /*
@@ -9096,8 +9096,7 @@ static void butcher_submenu( const std::vector<map_stack::iterator> &corpses, in
                        corpses[index]->damage() >= corpses[index]->max_damage() ||
                        corpses[index]->has_flag( flag_FIELD_DRESS ) ||
                        corpses[index]->has_flag( flag_FIELD_DRESS_FAILED ) ||
-                       ( corpses[index]->has_flag( flag_SKINNED ) ) || ( corpses[index]->has_flag( flag_PULPED ) ) ||
-                       ( corpses[index]->has_flag( flag_GIBBED ) ) ) ) {
+                       corpses[index]->has_flag( flag_SKINNED ) || corpses[index]->has_flag( flag_PULPED ) ) ) {
                     intact = true;
                 }
             }
@@ -9591,7 +9590,7 @@ void game::reload( item_location &loc, bool prompt, bool empty )
             u.add_msg_if_player( _( "Selected %s as default ammo for %s." ), opt.ammo->tname(), loc->tname() );
             u.ammo_location = opt.ammo;
         } else {
-            u.add_msg_if_player( _( "You need to keep that ammo on you to select it as default ammo." ) );
+            u.add_msg_if_player( _( "That ammo must be in your inventory to be selected as default." ) );
         }
         return;
     }
@@ -9650,6 +9649,7 @@ void game::reload( item_location &loc, bool prompt, bool empty )
     }
 
     if( opt ) {
+        // Check that passed gun mode is valid and we are able to use it
         const int extra_moves = loc->get_var( "dirt", 0 ) > 7800 ? 2500 : 0;
         if( extra_moves > 0 ) {
             add_msg( m_warning, _( "You struggle to reload the fouled %s." ), loc->tname() );
@@ -10136,11 +10136,12 @@ bool game::walk_move( const tripoint_bub_ms &dest_loc, const bool via_ramp,
     const float dest_light_level = here.ambient_light_at( tripoint_bub_ms( point_bub_ms(
                                        dest_loc.xy() ), ramp_adjust ) );
 
-    // Allow players with nyctophobia to move freely through cloudy and dark tiles
+    // Allow players with nyctophobia to move freely through cloudy and dark tiles.
     const float nyctophobia_threshold = LIGHT_AMBIENT_LIT - 3.0f;
 
-    // Forbid players from moving through very dark tiles, unless they are running or took xanax
-    if( u.has_flag( json_flag_NYCTOPHOBIA ) && !u.has_effect( effect_took_xanax ) && !u.is_running() &&
+    // Forbid players from moving through very dark tiles, unless they are running or took xanax.
+    if( u.has_flag( json_flag_NYCTOPHOBIA ) && !u.has_effect( effect_took_xanax ) &&
+        ( !here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, dest_loc ) && !u.is_running() ) && u.can_run() &&
         dest_light_level < nyctophobia_threshold ) {
         add_msg( m_bad,
                  _( "You're too scared to walk into the dark.  You must run in order to willingly go that way." ) );
@@ -11211,7 +11212,7 @@ bool game::grabbed_furn_move( const tripoint_rel_ms &dp )
 
         ///\EFFECT_STR determines ability to drag furniture
     } else if( str_req > str &&
-               one_in( std::max( 20 - str_req - str, 2 ) ) ) {
+               one_in( std::max( 20 - ( str_req - str ), 2 ) ) ) {
         add_msg( m_bad, _( "You strain yourself trying to move the heavy %s!" ),
                  furntype.name() );
         u.mod_pain( 1 ); // Hurt ourselves.
@@ -11380,13 +11381,13 @@ bool game::grabbed_move( const tripoint_rel_ms &dp, const bool via_ramp )
 
 void game::on_move_effects()
 {
-    // TODO: Move this to a character method
+    // TODO: Move this to a character method.
     if( !u.is_mounted() ) {
         const item muscle( fuel_type_muscle );
         for( const bionic_id &bid : u.get_bionic_fueled_with_muscle() ) {
-            if( u.has_active_bionic( bid ) ) {// active power gen
+            if( u.has_active_bionic( bid ) ) { // Active power generation.
                 u.mod_power_level( muscle.fuel_energy() * bid->fuel_efficiency );
-            } else {// passive power gen
+            } else { // Passive power generation.
                 u.mod_power_level( muscle.fuel_energy() * bid->passive_fuel_efficiency );
             }
         }
@@ -11414,7 +11415,7 @@ void game::on_move_effects()
         }
     }
 
-    // apply martial art move bonuses
+    // Apply martial art move bonuses.
     u.martial_arts_data->ma_onmove_effects( u );
 
     sfx::do_ambient();
@@ -11573,7 +11574,8 @@ bool game::fling_creature( Creature *c, const units::angle &dir, float flvel, bo
                     const int damage = rng( force, force * 2.0f ) / 6;
                     // zed_damage uses flvel because they take damage based on c's velocity, not their own size.
                     int zed_damage = rng( flvel, flvel * 2.0f ) / 6;
-                    add_msg_if_player_sees( pt, _( "%1s collides with %2s!" ), c->disp_name(), critter.disp_name() );
+                    add_msg_if_player_sees( pt, _( "%1s collides with %2s!" ), c->disp_name( false, true ),
+                                            critter.disp_name() );
                     c->impact( damage, pt );
                     zed_damage = std::max( 0, ( zed_damage - critter.get_armor_type( damage_bash,
                                                 bodypart_id( "torso" ) ) ) );
@@ -11593,7 +11595,8 @@ bool game::fling_creature( Creature *c, const units::angle &dir, float flvel, bo
                     const int damage = rng( force, force * 2.0f ) / 6;
                     // guy_damage uses flvel because they take damage based on c's velocity, not their own size.
                     int guy_damage = rng( flvel, flvel * 2.0f ) / 6;
-                    add_msg_if_player_sees( pt, _( "%1s collides with %2s!" ), c->disp_name(), guy.disp_name() );
+                    add_msg_if_player_sees( pt, _( "%1s collides with %2s!" ), c->disp_name( false, true ),
+                                            guy.disp_name() );
                     c->impact( damage, pt );
                     guy_damage = std::max( 0, ( guy_damage - guy.get_armor_type( damage_bash,
                                                 bodypart_id( "torso" ) ) ) );
@@ -11777,15 +11780,9 @@ void game::vertical_move( int movez, bool force, bool peeking )
     int move_cost = 100;
     tripoint_bub_ms stairs( pos.xy(), pos.z() + movez );
     bool wall_cling = u.has_flag( json_flag_WALL_CLING );
-    bool adjacent_climb = false;
     if( !force && movez == 1 && !here.has_flag( ter_furn_flag::TFLAG_GOES_UP, pos ) &&
         !u.is_underwater() ) {
         // Climbing
-        for( const tripoint_bub_ms &p : here.points_in_radius( pos, 1 ) ) {
-            if( here.has_flag( ter_furn_flag::TFLAG_CLIMB_ADJACENT, p ) ) {
-                adjacent_climb = true;
-            }
-        }
         if( here.has_floor_or_support( stairs ) ) {
             tripoint_bub_ms dest_phase = pos;
             dest_phase.z() += 1;
@@ -11798,32 +11795,11 @@ void game::vertical_move( int movez, bool force, bool peeking )
             }
         }
 
-        if( u.get_working_arm_count() < 1 && !here.has_flag( ter_furn_flag::TFLAG_LADDER, pos ) ) {
-            add_msg( m_info, _( "You can't climb because your arms are too damaged or encumbered." ) );
-            return;
-        }
+        int cost = u.climbing_cost( pos, stairs );
+        add_msg_debug( debugmode::DF_GAME, "Climb cost: %d", cost );
 
-        const int cost = u.climbing_cost( pos, stairs );
-        add_msg_debug( debugmode::DF_GAME, "Climb cost %d", cost );
-        const bool can_climb_here = cost > 0 ||
-                                    u.has_flag( json_flag_CLIMB_NO_LADDER ) || wall_cling;
-        if( !can_climb_here && !adjacent_climb ) {
-            add_msg( m_info, _( "You can't climb here - you need walls and/or furniture to brace against." ) );
+        if( cost == 0 ) {
             return;
-        }
-
-        const item_location weapon = u.get_wielded_item();
-        if( !here.has_flag( ter_furn_flag::TFLAG_LADDER, pos ) && weapon &&
-            weapon->is_two_handed( u ) ) {
-            if( query_yn(
-                    _( "You can't climb because you have to wield a %s with both hands.\n\nPut it away?" ),
-                    weapon->tname() ) ) {
-                if( !u.unwield() ) {
-                    return;
-                }
-            } else {
-                return;
-            }
         }
 
         std::vector<tripoint_bub_ms> pts;
@@ -13727,21 +13703,32 @@ void game::climb_down_using( const tripoint_bub_ms &examp, climbing_aid_id aid_i
 
     map &here = get_map();
     Character &you = get_player_character();
-    // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
+    // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free.
     if( !you.move_effects( false, examp ) ) {
-        // move_effects determined we could not move, waste all moves
+        // Move_effects determined we could not move, waste all moves.
         you.set_moves( 0 );
         return;
     }
 
     if( !here.valid_move( you.pos_bub(), examp, false, true ) ) {
-        // Can't move horizontally to the ledge
+        // Can't move horizontally to the ledge.
         return;
     }
 
     // Scan the height of the drop and what's in the way.
     const climbing_aid::fall_scan fall( examp );
-
+    const item_location weapon = you.get_wielded_item();
+    if( weapon && weapon->is_two_handed( you ) ) {
+        if( query_yn(
+                _( "You can't climb because you have to wield a %s with both hands.\n\nPut it away?" ),
+                weapon->tname() ) ) {
+            if( !you.unwield() ) {
+                return;
+            }
+        } else {
+            return;
+        }
+    }
     int estimated_climb_cost = you.climbing_cost( tripoint_bub_ms( fall.pos_bottom() ), examp );
     const float fall_mod = you.fall_damage_mod();
     add_msg_debug( debugmode::DF_IEXAMINE, "Climb cost %d", estimated_climb_cost );
@@ -13766,7 +13753,7 @@ void game::climb_down_using( const tripoint_bub_ms &examp, climbing_aid_id aid_i
         damage_estimate *= std::pow( fall_mod, 30.f / damage_estimate );
     }
 
-    // Rough messaging about safety.  "seems safe" can leave a 1-2% chance unlike "perfectly safe".
+    // Rough messaging about safety. "Seems safe" can leave a 1-2% chance unlike "perfectly safe".
     bool seems_perfectly_safe = slip_chance < -5 && aid.down.max_height >= fall.height;
     if( seems_perfectly_safe ) {
         query = _( "It <color_green>seems perfectly safe</color> to climb down like this." );

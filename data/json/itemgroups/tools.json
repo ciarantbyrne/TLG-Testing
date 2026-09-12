@@ -15,7 +15,8 @@
       [ "metalworking_tongs", 90 ],
       [ "hammer", 80 ],
       [ "sandpaper", 80 ],
-      [ "bench_vise", 30 ]
+      [ "bench_vise", 30 ],
+      [ "belt_grinder", 50 ]
     ]
   },
   {
@@ -160,7 +161,6 @@
       [ "pliers_locking", 40 ],
       [ "big_pliers", 5 ],
       [ "wrench", 75 ],
-      [ "wrench_large", 20 ],
       [ "socket_wrench_set", 20 ],
       [ "funnel", 50 ],
       [ "metal_file", 40 ],
@@ -200,6 +200,7 @@
       [ "lug_wrench", 20 ],
       [ "jerrycan", 10 ],
       [ "jerrycan_big", 10 ],
+      [ "belt_grinder", 20 ],
       { "item": "char_smoker", "prob": 5, "charges": [ 0, 300 ] },
       { "item": "dehydrator", "prob": 5 },
       [ "tongs", 1 ],
@@ -289,7 +290,6 @@
     "items": [
       { "group": "tools_common_small", "prob": 90 },
       [ "wrench", 190 ],
-      [ "wrench_large", 20 ],
       [ "big_pliers", 10 ],
       [ "claw_bar", 4 ],
       [ "crowbar", 10 ],
@@ -744,7 +744,7 @@
       { "item": "gasfilter_sm", "prob": 5, "charges": [ 0, 100 ] },
       { "item": "mask_gas_half", "prob": 5, "charges": [ 0, 100 ] },
       [ "glasses_safety", 5 ],
-      { "item": "UPS_OFF", "prob": 3, "charges": [ 0, 1000 ] },
+      { "group": "ups_power", "prob": 3 },
       [ "microscope", 5 ],
       [ "microscope_dissecting", 5 ],
       [ "funnel_separation", 3 ],
@@ -813,7 +813,7 @@
     "//": "tools and equipment you might find on robotics laboratories, like LIXA or Hub01",
     "items": [
       [ "recipe_lab_elec", 4 ],
-      { "item": "UPS_OFF", "prob": 6, "charges": [ 0, 1000 ] },
+      { "group": "ups_power", "prob": 6 },
       [ "file", 10 ],
       [ "atomic_light", 1 ],
       { "item": "smart_lamp", "prob": 2, "charges": [ 0, 100 ] },
@@ -912,7 +912,8 @@
       { "item": "grinder_metal_grinding_disc", "prob": 10 },
       { "item": "masonrysaw_off", "prob": 50, "charges": [ 0, 450 ] },
       { "item": "heavy_masonrysaw_off", "prob": 50, "charges": [ 0, 450 ] },
-      { "item": "electric_masonrysaw_off", "prob": 50, "charges": [ 0, 495 ] }
+      { "item": "electric_masonrysaw_off", "prob": 50, "charges": [ 0, 495 ] },
+      { "item": "belt_grinder", "prob": 20 }
     ]
   },
   {
@@ -958,14 +959,7 @@
     "type": "item_group",
     "subtype": "distribution",
     "//": "Tools that would be found in a tractor.",
-    "items": [
-      [ "wrench", 35 ],
-      [ "wrench_small", 35 ],
-      [ "hammer", 20 ],
-      [ "multitool", 20 ],
-      [ "pliers_locking", 15 ],
-      [ "wrench_large", 5 ]
-    ]
+    "items": [ [ "wrench", 35 ], [ "wrench_small", 35 ], [ "hammer", 20 ], [ "multitool", 20 ], [ "pliers_locking", 15 ] ]
   },
   {
     "type": "item_group",

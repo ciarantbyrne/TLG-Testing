@@ -375,7 +375,7 @@ void vehicle::print_fuel_indicators( map &here, const catacurses::window &win, c
     // check if the current index is less than the max size minus 12 or 5, to indicate that there's more
     if( start_index < static_cast<int>( fuels.size() ) - ( isHorizontal ? 12 : 5 ) ) {
         mvwprintz( win, p + point( 0, yofs ), c_light_green, ">" );
-        wprintz( win, c_light_gray, " for more" );
+        wprintz( win, c_light_gray, _( " for more" ) );
     }
 }
 
@@ -492,7 +492,7 @@ void vehicle::print_speed_gauge( map &here, const catacurses::window &win, const
                  static_cast<int>( std::log10( static_cast<double>( std::abs( value ) ) ) ) + 1 :
                  static_cast<int>( std::log10( static_cast<double>( std::abs( value ) ) ) ) + 2 );
     };
-    const std::string type = get_option<std::string>( "UNIT_SYSTEM" ) == "metric" ? "km/h" : "mph";
+    const std::string type = _( "km/h" );
     int t_offset = ndigits( t_speed );
     int c_offset = ndigits( c_speed );
 

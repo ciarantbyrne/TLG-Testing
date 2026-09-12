@@ -1343,7 +1343,7 @@
           { "group": "charged_two_way_radio" },
           { "item": "tank_top" },
           { "item": "pants_army" },
-          { "item": "wrench_large" },
+          { "item": "wrench" },
           { "item": "screwdriver" },
           { "item": "hacksaw" },
           { "item": "ear_plugs", "custom-flags": [ "no_auto_equip" ] }
@@ -3500,7 +3500,7 @@
           { "item": "socks" },
           { "item": "dress_shoes" },
           { "item": "knit_scarf" },
-          { "item": "bellyband" },
+          { "item": "bellywrap" },
           { "item": "dentures" },
           { "group": "charged_ref_lighter" },
           { "item": "cane", "custom-flags": [ "auto_wield" ] }
@@ -3745,37 +3745,6 @@
   },
   {
     "type": "profession",
-    "id": "convict_assassin",
-    "name": "Undercover Assassin Convict",
-    "description": "You were given a target, a mission, but killing your mark seems to have become much more difficult now.  Your employer cut contact with you and now you have to make do with what you have.",
-    "npc_background": "BG_survival_story_PRISONER",
-    "points": 2,
-    "skills": [
-      { "level": 4, "name": "melee" },
-      { "level": 4, "name": "stabbing" },
-      { "level": 3, "name": "unarmed" },
-      { "level": 3, "name": "dodge" }
-    ],
-    "proficiencies": [ "prof_knives_familiar", "prof_knives_pro", "prof_unarmed_familiar", "prof_unarmed_pro", "prof_shivs_familiar" ],
-    "effect_on_conditions": [ "scenario_assassin_conv" ],
-    "items": {
-      "both": {
-        "entries": [
-          { "item": "longshirt_costume", "variant": "shirt_striped" },
-          { "item": "pants_costume", "variant": "pants_striped" },
-          { "item": "sneakers" },
-          { "item": "socks" },
-          { "item": "knife_KABAR", "container-item": "gartersheath" },
-          { "item": "polaroid_photo", "container-item": "ankle_wallet_pouch" }
-        ]
-      },
-      "male": { "entries": [ { "group": "male_underwear_bottom" } ] },
-      "female": { "entries": [ { "group": "female_underwear_top" }, { "group": "female_underwear_bottom" } ] }
-    },
-    "flags": [ "SCEN_ONLY" ]
-  },
-  {
-    "type": "profession",
     "id": "convict_ratman",
     "name": { "male": "Rat Prince", "female": "Rat Princess" },
     "description": "You probably needed psychiatric help instead of a prison sentence.  At least your loyal subjects have agreed to hold the line as you make your daring escape.",
@@ -3825,34 +3794,6 @@
           { "item": "stethoscope" },
           { "item": "picklocks" },
           { "item": "pants" }
-        ]
-      },
-      "male": { "entries": [ { "group": "male_underwear_bottom" } ] },
-      "female": { "entries": [ { "group": "female_underwear_top" }, { "group": "female_underwear_bottom" } ] }
-    }
-  },
-  {
-    "type": "profession",
-    "id": "lawyer",
-    "name": "Lawyer",
-    "description": "The jury were in the palm of your hand, but after the defendant tried to eat your brain, you were forced to flee the courtroom in disgrace.  Now nobody seems to care about your objections.",
-    "npc_background": "BG_survival_story_WORKER_COMMERCIAL",
-    "points": 1,
-    "skills": [ { "level": 6, "name": "speech" } ],
-    "items": {
-      "both": {
-        "entries": [
-          { "item": "suit" },
-          { "item": "tie_necktie" },
-          { "item": "tieclip" },
-          { "item": "socks" },
-          { "item": "dress_shoes" },
-          { "item": "knit_scarf" },
-          { "item": "gold_watch" },
-          { "item": "briefcase" },
-          { "item": "money_strap_fifty" },
-          { "item": "file", "count": [ 1, 4 ] },
-          { "group": "charged_smart_phone" }
         ]
       },
       "male": { "entries": [ { "group": "male_underwear_bottom" } ] },
@@ -4592,7 +4533,7 @@
   {
     "type": "profession",
     "id": "skaterkid",
-    "name": { "male": "Skater Boy (Rollerblades)", "female": "Skater Girl (Rollerblades)" },
+    "name": { "male": "Roller Boy", "female": "Roller Girl" },
     "description": "You love to skate!  You've probably spent more time on a pair of blades than off.  Things have gotten pretty bad, but at least the cops aren't telling you where you can't roll.",
     "npc_background": "BG_survival_story_TEENAGER_TOUGH",
     "points": 1,
@@ -4624,7 +4565,7 @@
   {
     "type": "profession",
     "id": "skaterkid_board",
-    "name": { "male": "Skater Boy (Skateboard)", "female": "Skater Girl (Skateboard)" },
+    "name": { "male": "Skater Boy", "female": "Skater Girl" },
     "description": "You love to skate!  You've probably spent more time on a skateboard than off.  Things have gotten pretty bad, but at least the cops aren't telling you where you can't roll.",
     "npc_background": "BG_survival_story_TEENAGER_TOUGH",
     "points": 1,
@@ -4657,14 +4598,14 @@
   {
     "type": "profession",
     "id": "jdelinquent",
-    "name": "Juvenile Delinquent",
+    "name": "Delinquent",
     "description": "You never cared for grown-ups telling you what to do, so you ended up spending quite a few days in the principal's office.  Now, not needing grown-ups to tell you what to do is the only reason you're alive.  Man, you really should've played hooky today.",
     "npc_background": "BG_survival_story_TEENAGER_TOUGH",
-    "points": 0,
+    "points": 2,
     "proficiencies": [ "prof_unarmed_familiar" ],
     "skills": [
       { "level": 1, "name": "gun" },
-      { "level": 1, "name": "archery" },
+      { "level": 1, "name": "throw" },
       { "level": 1, "name": "melee" },
       { "level": 1, "name": "unarmed" },
       { "level": 1, "name": "dodge" }
@@ -4948,11 +4889,11 @@
   {
     "type": "profession",
     "id": "politician",
-    "name": "Career Politician",
+    "name": "Politician",
     "description": "You've spent your life appealing to the people, persuading many and promising much throughout your time in office.  Now that your voting base wants to eat you alive, winning hearts and minds just got that much harder.",
     "npc_background": "BG_survival_story_WORKER_PUBLIC",
     "points": 2,
-    "skills": [ { "level": 8, "name": "speech" } ],
+    "skills": [ { "level": 4, "name": "speech" } ],
     "traits": [ "LIAR" ],
     "items": {
       "both": {
@@ -6087,8 +6028,6 @@
       "bio_radleak",
       "bio_armor_head",
       "bio_armor_torso",
-      "bio_armor_arms",
-      "bio_armor_legs",
       "bio_armor_eyes",
       "bio_razors",
       "bio_power_storage"

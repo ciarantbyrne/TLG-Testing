@@ -342,6 +342,7 @@ void body_part_type::load( const JsonObject &jo, std::string_view )
 
     optional( jo, was_loaded, "wet_morale", wet_morale, 0 );
 
+    optional( jo, was_loaded, "pain_multiplier", pain_multiplier, 1.0f );
     optional( jo, was_loaded, "ugliness", ugliness, 0 );
     optional( jo, was_loaded, "ugliness_mandatory", ugliness_mandatory, 0 );
 
@@ -367,7 +368,7 @@ void body_part_type::load( const JsonObject &jo, std::string_view )
                 first_type = limb_type;
             }
         }
-        // set cached primary type if no weights specified
+        // Set cached primary type if no weights specified.
         if( set_first_type ) {
             _primary_limb_type = first_type;
         }
@@ -1052,6 +1053,11 @@ const encumbrance_data &bodypart::get_encumbrance_data() const
 int bodypart::get_drench_capacity() const
 {
     return id->drench_max;
+}
+
+float bodypart::get_pain_multiplier() const
+{
+    return id->pain_multiplier;
 }
 
 int bodypart::get_wetness() const

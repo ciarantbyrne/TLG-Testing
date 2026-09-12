@@ -93,6 +93,7 @@ extern mon_flag_id mon_flag_ACIDPROOF,
        mon_flag_ATTACK_UPPER,
        mon_flag_BADVENOM,
        mon_flag_BASHES,
+       mon_flag_BELLYUP,
        mon_flag_BILE_BLOOD,
        mon_flag_BORES,
        mon_flag_CAMOUFLAGE,
@@ -112,8 +113,6 @@ extern mon_flag_id mon_flag_ACIDPROOF,
        mon_flag_DORMANT,
        mon_flag_DRACULIN_IMMUNE,
        mon_flag_GEN_DORMANT,
-       mon_flag_DRIPS_GASOLINE,
-       mon_flag_DRIPS_NAPALM,
        mon_flag_DROPS_AMMO,
        mon_flag_EATS,
        mon_flag_ELECTRIC,
@@ -545,6 +544,7 @@ struct mtype {
         int get_meat_chunks_count() const;
         std::string get_description() const;
         std::string get_footsteps() const;
+        std::string get_flight_sound() const;
         void set_strategy();
         void add_goal( const std::string &goal_id );
         const behavior::node_t *get_goals() const;

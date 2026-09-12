@@ -758,7 +758,7 @@
     "looks_like": "loincloth",
     "color": "blue",
     "warmth": 5,
-    "material_thickness": 1,
+    "material_thickness": 0.3,
     "flags": [ "VARSIZE", "SKINTIGHT", "OVERSIZE" ],
     "armor": [
       {
@@ -1803,7 +1803,7 @@
     "color": "yellow",
     "warmth": 3,
     "material_thickness": 1,
-    "flags": [ "VARSIZE", "OVERSIZE", "WATER_FRIENDLY" ],
+    "flags": [ "OVERSIZE", "WATER_FRIENDLY" ],
     "armor": [
       {
         "encumbrance": 4,

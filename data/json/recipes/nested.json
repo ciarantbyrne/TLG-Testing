@@ -157,7 +157,7 @@
     "name": "standard batteries",
     "description": "Recipes related to constructing standard rechargeable batteries.",
     "skill_used": "electronics",
-    "nested_category_data": [ "UPS_OFF", "medium_battery_cell", "heavy_battery_cell", "heavy_plus_battery_cell" ],
+    "nested_category_data": [ "UPS_off", "medium_battery_cell", "heavy_battery_cell", "heavy_plus_battery_cell" ],
     "difficulty": 3
   },
   {
@@ -1166,18 +1166,6 @@
     "difficulty": 2
   },
   {
-    "id": "nested_steel_chunk",
-    "type": "nested_category",
-    "activity_level": "LIGHT_EXERCISE",
-    "category": "CC_OTHER",
-    "subcategory": "CSC_OTHER_MATERIALS",
-    "name": "lumps of steel",
-    "description": "Recipes related to forging steel into different quality lumps.",
-    "skill_used": "fabrication",
-    "nested_category_data": [ "steel_chunk", "budget_steel_chunk", "budget_steel_chunk_from_scrap" ],
-    "difficulty": 5
-  },
-  {
     "id": "nested_compact_currency",
     "type": "nested_category",
     "activity_level": "NO_EXERCISE",
@@ -2050,10 +2038,21 @@
     "activity_level": "MODERATE_EXERCISE",
     "category": "CC_AMMO",
     "subcategory": "CSC_AMMO_OTHER",
-    "name": "slingshot ammunition",
-    "description": "Recipes related to creating pebbles, pellets, and other small objects for use in slings and slingshots.",
+    "name": "sling ammunition",
+    "description": "Recipes related to creating pebbles, pellets, and other small ammunition for slings.",
     "skill_used": "fabrication",
-    "nested_category_data": [ "marble", "bearing", "pebble_clay", "pebble" ]
+    "nested_category_data": [ "pebble", "pebble_clay", "pebble_lead" ]
+  },
+  {
+    "id": "nested_ammo_gravel",
+    "type": "nested_category",
+    "activity_level": "MODERATE_EXERCISE",
+    "category": "CC_AMMO",
+    "subcategory": "CSC_AMMO_OTHER",
+    "name": "slingshot ammunition",
+    "description": "Recipes related to creating gravel and other tiny ammunition for slingshots.",
+    "skill_used": "fabrication",
+    "nested_category_data": [ "gravel", "marble" ]
   },
   {
     "id": "nested_adjustable_wrenches",
@@ -2064,7 +2063,7 @@
     "name": "adjustable wrenches",
     "description": "Recipes related to creating adjustable wrenches.",
     "skill_used": "fabrication",
-    "nested_category_data": [ "wrench", "wrench_large", "wrench_small" ]
+    "nested_category_data": [ "wrench", "wrench_small" ]
   },
   {
     "id": "nested_funnels",

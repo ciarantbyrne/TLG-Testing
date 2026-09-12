@@ -682,11 +682,8 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
     // (Okay, technically it returns a pair<iterator, bool>, the iterator is what we want)
     auto it = vitamin_levels.emplace( vit, 0 ).first;
     const vitamin &v = *it->first;
-
     if( qty > 0 ) {
         it->second = std::min( it->second + qty, v.max() );
-        update_vitamins( vit );
-
         // update the daily trackers too while here
         // prevent overflow
         constexpr int daily_vitamins_max = std::numeric_limits<int>::max();
@@ -695,7 +692,6 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
         } else {
             daily_vitamins[vit].second = daily_vitamins_max;
         }
-
     } else if( qty < 0 ) {
         it->second = std::max( it->second + qty, v.min() );
         update_vitamins( vit );
@@ -705,7 +701,8 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
             }
         }
     }
-
+    // We must always call update_vitamins() because effects must be both applied and removed.
+    update_vitamins( vit );
     return it->second;
 }
 
@@ -832,11 +829,6 @@ ret_val<edible_rating> Character::can_eat( const item &food ) const
 
     if( food.is_craft() ) {
         return ret_val<edible_rating>::make_failure( _( "That doesn't look edible in its current form." ) );
-    }
-
-    if( food.has_own_flag( flag_DIRTY ) ) {
-        return ret_val<edible_rating>::make_failure(
-                   _( "This is full of dirt after being on the ground." ) );
     }
 
     const bool eat_verb  = food.has_flag( flag_USE_EAT_VERB );
@@ -1493,16 +1485,17 @@ void Character::modify_morale( item &food, const int nutr )
         }
         int strength_adjusted = enchantment_cache->modify_value( enchant_vals::mod::STRENGTH_NATURAL,
                                 get_str_base() );
-        if( strength_adjusted > 10 ) {
-            nausea_chance -= ( std::min( get_str(), strength_adjusted ) / 2 );
+        // Nausea chance is not reduced at strength 9.
+        // Nausea chance reduction ranges from 1 to 10 for strength 10 through 19.
+        nausea_chance -= std::clamp( std::min( get_str(), strength_adjusted ) - 9, 0, 10 );
+        if( nausea_chance > 0 && x_in_y( std::min( 100, nausea_chance ), 100 ) ) {
+            const double nausea_severity = nausea_chance * rng_float( 1.25, 0.5 );
+            // 15 minutes is the max duration, and the effect's intensity automatically scales with duration.
+            // Max duration is reached when nausea_severity is 1/0.15=6.667.
+            add_effect( effect_nausea, std::min( 100.0, nausea_severity ) * 0.15 * 15_minutes );
+            add_msg_player_or_npc( _( "You're not sure you're going to be able to keep that down." ),
+                                   _( "<npcname> looks about ready to puke." ) );
         }
-    }
-    if( nausea_chance > 0 && x_in_y( std::min( 100, nausea_chance ), 100 ) ) {
-        nausea_chance = static_cast<int>( nausea_chance * rng_float( 1.25, 0.5 ) );
-        // 15 minutes is the max duration, and the effect's intensity automatically scales with duration.
-        add_effect( effect_nausea, ( 1 / ( std::min( 100, nausea_chance ) * .15 ) ) * 15_minutes );
-        add_msg_player_or_npc( _( "You're not sure you're going to be able to keep that down." ),
-                               _( "<npcname> looks about ready to puke." ) );
     }
 }
 

@@ -112,8 +112,8 @@ using item_filter = std::function<bool ( const item & )>;
 using item_location_filter = std::function<bool ( const item_location & )>;
 
 enum peek_act : int {
-    PA_BLIND_THROW
-    // obvious future additional value is PA_BLIND_FIRE
+    PA_BLIND_THROW,
+    PA_PEEK_DROP
 };
 
 struct look_around_result {
@@ -614,8 +614,7 @@ class game
         /** validate camps to ensure they are on the overmap list */
         void validate_camps();
         /** Picks and spawns a random fish from the remaining fish list when a fish is caught. */
-        void catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p,
-                              const time_duration &catch_duration );
+        void catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p );
         /**
          * Get the contiguous fishable locations starting at fish_pos, out to the specified distance.
          * @param distance Distance around the fish_pos to examine for contiguous fishable locations.
