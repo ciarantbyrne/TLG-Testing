@@ -1903,7 +1903,7 @@
     "quench": -1,
     "fun": 6,
     "flags": [ "EATEN_HOT" ],
-	"subjective_names": [
+	"subjective_info": [
 	  {
 		"type": "SKILL",
 		"condition": "cooking",
