@@ -405,6 +405,21 @@
     "looks_like": "fd_sap"
   },
   {
+    "id": "fd_fuel",
+    "type": "field_type",
+    "substance_name": "fuel",
+    "mopsafe": true,
+    "intensity_levels": [ { "name": "fuel", "sym": "#", "color": "dark_gray" } ],
+    "description_affix": "covered_in",
+    "is_splattering": true,
+    "priority": 2,
+    "half_life": "30 minutes",
+    "phase": "liquid",
+    "underwater_age_speedup": "4 seconds",
+    "display_field": true,
+    "looks_like": "fd_sap"
+  },
+  {
     "id": "fd_fire",
     "type": "field_type",
     "substance_name": "flames",
@@ -536,21 +551,7 @@
     "has_fume": true,
     "percent_spread": 90,
     "dirty_transparency_cache": true,
-    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] }
-  },
-  {
-    "id": "fd_rubble",
-    "type": "field_type",
-    "substance_name": "rubble",
-    "legacy_enum_id": 11,
-    "intensity_levels": [ { "name": "legacy rubble", "sym": "#", "color": "dark_gray" } ],
-    "description_affix": "covered_in",
-    "half_life": "1 turns",
-    "phase": "solid",
-    "display_items": false,
-    "display_field": true,
-    "looks_like": "f_rubble",
-    "legacy_make_rubble": true
+    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 8 ] ] }
   },
   {
     "id": "fd_biolum",
@@ -686,6 +687,15 @@
         "concentration": 1,
         "effects": [
           {
+            "effect_id": "smoke_eyes",
+            "body_part": "eyes",
+            "intensity": 2,
+            "min_duration": "10 seconds",
+            "max_duration": "10 seconds",
+            "immunity_data": { "body_part_env_resistance": [ [ "sensor", 6 ] ] },
+            "immune_inside_vehicle": true
+          },
+          {
             "effect_id": "poison",
             "body_part": "torso",
             "intensity": 2,
@@ -706,6 +716,15 @@
         "concentration": 2,
         "effects": [
           {
+            "effect_id": "smoke_eyes",
+            "body_part": "eyes",
+            "intensity": 3,
+            "min_duration": "20 seconds",
+            "max_duration": "20 seconds",
+            "immunity_data": { "body_part_env_resistance": [ [ "sensor", 6 ] ] },
+            "immune_inside_vehicle": true
+          },
+          {
             "effect_id": "poison",
             "body_part": "torso",
             "intensity": 5,
@@ -724,6 +743,24 @@
         "translucency": 0,
         "concentration": 4,
         "effects": [
+          {
+            "effect_id": "smoke_eyes",
+            "body_part": "eyes",
+            "intensity": 4,
+            "min_duration": "10 seconds",
+            "max_duration": "30 seconds",
+            "immunity_data": { "body_part_env_resistance": [ [ "sensor", 12 ] ] },
+            "immune_inside_vehicle": true
+          },
+          {
+            "effect_id": "smoke_eyes",
+            "body_part": "eyes",
+            "intensity": 2,
+            "min_duration": "2 seconds",
+            "max_duration": "2 seconds",
+            "immunity_data": { "body_part_env_resistance": [ [ "sensor", 6 ] ] },
+            "immune_outside_vehicle": true
+          },
           {
             "effect_id": "poison",
             "body_part": "torso",
@@ -1068,6 +1105,7 @@
     "has_elec": true,
     "priority": 4,
     "half_life": "1 turns",
+    "dirty_transparency_cache": true,
     "accelerated_decay": true,
     "phase": "plasma",
     "display_items": false,
@@ -1611,19 +1649,56 @@
     "looks_like": "fd_smoke"
   },
   {
-    "id": "fd_fungal_haze",
+    "id": "fd_spores",
     "type": "field_type",
     "substance_name": "spores",
     "legacy_enum_id": 40,
     "intensity_levels": [
-      { "name": "hazy cloud", "sym": ".", "dangerous": true, "concentration": 1 },
-      { "name": "fungal haze", "color": "cyan", "concentration": 2 },
-      { "name": "thick fungal haze", "transparent": false, "concentration": 4 }
+      {
+        "name": "fine spore cloud",
+        "sym": ".",
+        "dangerous": true,
+        "concentration": 1,
+        "effects": [
+          {
+            "effect_id": "fungus",
+            "intensity": 4,
+            "immunity_data": { "body_part_env_resistance": [ [ "mouth", 7 ] ] },
+            "immune_inside_vehicle": true
+          }
+        ]
+      },
+      {
+        "name": "spore cloud",
+        "color": "cyan",
+        "concentration": 2,
+        "effects": [
+          {
+            "effect_id": "fungus",
+            "intensity": 4,
+            "immunity_data": { "body_part_env_resistance": [ [ "mouth", 10 ], [ "sensor", 8 ] ] },
+            "immune_inside_vehicle": true
+          }
+        ]
+      },
+      {
+        "name": "dense spore cloud",
+        "transparent": false,
+        "concentration": 4,
+        "effects": [
+          {
+            "effect_id": "fungus",
+            "intensity": 4,
+            "immunity_data": { "body_part_env_resistance": [ [ "mouth", 14 ], [ "sensor", 12 ] ] },
+            "immune_inside_vehicle": true
+          }
+        ]
+      }
     ],
     "decay_amount_factor": 5,
     "gas_absorption_factor": "80m",
     "percent_spread": 13,
-    "outdoor_age_speedup": "5 turns",
+    "outdoor_age_speedup": "4 turns",
     "dirty_transparency_cache": true,
     "has_fume": true,
     "immunity_data": { "flags": [ "MYCUS_IMMUNE" ], "body_part_env_resistance": [ [ "mouth", 15 ], [ "sensor", 15 ] ] },
@@ -1702,7 +1777,7 @@
     "outdoor_age_speedup": "4 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
-    "immunity_data": { "flags": [ "MYCUS_IMMUNE" ], "body_part_env_resistance": [ [ "mouth", 15 ], [ "sensor", 15 ] ] },
+    "immunity_data": { "flags": [ "MYCUS_IMMUNE" ], "body_part_env_resistance": [ [ "mouth", 14 ], [ "sensor", 14 ] ] },
     "priority": 8,
     "half_life": "15 minutes",
     "phase": "gas",
@@ -1938,7 +2013,7 @@
     "outdoor_age_speedup": "1 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
-    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] },
+    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 10 ] ] },
     "priority": 8,
     "half_life": "30 minutes",
     "phase": "gas",
@@ -1961,7 +2036,7 @@
     "outdoor_age_speedup": "1 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
-    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] },
+    "immunity_data": { "body_part_env_resistance": [ [ "mouth", 10 ] ] },
     "priority": 8,
     "half_life": "30 minutes",
     "phase": "gas",

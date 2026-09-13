@@ -109,7 +109,6 @@ static const bionic_id bio_emp( "bio_emp" );
 static const bionic_id bio_evap( "bio_evap" );
 static const bionic_id bio_flashbang( "bio_flashbang" );
 static const bionic_id bio_geiger( "bio_geiger" );
-static const bionic_id bio_gills( "bio_gills" );
 static const bionic_id bio_jointservo( "bio_jointservo" );
 static const bionic_id bio_lighter( "bio_lighter" );
 static const bionic_id bio_lockpick( "bio_lockpick" );
@@ -128,6 +127,7 @@ static const bionic_id bio_water_extractor( "bio_water_extractor" );
 
 static const efftype_id effect_assisted( "assisted" );
 static const efftype_id effect_asthma( "asthma" );
+static const efftype_id effect_bionic_painkiller( "bionic_painkiller" );
 static const efftype_id effect_bleed( "bleed" );
 static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_heating_bionic( "heating_bionic" );
@@ -172,6 +172,12 @@ static const morale_type morale_feeling_good( "morale_feeling_good" );
 static const morale_type morale_pyromania_nofire( "morale_pyromania_nofire" );
 static const morale_type morale_pyromania_startfire( "morale_pyromania_startfire" );
 
+static const proficiency_id proficiency_prof_dissect_humans( "prof_dissect_humans" );
+static const proficiency_id proficiency_prof_intro_biology( "prof_intro_biology" );
+static const proficiency_id proficiency_prof_robotic_programming( "prof_robotic_programming" );
+static const proficiency_id proficiency_prof_surgery( "prof_surgery" );
+static const proficiency_id proficiency_prof_wp_cyborg( "prof_wp_cyborg" );
+
 static const requirement_id requirement_data_anesthetic( "anesthetic" );
 
 static const skill_id skill_computer( "computer" );
@@ -183,8 +189,6 @@ static const trait_id trait_CENOBITE( "CENOBITE" );
 static const trait_id trait_DEBUG_BIONICS( "DEBUG_BIONICS" );
 static const trait_id trait_MASOCHIST_MED( "MASOCHIST_MED" );
 static const trait_id trait_NONE( "NONE" );
-static const trait_id trait_PROF_AUTODOC( "PROF_AUTODOC" );
-static const trait_id trait_PROF_MED( "PROF_MED" );
 static const trait_id trait_PYROMANIA( "PYROMANIA" );
 static const trait_id trait_THRESH_MEDICAL( "THRESH_MEDICAL" );
 
@@ -821,11 +825,12 @@ bool Character::activate_bionic( bionic &bio, bool eff_only, bool *close_bionics
         for( const itype_id &pseudo : bio.info().toggled_pseudo_items ) {
             item tmparmor( pseudo );
             if( tmparmor.has_flag( flag_INTEGRATED ) ) {
-                if( can_wear( tmparmor ).success() ) {
+                ret_val<void> result = get_player_character().worn.check_rigid_conflicts( tmparmor );
+                if( can_wear( tmparmor ).success() && result.success() ) {
                     wear_item( tmparmor, false );
                 } else {
                     add_msg_if_player( m_info,
-                                       _( "Your %s is unable to engage due to other equipment being in the way." ), bio.info().id.str() );
+                                       _( "You are unable to engage your %s." ), bio.info().name );
                     refund_power();
                     bio.powered = false;
                     return false;
@@ -1720,13 +1725,11 @@ static bool attempt_recharge( Character &p, bionic &bio, units::energy &amount )
 
 void Character::process_bionic( bionic &bio )
 {
-
     // Only powered bionics should be processed
     if( !bio.powered ) {
         burn_fuel( bio );
         return;
     }
-
     if( bio.get_uid() == get_weapon_bionic_uid() ) {
         const bool wrong_weapon_wielded = weapon.typeId() != bio.get_weapon().typeId() ||
                                           !weapon.has_flag( flag_NO_UNWIELD );
@@ -1806,12 +1809,12 @@ void Character::process_bionic( bionic &bio )
             }
         }
         if( damaged_hp_parts.empty() && bleeding_bp_parts.empty() ) {
-            // Nothing to heal. Return the consumed power and exit early
+            // Nothing to heal. Return the consumed power and exit early.
             mod_power_level( cost );
             return;
         }
         for( const bodypart_id &i : bleeding_bp_parts ) {
-            // effectively reduces by 1 intensity level
+            // Effectively reduces by 1 intensity level.
             if( get_stored_kcal() >= 15 ) {
                 get_effect( effect_bleed, i ).mod_duration( -get_effect( effect_bleed, i ).get_int_dur_factor() );
                 mod_stored_kcal( -15 );
@@ -1820,36 +1823,23 @@ void Character::process_bionic( bionic &bio )
                 break;
             }
         }
-        if( calendar::once_every( 60_turns ) ) {
+        if( calendar::once_every( 5_minutes ) ) {
             if( get_stored_kcal() >= 5 && !damaged_hp_parts.empty() ) {
                 const bodypart_id part_to_heal = damaged_hp_parts[ rng( 0, damaged_hp_parts.size() - 1 ) ];
                 heal( part_to_heal, 1 );
-                mod_stored_kcal( -5 );
+                mod_stored_kcal( -10 );
+                if( one_in( 5 ) ) {
+                    mod_lifestyle( -1 );
+                }
             }
         }
     } else if( bio.id == bio_painkiller ) {
-        const int pkill = get_painkiller();
-        const int pain = get_pain();
+        const int pain = get_perceived_pain();
         const units::energy trigger_cost = bio.info().power_trigger;
-        int max_pkill = std::min( 150, pain );
-        if( pkill < max_pkill ) {
-            mod_painkiller( 1 );
-            mod_power_level( -trigger_cost );
-        }
-
-        // Only dull pain so extreme that we can't pkill it safely
-        if( pkill >= 150 && pain > pkill && get_stim() > -150 ) {
-            mod_pain( -1 );
-            // Negative side effect: negative stim
-            mod_stim( -1 );
-            mod_power_level( -trigger_cost );
-        }
-    } else if( bio.id == bio_gills ) {
-        const units::energy trigger_cost = bio.info().power_trigger / 8;
-        if( has_effect( effect_asthma ) && get_power_level() >= trigger_cost ) {
-            add_msg_if_player( m_good,
-                               _( "You feel your throat open up and air filling your lungs!" ) );
-            remove_effect( effect_asthma );
+        int max_applied = std::min( 150, pain );
+        int painkiller_intensity = get_effect_int( effect_bionic_painkiller );
+        if( painkiller_intensity < max_applied ) {
+            add_effect( effect_bionic_painkiller, 1_seconds, true, 150 );
             mod_power_level( -trigger_cost );
         }
     } else if( bio.id == bio_evap ) {
@@ -2186,15 +2176,23 @@ int Character::bionics_pl_skill( bool autodoc, int skill_level ) const
         pl_skill = 12 * skill_level;
     }
 
-    // Medical residents have some idea what they're doing.
-    // TODO: Move this to a learnable proficiency.
-    if( has_trait( trait_PROF_MED ) ) {
-        pl_skill += 3;
+    // Knowing the basics about people or cyborgs helps.
+    if( has_proficiency( proficiency_prof_intro_biology ) ||
+        has_proficiency( proficiency_prof_wp_cyborg ) ) {
+        pl_skill += 1;
     }
 
-    // People trained in bionics gain an additional advantage towards using it.
-    if( has_trait( trait_PROF_AUTODOC ) ) {
-        pl_skill += 7;
+    // Surgeons understand the process pretty well.
+    if( has_proficiency( proficiency_prof_surgery ) ) {
+        pl_skill += 3;
+    } else if( has_proficiency( proficiency_prof_dissect_humans ) ) {
+        // Dissection isn't as good but it's better than nothing.
+        pl_skill += 1;
+    }
+
+    // What we are doing here is programming a robot.  Being specifically trained for that helps a lot.
+    if( has_proficiency( proficiency_prof_robotic_programming ) ) {
+        pl_skill += 6;
     }
     return round( pl_skill );
 }
@@ -2278,7 +2276,6 @@ bool Character::can_uninstall_bionic( const bionic &bio, Character &installer, b
             return false;
         }
     }
-
     return true;
 }
 
@@ -2329,6 +2326,8 @@ bool Character::uninstall_bionic( const bionic &bio, Character &installer, bool 
         add_effect( effect_under_operation, difficulty * 20_minutes, elem.first.id(), true, difficulty );
     }
 
+    installer.practice_proficiency( proficiency_prof_surgery, 10_minutes );
+    installer.practice_proficiency( proficiency_prof_robotic_programming, 10_minutes );
     return true;
 }
 
@@ -2625,7 +2624,11 @@ bool Character::install_bionics( const itype &type, Character &installer, bool a
     activity.str_values.emplace_back( "install" );
     activity.str_values.push_back( bioid.str() );
 
-    if( installer.has_trait( trait_PROF_MED ) || installer.has_trait( trait_PROF_AUTODOC ) ) {
+    if( installer.has_proficiency( proficiency_prof_surgery ) ||
+        installer.has_proficiency( proficiency_prof_robotic_programming ) ||
+        ( ( installer.has_proficiency( proficiency_prof_wp_cyborg ) ||
+            installer.has_proficiency( proficiency_prof_intro_biology ) ) &&
+          installer.has_proficiency( proficiency_prof_dissect_humans ) ) ) {
         activity.str_values.push_back( installer.disp_name( true ) );
     } else {
         activity.str_values.emplace_back( "NOT_MED" );
@@ -2638,6 +2641,8 @@ bool Character::install_bionics( const itype &type, Character &installer, bool a
     for( const std::pair<const bodypart_str_id, size_t> &elem : bioid->occupied_bodyparts ) {
         add_effect( effect_under_operation, difficulty * 20_minutes, elem.first.id(), true, difficulty );
     }
+    installer.practice_proficiency( proficiency_prof_surgery, 10_minutes );
+    installer.practice_proficiency( proficiency_prof_robotic_programming, 10_minutes );
 
     return true;
 }
@@ -2954,6 +2959,7 @@ bionic_uid Character::add_bionic( const bionic_id &b, bionic_uid parent_uid,
     update_bionic_power_capacity();
 
     calc_encumbrance();
+    invalidate_tile_eye_level_cache();
     recalc_sight_limits();
     if( is_avatar() && has_flag( json_flag_ENHANCED_VISION ) ) {
         // enhanced vision counts as optics for overmap sight range.

@@ -72,7 +72,6 @@ static const mtype_id mon_player_blob( "mon_player_blob" );
 
 static const mutation_category_id mutation_category_ANY( "ANY" );
 
-static const trait_id trait_ARVORE_FOREST_MAPPING( "ARVORE_FOREST_MAPPING" );
 static const trait_id trait_BURROW( "BURROW" );
 static const trait_id trait_BURROWLARGE( "BURROWLARGE" );
 static const trait_id trait_CHAOTIC_BAD( "CHAOTIC_BAD" );
@@ -323,6 +322,7 @@ void Character::set_mutation_unsafe( const trait_id &trait, const mutation_varia
 
 void Character::do_mutation_updates()
 {
+    invalidate_tile_eye_level_cache();
     recalc_sight_limits();
     calc_encumbrance();
 }
@@ -922,7 +922,7 @@ void Character::activate_cached_mutation( const trait_id &mut )
     } else if( mut == trait_ECHOLOCATION ) {
         echo_pulse();
         deactivate_mutation( mut );
-    } else if( mut == trait_TREE_COMMUNION || mut == trait_ARVORE_FOREST_MAPPING ) {
+    } else if( mut == trait_TREE_COMMUNION ) {
         tdata.powered = false;
         // Check for adjacent trees.
         bool adjacent_tree = false;
@@ -993,7 +993,7 @@ void Character::deactivate_mutation( const trait_id &mut )
 {
     cached_mutations[mut].powered = false;
     trait_flag_cache.clear();
-
+    invalidate_tile_eye_level_cache();
     recalc_sight_limits();
     const mutation_branch &mdata = mut.obj();
     if( mdata.transform ) {
@@ -1161,7 +1161,7 @@ void Character::mutate( const int &true_random_chance, bool use_vitamins )
         try_opposite = false;
     } else if( cat_list.get_weight() > 0 ) {
         cat = *cat_list.pick();
-        cat_list.add_or_replace( cat, 0 );
+        cat_list.remove( cat );
         add_msg_debug( debugmode::DF_MUTATION, "Picked category %s", cat.c_str() );
         // Only decide if it's good or bad after we pick the category.
         if( roll_bad_mutation( cat ) ) {
@@ -1315,7 +1315,7 @@ void Character::mutate( const int &true_random_chance, bool use_vitamins )
                 cat = *cat_list.pick();
                 add_msg_debug( debugmode::DF_MUTATION, "No valid traits in category found, new category %s",
                                cat.c_str() );
-                cat_list.add_or_replace( cat, 0 );
+                cat_list.remove( cat );
             } else {
                 // Every option we have vitamins for is invalid.
                 add_msg_if_player( m_bad,
@@ -1335,7 +1335,7 @@ void Character::mutate( const int &true_random_chance, bool use_vitamins )
     } while( valid.empty() );
 }
 
-void Character::mutate( )
+void Character::mutate()
 {
     mutate( 1, false );
 }
@@ -2348,7 +2348,8 @@ void Character::remove_mutation( const trait_id &mut, bool silent )
     if( !silent && uistate.distraction_mutation && is_avatar() ) {
         g->cancel_activity_or_ignore_query( distraction_type::mutation, _( "You mutate!" ) );
     }
-
+    // Clear eye level cache case we change size or something.
+    invalidate_tile_eye_level_cache();
     calc_mutation_levels();
     drench_mut_calc();
 }

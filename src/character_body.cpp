@@ -97,6 +97,7 @@ static const json_character_flag json_flag_ECTOTHERM( "ECTOTHERM" );
 static const json_character_flag json_flag_HEATSINK( "HEATSINK" );
 static const json_character_flag json_flag_HEAT_IMMUNE( "HEAT_IMMUNE" );
 static const json_character_flag json_flag_IGNORE_TEMP( "IGNORE_TEMP" );
+static const json_character_flag json_flag_LIMB_BONELESS( "LIMB_BONELESS" );
 static const json_character_flag json_flag_LIMB_LOWER( "LIMB_LOWER" );
 static const json_character_flag json_flag_NO_THIRST( "NO_THIRST" );
 static const json_character_flag json_flag_PAIN_IMMUNE( "PAIN_IMMUNE" );
@@ -108,52 +109,62 @@ static const morale_type morale_pyromania_nofire( "morale_pyromania_nofire" );
 static const skill_id skill_firstaid( "firstaid" );
 static const skill_id skill_survival( "survival" );
 
-static const trait_id trait_CHITIN_FUR( "CHITIN_FUR" );
-static const trait_id trait_CHITIN_FUR2( "CHITIN_FUR2" );
-static const trait_id trait_CHITIN_FUR3( "CHITIN_FUR3" );
+static const trait_id trait_CHITIN( "CHITIN" );
 static const trait_id trait_DEBUG_LS( "DEBUG_LS" );
 static const trait_id trait_DEBUG_NOTEMP( "DEBUG_NOTEMP" );
+static const trait_id trait_FEATHERS( "FEATHERS" );
 static const trait_id trait_FELINE_FUR( "FELINE_FUR" );
 static const trait_id trait_FUR( "FUR" );
 static const trait_id trait_INFRESIST( "INFRESIST" );
 static const trait_id trait_INFIMMUNE( "INFIMMUNE" );
-static const trait_id trait_LIGHTFUR( "LIGHTFUR" );
 static const trait_id trait_LUPINE_FUR( "LUPINE_FUR" );
+static const trait_id trait_LUPINE_FUR_SUMMER( "LUPINE_FUR_SUMMER" );
 static const trait_id trait_M_DEPENDENT( "M_DEPENDENT" );
 static const trait_id trait_PYROMANIA( "PYROMANIA" );
+static const trait_id trait_SCALES( "SCALES" );
 static const trait_id trait_SLIMY( "SLIMY" );
+static const trait_id trait_THICK_SCALES( "THICK_SCALES" );
 static const trait_id trait_URSINE_FUR( "URSINE_FUR" );
+static const trait_id trait_URSINE_FUR_SUMMER( "URSINE_FUR_SUMMER" );
+static const trait_id trait_VISCOUS( "VISCOUS" );
 
 static const vitamin_id vitamin_blood( "blood" );
+static const vitamin_id vitamin_calcium( "calcium" );
+static const vitamin_id vitamin_iron( "iron" );
+static const vitamin_id vitamin_vitC( "vitC" );
 
 void Character::update_body_wetness( const w_point &weather )
 {
     // Average number of turns to go from completely soaked to fully dry
     // assuming average temperature and humidity
     constexpr time_duration average_drying = 30_minutes;
+    float trait_mult = 1.0f;
 
-    // Fur/slime retains moisture
-    float trait_mult = 1.0;
-    if( has_trait( trait_LIGHTFUR ) || has_trait( trait_FUR ) || has_trait( trait_FELINE_FUR ) ||
-        has_trait( trait_LUPINE_FUR ) || has_trait( trait_CHITIN_FUR ) || has_trait( trait_CHITIN_FUR2 ) ||
-        has_trait( trait_CHITIN_FUR3 ) ) {
-        trait_mult = 2.0;
-    }
-    if( has_trait( trait_URSINE_FUR ) || has_trait( trait_SLIMY ) ) {
-        trait_mult = 4.0;
+    // Some fur retains water.
+    if( has_trait( trait_FUR ) || has_trait( trait_FELINE_FUR ) ||
+        has_trait( trait_LUPINE_FUR_SUMMER ) || has_trait( trait_URSINE_FUR_SUMMER ) ) {
+        trait_mult = 1.5f;
+        // Winter coats are better at shedding water.
+    } else if( has_trait( trait_LUPINE_FUR ) || has_trait( trait_URSINE_FUR ) ) {
+        trait_mult = 1.25f;
+        // Slimy characters stay wet much longer.
+    } else if( has_trait( trait_SLIMY ) || has_trait( trait_VISCOUS ) ) {
+        trait_mult = 3.0f;
+        // Scales, feathers, and chitin shed water easily.
+    } else if( has_trait( trait_SCALES ) || has_trait( trait_THICK_SCALES ) ||
+               has_trait( trait_CHITIN ) || has_trait( trait_FEATHERS ) ) {
+        trait_mult = 0.5f;
     }
 
-    // Weather slows down drying
+    // Weather slows down drying.
     float weather_mult = 1.0;
     weather_mult += ( ( weather.humidity - 66.0f ) - ( units::to_fahrenheit(
                           weather.temperature ) - 65.0f ) ) / 100.0f;
     weather_mult = std::max( 0.1f, weather_mult );
-
     for( const bodypart_id &bp : get_all_body_parts() ) {
-
         const units::temperature temp_conv = get_part_temp_conv( bp );
         const int drench_cap = get_part_drench_capacity( bp );
-        // do sweat related tests assuming not underwater
+        // Do sweat related tests, assuming we're not underwater.
         if( !is_underwater() ) {
             const int wetness = get_part_wetness( bp );
             if( wetness == 0 ) {
@@ -259,7 +270,6 @@ void Character::update_body( const time_point &from, const time_point &to )
     const int five_mins = ticks_between( from, to, 5_minutes );
     if( five_mins > 0 ) {
         activity_history.try_reduce_weariness( base_bmr() );
-
         check_needs_extremes();
         update_needs( five_mins );
         regen( five_mins );
@@ -267,15 +277,30 @@ void Character::update_body( const time_point &from, const time_point &to )
         // TODO: change @ref mend to take time_duration
         mend( five_mins * to_turns<int>( 5_minutes ) );
         activity_history.reset_activity_level();
+        // Ensure that NPCs outside the player faction don't die of scurvy.
+        if( !needs_food() ) {
+            vitamin_set( vitamin_vitC, 0 );
+            vitamin_set( vitamin_iron, 0 );
+            vitamin_set( vitamin_calcium, 0 );
+        }
+        /* This is called in vitamin_mod, but we call it again here as a fallback so
+           hypovolemia etc don't get stuck on a character who should have recovered by now. */
+        for( const auto &v : vitamin::all() ) {
+            update_vitamins( v.first );
+        }
     }
     bool was_sleeping = get_value( "was_sleeping" ).str() == "true";
     if( in_sleep_state() && was_sleeping ) {
         needs_rates tmp_rates;
         calc_sleep_recovery_rate( tmp_rates );
-        const int fatigue_regen_rate = tmp_rates.recovery;
-        const time_duration effective_time_slept = ( to - from ) * fatigue_regen_rate;
-        mod_daily_sleep( effective_time_slept );
-        mod_continuous_sleep( effective_time_slept );
+        const float fatigue_regen_rate = tmp_rates.recovery;
+        if( fatigue_regen_rate > 0.0f ) {
+            const int turns = to_turns<int>( to - from );
+            const time_duration effective_time_slept = time_duration::from_turns(
+                        roll_remainder( turns * fatigue_regen_rate ) );
+            mod_daily_sleep( effective_time_slept );
+            mod_continuous_sleep( effective_time_slept );
+        }
     }
     if( was_sleeping && !in_sleep_state() ) {
         if( get_continuous_sleep() >= 6_hours ) {
@@ -335,21 +360,24 @@ void Character::update_body( const time_point &from, const time_point &to )
             mod_daily_health( 1, 200 );
         }
 
+        // Low morale flags last a day, unless their morale still meets the threshold throughout days.
         if( !get_value( "got_to_low_morale" ).is_empty() ) {
             mod_daily_health( -1, -100 );
-        } else {
-            remove_value( "got_to_low_morale" );
+            if( get_morale_level() > MORALE_UNHEALTHY_LOW ) {
+                remove_value( "got_to_low_morale" );
+            }
         }
         if( !get_value( "got_to_very_low_morale" ).is_empty() ) {
             mod_daily_health( -2, -200 );
-        } else {
-            remove_value( "got_to_very_low_morale" );
+            if( get_morale_level() > MORALE_UNHEALTHY_VERY_LOW ) {
+                remove_value( "got_to_very_low_morale" );
+            }
         }
 
         // Being badly injured is not healthy, though your immune system might be able to handle it.
         bool wounded = false;
         for( const bodypart_id &bp : get_all_body_parts( get_body_part_flags::only_main ) ) {
-            if( get_part_hp_cur( bp ) < ( get_part_hp_cur( bp ) / 2 ) ) {
+            if( get_part_hp_cur( bp ) < ( get_part_hp_max( bp ) / 2 ) ) {
                 wounded = true;
             }
         }
@@ -406,7 +434,7 @@ void Character::update_body( const time_point &from, const time_point &to )
                 // "RDA" for our character and roll a chance to get a penalty tied to how much we ate.
                 if( ( toxin_RDA > 0 ) && ( rng( 1, 115 ) <= std::min( toxin_RDA, 100 ) ) ) {
                     int toxin_malus = static_cast<int>( std::ceil( toxin_RDA / 10.0 ) );
-                    mod_daily_health( std::max( -5, toxin_malus ), -200 );
+                    mod_daily_health( std::max( -5, -toxin_malus ), -200 );
                 }
             }
 
@@ -491,7 +519,9 @@ std::map<bodypart_id, temp_warning_record> last_temp_warnings;
 
 void Character::update_bodytemp()
 {
-    if( has_trait( trait_DEBUG_NOTEMP ) ) {
+    npc *n = as_npc();
+    if( has_trait( trait_DEBUG_NOTEMP ) ||
+        ( !is_avatar() && n && !n->is_player_ally() ) ) {
         set_all_parts_temp_conv( BODYTEMP_NORM );
         set_all_parts_temp_cur( BODYTEMP_NORM );
         return;
@@ -880,22 +910,19 @@ void Character::update_bodytemp()
         // Otherwise, if any other body part is BODYTEMP_VERY_COLD, or 31C
         // AND you have frostbite, then that also prevents you from sleeping
         if( in_sleep_state() && !has_effect( effect_narcosis ) ) {
-            if( bp == body_part_torso && temp_after <= BODYTEMP_COLD && calendar::once_every( 1_hours ) ) {
-                add_msg( m_warning, _( "You feel cold and shiver." ) );
-            }
             if( temp_after <= BODYTEMP_VERY_COLD &&
                 get_fatigue() <= fatigue_levels::DEAD_TIRED && !has_bionic( bio_sleep_shutdown ) ) {
                 if( bp == body_part_torso ) {
-                    add_msg( m_warning, _( "Your shivering prevents you from sleeping." ) );
+                    add_msg( m_warning, _( "You are too cold to sleep." ) );
                     wake_up();
                 } else if( has_effect( effect_frostbite ) ) {
-                    add_msg( m_warning, _( "You are too cold.  Your frostbite prevents you from sleeping." ) );
+                    add_msg( m_warning, _( "You are too cold.  If you sleep now, you might never wake up." ) );
                     wake_up();
                 }
             }
         }
 
-        // Warn the player about windchill, but only on cold bodyparts
+        // Warn the player about windchill, but only on cold bodyparts.
         const units::temperature conv_temp = get_part_temp_conv( bp );
         if( conv_temp <= BODYTEMP_COLD && windchill < units::from_kelvin_delta( -30 ) &&
             now - record.last_wind_extreme > cooldown_danger ) {
@@ -905,7 +932,7 @@ void Character::update_bodytemp()
         } else if( conv_temp <= BODYTEMP_COLD && windchill < units::from_fahrenheit_delta( -20 ) &&
                    now - record.last_wind_strong > cooldown_danger ) {
             add_msg( m_bad,
-                     _( "The strong wind is chilling your unprotected %s." ),
+                     _( "The strong wind is chilling your %s." ),
                      body_part_name( bp ) );
             record.last_wind_strong = now;
         } else if( conv_temp <= BODYTEMP_COLD && windchill < units::from_fahrenheit_delta( -10 ) &&
@@ -1101,7 +1128,7 @@ void Character::update_stomach( const time_point &from, const time_point &to )
             mod_stored_calories( -std::floor( five_mins * kcal_per_time * 1000 ) );
         }
     }
-    // if foodless no need to calc hunger, and set hunger_effect
+    // If foodless, no need to calc hunger, and set hunger_effect.
     if( foodless ) {
         return;
     }
@@ -1279,7 +1306,8 @@ bodypart_id Character::body_window( const std::string &menu_header,
         const nc_color all_state_col = display::limb_color( *this, bp, true, true, true );
         // Broken means no HP can be restored, it requires surgical attention.
         const bool limb_is_broken = is_limb_broken( bp );
-        const bool limb_is_mending = worn_with_flag( flag_SPLINT, bp );
+        const bool limb_is_mending = limb_is_broken && ( worn_with_flag( flag_SPLINT, bp ) ||
+                                     bp->has_flag( json_flag_LIMB_BONELESS ) );
         // How much this treatment would help, if applied to this bodypart.
         // The value itself is just a sorting number and has no actual meaning in itself, but is roughly ranged at:
         // 0-30=bandage, 30-60=disinfectant, 60-70=bitten/infected, 70-80=bleeding
@@ -1319,8 +1347,13 @@ bodypart_id Character::body_window( const std::string &menu_header,
         const auto &aligned_name = std::string( max_bp_name_len - utf8_width( e.name ), ' ' ) + e.name;
         std::string hp_str;
         if( limb_is_mending ) {
-            desc += colorize( _( "It is broken, but has been set, and just needs time to heal." ),
-                              c_blue ) + "\n";
+            if( bp->has_flag( json_flag_LIMB_BONELESS ) ) {
+                desc += colorize( _( "It is injured beyond use, but will recover on its own in time." ),
+                                  c_blue ) + "\n";
+            } else {
+                desc += colorize( _( "It is broken, but has been set, and just needs time to heal." ),
+                                  c_blue ) + "\n";
+            }
             if( no_feeling ) {
                 hp_str = colorize( "==%==", c_blue );
             } else {

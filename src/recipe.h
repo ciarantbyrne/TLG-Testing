@@ -18,6 +18,8 @@
 
 #include "build_reqs.h"
 #include "calendar.h"
+#include "crafting_enums.h"
+#include "proficiency.h"
 #include "requirements.h"
 #include "translations.h"
 #include "type_id.h"
@@ -30,6 +32,7 @@ class cata_variant;
 class item;
 class item_components;
 class read_only_visitable;
+class recipe;
 template <typename E> struct enum_traits;
 
 enum class recipe_filter_flags : int {
@@ -124,7 +127,32 @@ struct recipe_step {
     // Populated during finalize from reqs_internal
     requirement_data requirements;
 
+    step_attention attention = step_attention::none;
+    // nullopt = step waits indefinitely.
+    std::optional<time_duration> max_time;
+    // Buffer past max_time before destruction.  Requires max_time.
+    std::optional<time_duration> grace_period;
+    translation unattend_message;
+
     void load( const JsonObject &jo, const std::string &recipe_name, int step_index );
+};
+
+// Pre-computed environment data for recipe cost calculations.
+// Eliminates hidden inventory scans from recipe time/proficiency functions.
+// Construct once at the evaluation boundary (UI open, craft start, 5% tick)
+// and pass through to all recipe cost functions.
+//
+// Use for_recipe() to compute from crafter + recipe, not bare {} --
+// {} means "no book bonuses, no tool speeds" which silently drops
+// book proficiency mitigation.
+struct crafting_cost_context {
+    book_proficiency_bonuses books;     // nearby book proficiency bonuses
+    std::vector<float> tool_speeds;     // per-step tool speed modifiers (empty = none)
+
+    // Compute full context: book bonuses + tool speed modifiers for this recipe.
+    static crafting_cost_context for_recipe( const Character &guy, const recipe &rec );
+    // Book bonuses only (no tool speed modifiers). Cheaper than for_recipe().
+    static crafting_cost_context for_proficiencies( const Character &guy );
 };
 
 class recipe
@@ -194,6 +222,12 @@ class recipe
 
         const deduped_requirement_data &deduped_requirements() const {
             return deduped_requirements_;
+        }
+
+        // Root-level requirements (inline + "using"), captured before per-step
+        // requirements merge in.  Empty for stepless recipes.
+        const requirement_data &root_requirements() const {
+            return root_requirements_;
         }
 
         const recipe_id &ident() const {
@@ -266,12 +300,16 @@ class recipe
         bool character_has_required_proficiencies( const Character &c ) const;
         // Used proficiencies, will impede crafting if missing
         std::vector<proficiency_id> used_proficiencies() const;
-        // The time malus due to proficiencies lacking
-        float proficiency_time_maluses( const Character &crafter ) const;
+        // The time malus due to proficiencies lacking.
+        // book_bonuses: nearby book proficiency bonuses (avoids inventory scan).
+        float proficiency_time_maluses( const Character &crafter,
+                                        const book_proficiency_bonuses &books ) const;
         // The time malus if all the proficiencies were lacking
         float max_proficiency_time_maluses( const Character &crafter ) const;
-        // The skill malus due to proficiencies lacking
-        float proficiency_skill_maluses( const Character &crafter ) const;
+        // The skill malus due to proficiencies lacking.
+        // book_bonuses: nearby book proficiency bonuses (avoids inventory scan).
+        float proficiency_skill_maluses( const Character &crafter,
+                                         const book_proficiency_bonuses &books ) const;
         // The max skill malus due to proficiencies lacking
         float max_proficiency_skill_maluses( const Character &crafter ) const;
 
@@ -285,6 +323,8 @@ class recipe
         const std::vector<recipe_step> &steps() const {
             return steps_;
         }
+        bool has_attention_steps() const;
+        bool has_remaining_attention_steps( int from_step ) const;
         // Returns aggregate proficiencies for step recipes, or the legacy
         // proficiencies field for stepless recipes.  This is a conservative
         // whole-recipe approximation used for display, gating, approximate
@@ -292,14 +332,18 @@ class recipe
         const std::vector<recipe_proficiency> &get_proficiencies() const {
             return has_steps() ? aggregate_proficiencies_ : proficiencies;
         }
-        // Per-step proficiency time malus (uses step's own proficiency list)
+        // Per-step proficiency time malus (uses step's own proficiency list).
+        // book_bonuses: nearby book proficiency bonuses (avoids inventory scan).
         static float proficiency_time_maluses_for_step(
-            const Character &crafter, const recipe_step &step );
+            const Character &crafter, const recipe_step &step,
+            const book_proficiency_bonuses &books );
         // Per-step time budget in base moves (with proficiency malus and batch savings).
         // Same per-step formula that batch_time() uses internally.
-        // Optional tool_speeds vector applies per-step speed modifier.
+        // ignore_proficiencies skips the proficiency malus (passive steps run on
+        // wall-clock independent of crafter skill).
         double step_budget_moves( const Character &guy, size_t step_idx, int batch,
-                                  const std::vector<float> *tool_speeds = nullptr ) const;
+                                  const crafting_cost_context &ctx,
+                                  recipe_time_flag flags = recipe_time_flag::none ) const;
 
         // This is used by the basecamp bulletin board.
         std::string required_all_skills_string( const std::map<skill_id, int> & ) const;
@@ -323,13 +367,14 @@ class recipe
         bool has_byproducts() const;
 
         int64_t batch_time( const Character &guy, int batch, float multiplier, size_t assistants,
-                            const std::vector<float> *tool_speeds = nullptr ) const;
-        time_duration batch_duration( const Character &guy, int batch = 1, float multiplier = 1.0,
+                            const crafting_cost_context &ctx ) const;
+        time_duration batch_duration( const Character &guy, const crafting_cost_context &ctx,
+                                      int batch = 1, float multiplier = 1.0,
                                       size_t assistants = 0 ) const;
 
-        time_duration time_to_craft( const Character &guy,
+        time_duration time_to_craft( const Character &guy, const crafting_cost_context &ctx,
                                      recipe_time_flag flags = recipe_time_flag::none ) const;
-        int64_t time_to_craft_moves( const Character &guy,
+        int64_t time_to_craft_moves( const Character &guy, const crafting_cost_context &ctx,
                                      recipe_time_flag flags = recipe_time_flag::none ) const;
 
         bool has_flag( const std::string &flag_name ) const;
@@ -412,6 +457,9 @@ class recipe
 
         /** Combined requirements cached when recipe finalized */
         requirement_data requirements_;
+
+        /** Snapshot backing root_requirements() */
+        requirement_data root_requirements_;
 
         /** Deduped version constructed from the above requirements_ */
         deduped_requirement_data deduped_requirements_;

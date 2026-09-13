@@ -82,9 +82,7 @@ bool is_creature_outside( const Creature &target )
 {
     map &here = get_map();
     const tripoint_bub_ms pos = target.pos_bub( here );
-
-    return here.is_outside( tripoint_bub_ms( pos.xy(), here.get_abs_sub().z() ) ) &&
-           here.get_abs_sub().z() >= 0;
+    return here.is_outside( tripoint_bub_ms( pos.xy(), here.get_abs_sub().z() ) );
 }
 
 weather_type_id get_bad_weather()
@@ -106,7 +104,7 @@ weather_type_id get_bad_weather()
 void glare( const weather_type_id &w )
 {
     Character &player_character = get_player_character();//todo npcs, also
-    //General prerequisites for glare
+    // General prerequisites for glare
     if( g->is_sheltered( player_character.pos_bub() ) ||
         player_character.in_sleep_state() ||
         player_character.worn_with_flag( json_flag_SUN_GLASSES ) ||
@@ -326,9 +324,13 @@ double trap::funnel_turns_per_charge( double rain_depth_mm_per_hour ) const
 /**
  * Main routine for filling funnels from weather effects.
  */
-static void fill_funnels( int rain_depth_mm_per_hour, const trap &tr )
+static void fill_funnels( double rain_depth_mm_per_hour, const trap &tr )
 {
     const double turns_per_charge_d = tr.funnel_turns_per_charge( rain_depth_mm_per_hour );
+    if( turns_per_charge_d == 0.0 ) {
+        return;
+    }
+    const double charges_per_turn = 1.0 / turns_per_charge_d;
 
     map &here = get_map();
     // Give each funnel on the map a chance to collect the rain.
@@ -344,28 +346,11 @@ static void fill_funnels( int rain_depth_mm_per_hour, const trap &tr )
             }
         }
 
-        if( container != items.end() && turns_per_charge_d > 0.0 ) {
-            int whole = static_cast<int>( std::floor( turns_per_charge_d ) );
-            double frac = turns_per_charge_d - whole;
-
-            // If turns_per_charge < 1, always fill (multiple charges per turn possible)
-            if( turns_per_charge_d < 1.0 ) {
-                int count = static_cast<int>( std::ceil( 1.0 / turns_per_charge_d ) );
-                for( int i = 0; i < count; i++ ) {
-                    container->add_rain_to_container( 1 );
-                }
+        if( container != items.end() ) {
+            int charges = roll_remainder( charges_per_turn );
+            if( charges > 0 ) {
+                container->add_rain_to_container( charges );
                 container->set_age( 0_turns );
-            } else {
-                // Base chance: one charge every 'whole' turns
-                if( one_in( whole ) ) {
-                    container->add_rain_to_container( 1 );
-                    container->set_age( 0_turns );
-                }
-                // Fractional chance to add an *extra* charge
-                if( frac > 0.0 && x_in_y( frac, 1.0 ) ) {
-                    container->add_rain_to_container( 1 );
-                    container->set_age( 0_turns );
-                }
             }
         }
     }
@@ -375,7 +360,7 @@ static void fill_funnels( int rain_depth_mm_per_hour, const trap &tr )
  * Fill funnels and makeshift funnels from weather effects.
  * @see fill_funnels
  */
-static void fill_water_collectors( int mmPerHour )
+static void fill_water_collectors( double mmPerHour )
 {
     for( const trap * const &e : trap::get_funnels() ) {
         fill_funnels( mmPerHour, *e );
@@ -453,7 +438,7 @@ void weather_sound( const translation &sound_message, const std::string &sound_e
     Character &player_character = get_player_character();
     map &here = get_map();
     if( !player_character.has_effect( effect_sleep ) && !player_character.is_deaf() ) {
-        if( here.get_abs_sub().z() >= 0 ) {
+        if( here.is_outside( player_character.pos_bub() ) ) {
             add_msg( sound_message );
             if( !sound_effect.empty() ) {
                 sfx::play_variant_sound( "environment", sound_effect, 80, random_direction() );
@@ -942,13 +927,13 @@ static bool has_sunlight_access( const tripoint_bub_ms &pos )
     tripoint_bub_ms checked_pnt = pos;
     const map &here = get_map();
     while( checked_pnt.z() < OVERMAP_HEIGHT ) {
-        const tripoint_bub_ms pnt_above = {checked_pnt.xy(), checked_pnt.z() + 1 };
+        const tripoint_bub_ms pnt_above = { checked_pnt.xy(), checked_pnt.z() + 1 };
         const bool should_check_above = pnt_above.z() < OVERMAP_HEIGHT;
-        // If checking above would take us outside of game bounds, just assume that it's all open air up there.
         const bool transparent_roof = should_check_above ?
-                                      here.has_flag_ter( "NO_FLOOR", pnt_above ) || here.has_flag_ter( "TRANSPARENT_FLOOR", pnt_above ) :
+                                      here.has_flag_ter( "NO_FLOOR", pnt_above ) ||
+                                      here.has_flag_ter( "TRANSPARENT_FLOOR", pnt_above ) :
                                       true;
-        if( !here.is_outside( checked_pnt ) && !transparent_roof ) {
+        if( !transparent_roof ) {
             return false;
         }
         checked_pnt = pnt_above;
@@ -1038,7 +1023,7 @@ void weather_manager::update_weather()
         map &here = get_map();
         if( uistate.distraction_weather_change &&
             weather_id != old_weather && weather_id->dangerous &&
-            here.get_abs_sub().z() >= 0 && here.is_outside( player_character.pos_bub() )
+            has_sunlight_access( player_character.pos_bub() ) && here.is_outside( player_character.pos_bub() )
             && !player_character.has_activity( ACT_WAIT_WEATHER ) ) {
             g->cancel_activity_or_ignore_query( distraction_type::weather_change,
                                                 string_format( _( "The weather changed to %s!" ), weather_id->name ) );
@@ -1184,9 +1169,10 @@ units::temperature weather_manager::get_temperature( const tripoint_bub_ms &loca
     if( cached != temperature_cache.end() ) {
         return cached->second;
     }
-
+    map &here = get_map();
     //underground temperature = average New England temperature = 43F/6C
-    units::temperature temp = location.z() < 0 ? AVERAGE_ANNUAL_TEMPERATURE : temperature;
+    units::temperature temp = location.z() < 0 &&
+                              !here.is_outside( location ) ? AVERAGE_ANNUAL_TEMPERATURE : temperature;
 
     if( !g->new_game && !g->swapping_dimensions ) {
         units::temperature_delta temp_mod;

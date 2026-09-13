@@ -11,7 +11,7 @@
     "material": [ "plastic" ],
     "symbol": "(",
     "color": "magenta",
-    "flags": [ "INTEGRATED", "UNBREAKABLE", "PERSONAL", "NO_REPAIR", "ALLOWS_NATURAL_ATTACKS", "BIONIC_FUEL_SOURCE" ],
+    "flags": [ "INTEGRATED", "UNBREAKABLE", "PERSONAL", "NO_REPAIR", "ALLOWS_NATURAL_ATTACKS", "BIONIC_FUEL_SOURCE", "SOFT" ],
     "pocket_data": [
       {
         "pocket_type": "MAGAZINE_WELL",
@@ -44,7 +44,8 @@
       "SOFT",
       "NO_REPAIR",
       "ALLOWS_NATURAL_ATTACKS",
-      "TRADER_AVOID"
+      "TRADER_AVOID",
+      "SOFT"
     ],
     "material": [ "superalloy", "copper" ],
     "name": { "str_sp": "integrated multitool" },
@@ -101,7 +102,8 @@
       "NO_REPAIR",
       "ALLOWS_NATURAL_ATTACKS",
       "TRADER_AVOID",
-      "USES_BIONIC_POWER"
+      "USES_BIONIC_POWER",
+      "SOFT"
     ],
     "material": [ "superalloy", "copper" ],
     "name": { "str_sp": "integrated welder" },
@@ -113,7 +115,6 @@
         "item_action_type": "repair_metal",
         "materials": [
           "iron",
-          "budget_steel",
           "steel",
           "steel_chain",
           "aluminum",
@@ -162,7 +163,8 @@
       "NO_REPAIR",
       "ALLOWS_NATURAL_ATTACKS",
       "TRADER_AVOID",
-      "USES_BIONIC_POWER"
+      "USES_BIONIC_POWER",
+      "SOFT"
     ],
     "material": [ "superalloy", "copper" ],
     "name": { "str_sp": "integrated multimeter" },
@@ -193,7 +195,8 @@
       "NO_REPAIR",
       "ALLOWS_NATURAL_ATTACKS",
       "TRADER_AVOID",
-      "USES_BIONIC_POWER"
+      "USES_BIONIC_POWER",
+      "SOFT"
     ],
     "material": [ "superalloy", "copper" ],
     "name": { "str_sp": "integrated soldering iron" },

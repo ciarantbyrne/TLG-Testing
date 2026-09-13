@@ -73,6 +73,8 @@ static const damage_type_id damage_acid( "acid" );
 
 static const efftype_id effect_airborne( "airborne" );
 static const efftype_id effect_corroding( "corroding" );
+static const efftype_id effect_dashing( "dashing" );
+static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_invisibility( "invisibility" );
 static const efftype_id effect_jumping( "jumping" );
 static const efftype_id effect_pet( "pet" );
@@ -651,7 +653,8 @@ static void damage_targets( const spell &sp, Creature &caster,
             const float dodge_training = sp.dodge_training( caster );
             if( cr->dodge_check( spell_accuracy, dodge_training ) ) {
                 if( !cr->is_monster() ) {
-                    cr->add_msg_player_or_npc( "You dodge out of the way!", "%s dodges out of the way!" );
+                    cr->add_msg_player_or_npc( _( "You dodge out of the way!" ),
+                                               _( "<npcname> dodges out of the way!" ) );
                 } else {
                     if( !cr->has_effect( effect_invisibility ) ) {
                         add_msg_if_player_sees( cr->pos_bub(), m_bad, _( "%1$s dodges out of the way!" ),
@@ -1936,6 +1939,8 @@ void spell_effect::dash( const spell &sp, Creature &caster, const tripoint_bub_m
         caster.add_effect( effect_airborne, 1_seconds, true );
         caster.add_effect( effect_jumping, 1_seconds, true, jump_vert );
         jumping = true;
+    } else {
+        caster.add_effect( effect_dashing, 1_seconds, true );
     }
     while( walk_point != trajectory.end() ) {
         if( caster_you != nullptr ) {
@@ -1943,7 +1948,7 @@ void spell_effect::dash( const spell &sp, Creature &caster, const tripoint_bub_m
             if( jumping && ( walk_point + 1 ) == trajectory.end() ) {
                 caster.remove_effect( effect_airborne );
             }
-            if( creatures.creature_at( here.get_bub( *walk_point ) ) ||
+            if( caster.has_effect( effect_downed ) || creatures.creature_at( here.get_bub( *walk_point ) ) ||
                 !g->walk_move( here.get_bub( *walk_point ), false ) ) {
                 if( walk_point != trajectory.begin() ) {
                     --walk_point;
@@ -1953,6 +1958,20 @@ void spell_effect::dash( const spell &sp, Creature &caster, const tripoint_bub_m
                 sp.create_field( here.get_bub( *( walk_point - 1 ) ), caster );
                 g->draw_ter();
             }
+        } else {
+            if( jumping && ( walk_point + 1 ) == trajectory.end() ) {
+                caster.remove_effect( effect_airborne );
+            }
+            if( caster.has_effect( effect_downed ) || creatures.creature_at( here.get_bub( *walk_point ) ) ) {
+                if( walk_point != trajectory.begin() ) {
+                    --walk_point;
+                }
+                break;
+            } else if( walk_point != trajectory.begin() ) {
+                sp.create_field( here.get_bub( *( walk_point - 1 ) ), caster );
+                g->draw_ter();
+            }
+            caster.setpos( here, here.get_bub( *walk_point ), !jumping );
         }
         ++walk_point;
     }
@@ -1960,6 +1979,8 @@ void spell_effect::dash( const spell &sp, Creature &caster, const tripoint_bub_m
         // Redundant effect removal for safety's sake.
         caster.remove_effect( effect_airborne );
         caster.remove_effect( effect_jumping );
+    } else {
+        caster.remove_effect( effect_dashing );
     }
     caster.set_moves( cur_moves );
     tripoint_bub_ms far_target;
@@ -1972,6 +1993,21 @@ void spell_effect::dash( const spell &sp, Creature &caster, const tripoint_bub_m
     const std::set<tripoint_bub_ms> hit_area = spell_effect_cone_range_override( params, source,
             far_target );
     damage_targets( sp, caster, hit_area );
+}
+
+void spell_effect::fling_away( const spell &sp, Creature &caster, const tripoint_bub_ms &target )
+{
+    int throwforce = sp.damage( caster );
+    if( throwforce <= 0 ) {
+        debugmsg( "ERROR: fling_away spell effect called with no damage.  Damage is required for throwforce." );
+        return;
+    }
+    creature_tracker &creatures = get_creature_tracker();
+    if( !creatures.creature_at( target ) || caster.pos_bub() == target ) {
+        return;
+    }
+    units::angle target_angle = coord_to_angle( caster.pos_bub(), target );
+    g->fling_creature( creatures.creature_at( target ), target_angle, throwforce, false );
 }
 
 void spell_effect::banishment( const spell &sp, Creature &caster, const tripoint_bub_ms &target )

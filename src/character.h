@@ -48,6 +48,7 @@
 #include "player_activity.h"
 #include "pocket_type.h"
 #include "point.h"
+#include "proficiency.h"
 #include "ranged.h"
 #include "ret_val.h"
 #include "safe_reference.h"
@@ -81,7 +82,6 @@ class monster;
 class nc_color;
 class player_morale;
 class profession;
-class proficiency_set;
 class recipe;
 class recipe_subset;
 class spell;
@@ -92,8 +92,19 @@ namespace catacurses
 {
 class window;
 }  // namespace catacurses
+namespace Pickup
+{
+struct pick_info;
+} // namespace Pickup
+
+enum action_id : int;
+enum class recipe_filter_flags : int;
+enum class steed_type : int;
+enum npc_attitude : int;
+struct attention_plan;
 struct bionic;
 struct construction;
+struct crafting_cost_context;
 struct dealt_projectile_attack;
 struct display_proficiency;
 struct field_immunity_data;
@@ -231,11 +242,11 @@ constexpr inline int operator-( const T &lhs, const fatigue_levels &rhs )
 /** @brief five levels of consequences for days without sleep
     @details Sleep deprivation, distinct from fatigue, is defined in minutes. Although most
     calculations scale linearly, malus is bestowed only upon reaching the tiers defined below.
+    Sleep deprivation is intended to scale with sleep-affecting mutations, but not generally
+    with drugs. A cat needs less sleep than a human. A meth addict, whatever they may believe,
+    does not. It is intended to be largely unavoidable.
     @note Sleep deprivation increases fatigue. Fatigue increase scales with the severity of sleep
     deprivation.
-    @note Sleep deprivation kicks in if lack of sleep is avoided with stimulants or otherwise for
-    long periods of time
-    @see https://github.com/CleverRaven/Cataclysm-DDA/blob/master/src/character.cpp#L5566
 */
 enum sleep_deprivation_levels {
     /// 2 days
@@ -248,6 +259,15 @@ enum sleep_deprivation_levels {
     SLEEP_DEPRIVATION_MAJOR = 10 * 24 * 60,
     /// 14 days
     SLEEP_DEPRIVATION_MASSIVE = 14 * 24 * 60
+};
+
+/** @brief thresholds of morale at which health is impacted
+    @details If the player reaches low morale at some point in a day, their lifestyle score
+    is decreased.
+*/
+enum morale_levels {
+    MORALE_UNHEALTHY_LOW = -25,
+    MORALE_UNHEALTHY_VERY_LOW = -50
 };
 
 enum class blood_type {
@@ -397,8 +417,9 @@ struct aim_mods_cache {
     float aim_speed_dex_mod;
     float aim_speed_mod;
     int limit;
-    double aim_factor_from_volume;
     double aim_factor_from_length;
+    double aim_factor_from_volume;
+    double aim_factor_from_weight;
     parallax_cache parallaxes;
 };
 
@@ -756,6 +777,12 @@ class Character : public Creature, public visitable
         void set_fatigue( fatigue_levels nfatigue );
         void set_sleep_deprivation( int nsleep_deprivation );
 
+        /** Cache helpers for eye_level() */
+        mutable int cached_tile_eye_level_bonus = 0;
+        mutable bool cached_tile_eye_level_bonus_dirty = true;
+        int tile_eye_level_bonus() const;
+        void invalidate_tile_eye_level_cache() const;
+
     protected:
 
         // These accept values in calories, 1/1000s of kcals (or Calories)
@@ -841,8 +868,15 @@ class Character : public Creature, public visitable
                                             const Target_attributes &target_attributes = Target_attributes(),
                                             std::optional<std::reference_wrapper<const parallax_cache>> parallax_cache = std::nullopt ) const;
         int most_accurate_aiming_method_limit( const item &gun ) const;
-        double aim_factor_from_volume( const item &gun ) const;
+        /* Aim speed penalty from the general bulk of the weapon.
+           This scales with the shooter's size category. */
         double aim_factor_from_length( const item &gun ) const;
+        /* Length penalties to aim speed are only assessed when the shooter is in a vehicle or
+           against a wall. These do not scale with the shooter's height as it's more about gun
+           vs environment. Guns under 200mm (about 8 inches) are unaffected. */
+        double aim_factor_from_volume( const item &gun ) const;
+        // Heavier guns are slower to aim. This is checked against get_arm_str() and stamina.
+        double aim_factor_from_weight( const item &gun ) const;
         aim_mods_cache gen_aim_mods_cache( const item &gun )const;
 
         // Get the value of the specified character modifier.
@@ -963,8 +997,6 @@ class Character : public Creature, public visitable
 
         // true if the character produces electrical radiation
         bool is_electrical() const override;
-        // true if the character is a faerie creature (has the FAE_CREATURE flag or the trait FAERIECREATURE)
-        bool is_fae() const override;
         // true if the character is from the nether
         bool is_nether() const override;
         // true if the character has a sapient mind
@@ -994,11 +1026,11 @@ class Character : public Creature, public visitable
         void update_cached_mutations();
         /** Returns true if character is the player or a member of their faction, otherwise false. */
         bool needs_food() const;
-        /** Increases hunger, thirst, fatigue and stimulants wearing off. `rate_multiplier` is for retroactive updates. */
+        /** Increases hunger, thirst, and fatigue. `rate_multiplier` is for retroactive updates. */
         void update_needs( int rate_multiplier );
         needs_rates calc_needs_rates() const;
         void calc_sleep_recovery_rate( needs_rates &rates ) const;
-        /** Kills the player if too hungry, stimmed up etc., forces tired player to sleep and prints warnings. */
+        /** Kills the player if too hungry, forces tired player to sleep, and prints warnings. */
         void check_needs_extremes();
         /** Handles the chance to be infected by random diseases */
         void get_sick( bool is_flu = false );
@@ -1090,10 +1122,10 @@ class Character : public Creature, public visitable
         void try_remove_lightsnare();
         void try_remove_heavysnare();
         void try_remove_crushed();
-        void try_remove_webs();
-        void try_remove_impeding_effect();
-        // Calculate generic trap escape chance
-        bool can_escape_trap( int difficulty, bool manip ) const;
+        // Genericized function for getting out of webs and other things. Currently just webs though.
+        bool try_remove_impeding_effect();
+        // Calculate generic trap escape chance. manip includes manipulation score, ligature is for e.g. ropes, snares.
+        bool can_escape_trap( int difficulty, bool manip, bool ligature ) const;
 
         /** Check against the character's current movement mode */
         bool movement_mode_is( const move_mode_id &mode ) const;
@@ -1257,7 +1289,8 @@ class Character : public Creature, public visitable
         bool sees_with_echolocation() const;
 
         /** NPC-related item rating functions */
-        double weapon_value( const item &weap, int ammo = 10 ) const; // Evaluates item as a weapon
+        double weapon_value( const item &weap, int ammo = 10,
+                             bool prompt = false ) const; // Evaluates item as a weapon
         double gun_value( const item &weap, int ammo = 10 ) const; // Evaluates item as a gun
         double melee_value( const item &weap ) const; // As above, but only as melee
         double unarmed_value() const; // Evaluate yourself!
@@ -1266,6 +1299,14 @@ class Character : public Creature, public visitable
          * @param obj Weapon to check dispersion on
          */
         dispersion_sources get_weapon_dispersion( const item &obj ) const;
+
+        /* Returns a dispersion value based on how difficult it is to keep a bead on the
+        target. Considerations whether the target is aware that the shooter is trying to
+        kill it, how close it is to the shooter, weapon length/handling plus strength/weight,
+        and target speed and dodge skill. The intent is to simulate the difficulty of trying
+        to shoot in a hectic melee without overly impacting things like shooting a bird at 25 meters. */
+        dispersion_sources get_tracking_dispersion( const item *obj, const Creature *target,
+                bool report = false, bool rng = true ) const;
 
         // If average == true, adds expected values of random rolls instead of rolling.
         /** Adds all 3 types of physical damage to instance */
@@ -1345,7 +1386,7 @@ class Character : public Creature, public visitable
         /** Reduce healing effect intensity, return initial intensity of the effect */
         int reduce_healing_effect( const efftype_id &eff_id, int remove_med, const bodypart_id &hurt );
 
-        void cough( bool harmful = false, int loudness = 4 );
+        void cough( bool harmful = false, bool force = false, int loudness = 4 );
         /**
          * Check for relevant passive, non-clothing that can absorb damage, and reduce by specified
          * damage unit.  Only flat bonuses are checked here.  Multiplicative ones are checked in
@@ -1542,13 +1583,13 @@ class Character : public Creature, public visitable
           */
         bool enough_working_legs() const;
         /** Returns the number of functioning legs */
-        int get_working_leg_count() const;
+        int get_working_leg_count( bool quadruped_allowed = true ) const;
         /** Returns true if the limb is broken */
         bool is_limb_broken( const bodypart_id &limb ) const;
         /** source of truth of whether a Character can run */
         bool can_run() const;
         /** Hurts all body parts for dam, no armor reduction */
-        void hurtall( int dam, Creature *source, bool disturb = true );
+        void hurtall( int dam, Creature *source, bool disturb = true, bool bionic = false );
         /** Harms all body parts for dam, with armor reduction. If vary > 0 damage to parts are random within vary % (1-100) */
         int hitall( int dam, int vary, Creature *source );
         /** Handles effects that happen when the player is damaged and aware of the fact. */
@@ -1681,7 +1722,7 @@ class Character : public Creature, public visitable
 
         /** Picks a random valid mutation and gives it to the Character, possibly removing/changing others along the way */
         void mutate( const int &true_random_chance, bool use_vitamins );
-        void mutate( );
+        void mutate();
         /** Returns true if the player doesn't have the mutation or a conflicting one and it complies with the allowed typing */
         bool mutation_ok( const trait_id &mutation, bool allow_good, bool allow_bad, bool allow_neutral,
                           const vitamin_id &mut_vit ) const;
@@ -2470,8 +2511,9 @@ class Character : public Creature, public visitable
         /** Returns all items that must be taken off before taking off this item */
         std::list<item *> get_dependent_worn_items( const item &it );
         /** Drops an item to the specified location */
-        void drop( item_location loc, const tripoint_bub_ms &where );
-        virtual void drop( const drop_locations &what, const tripoint_bub_ms &target, bool stash = false );
+        void drop( item_location loc, const tripoint_bub_ms &where, bool peeking = false );
+        virtual void drop( const drop_locations &what, const tripoint_bub_ms &target, bool stash = false,
+                           bool peeking = false );
         /** Assigns character activity to pick up items from the given drop_locations.
          *  Requires sufficient storage; items cannot be wielded or worn from this activity.
          */
@@ -3182,10 +3224,6 @@ class Character : public Creature, public visitable
         std::map<bodypart_id, int> get_all_armor_type( const damage_type_id &dt,
                 const std::map<bodypart_id, std::vector<const item *>> &clothing_map ) const;
 
-        int get_stim() const;
-        void set_stim( int new_stim );
-        void mod_stim( int mod );
-
         int get_rad() const;
         void set_rad( int new_rad );
         void mod_rad( int mod );
@@ -3323,11 +3361,14 @@ class Character : public Creature, public visitable
         scenttype_id get_type_of_scent() const;
         /**restore scent after masked_scent effect run out or is removed by water*/
         void restore_scent();
-        /** Modifies intensity of painkillers  */
-        void mod_painkiller( int npkill );
-        /** Sets intensity of painkillers  */
+
+        /** Modifies intensity of painkillers from a given source.  */
+        void mod_painkiller( const efftype_id &source, int amount, int max );
+        /** Sets intensity of painkillers.  */
         void set_painkiller( int npkill );
-        /** Returns intensity of painkillers  */
+        /** Recalculates painkillers from all effects. */
+        void recalculate_painkiller();
+        /** Returns intensity of painkillers.  */
         int get_painkiller() const;
         void react_to_felt_pain( int intensity );
 
@@ -3491,11 +3532,9 @@ class Character : public Creature, public visitable
         */
         int get_acquirable_energy( const item &it ) const;
 
-        /** Used to apply stimulation modifications from food and medication **/
-        void modify_stimulation( const islot_comestible &comest );
         /** Used to apply fatigue modifications from food and medication **/
-        /** Used to apply radiation from food and medication **/
         void modify_fatigue( const islot_comestible &comest );
+        /** Used to apply radiation from food and medication **/
         void modify_radiation( const islot_comestible &comest );
         /** Used to apply addiction modifications from food and medication **/
         void modify_addiction( const islot_comestible &comest );
@@ -3607,6 +3646,10 @@ class Character : public Creature, public visitable
                                              const tripoint_bub_ms &src_pos = tripoint_bub_ms::zero,
                                              int radius = PICKUP_RANGE, bool clear_path = true ) const;
         void invalidate_crafting_inventory();
+        // Efficiently query book proficiency bonuses from nearby items
+        // without rebuilding the full crafting inventory.
+        // Walks map tiles and vehicle cargo in range, plus character inventory.
+        book_proficiency_bonuses book_bonuses_nearby( int radius = PICKUP_RANGE ) const;
 
         /** Simply runs all the cache-invalidating functions at once to make sure the character's
          * weight and crafting cache and stuff are all updated. Use whenever a function updates
@@ -3721,7 +3764,8 @@ class Character : public Creature, public visitable
         void make_all_craft( const recipe_id &id, int batch_size,
                              const std::optional<tripoint_bub_ms> &loc );
         /** consume components and create an active, in progress craft containing them */
-        void start_craft( craft_command &command, const std::optional<tripoint_bub_ms> &loc );
+        void start_craft( craft_command &command, const std::optional<tripoint_bub_ms> &loc,
+                          std::vector<attention_plan> plans = {} );
 
         struct craft_roll_data {
             float center;
@@ -3809,16 +3853,16 @@ class Character : public Creature, public visitable
                                bool npc_query = false, const recipe *rec = nullptr );
         std::list<item> consume_items( const comp_selection<item_comp> &is, int batch,
                                        const std::function<bool( const item & )> &filter = return_true<item>, bool select_ind = false,
-                                       bool disable_preference = false );
+                                       bool disable_preference = false, bool keep_receiver = false );
         std::list<item> consume_items( map &m, const comp_selection<item_comp> &is, int batch,
                                        const std::function<bool( const item & )> &filter = return_true<item>,
                                        const std::vector<tripoint_bub_ms> &reachable_pts = {}, bool select_ind = false,
-                                       bool disable_preference = false );
+                                       bool disable_preference = false, bool keep_receiver = false );
         // Selects one entry in components using select_item_component and consumes those items.
         std::list<item> consume_items( const std::vector<item_comp> &components, int batch = 1,
                                        const std::function<bool( const item & )> &filter = return_true<item>,
                                        const std::function<bool( const itype_id & )> &select_ind = return_false<itype_id>,
-                                       bool can_cancel = false, bool disable_preference = false );
+                                       bool can_cancel = false, bool disable_preference = false, bool keep_receiver = false );
         bool consume_software_container( const itype_id &software_id );
         comp_selection<tool_comp>
         select_tool_component( const std::vector<tool_comp> &tools, int batch, read_only_visitable &map_inv,
@@ -3828,6 +3872,33 @@ class Character : public Creature, public visitable
         } );
         /** Consume tools for the next multiplier * 5% progress of the craft */
         bool craft_consume_tools( item &craft, int multiplier, bool start_craft );
+        /** Advance per-step tool consumption so each step's allocations match its
+         *  current progress.  Returns false (consuming nothing) if charges are short.
+         *  When cost_ctx is supplied, it is reused for step budgets instead of
+         *  recomputing crafting_cost_context::for_recipe. */
+        bool craft_consume_step_tools( item &craft, const crafting_cost_context *cost_ctx = nullptr );
+        /** Advance the active unattended step's tool consumption to match its
+         *  wall-clock progress.  Returns false (consuming nothing) if charges are short. */
+        bool craft_consume_passive_step_tools( item &craft, time_point now, const item_location &loc );
+        /** Consume each step's tool allocations up to its 5% bucket target.
+         *  Non-charged selected tools are re-checked for presence on bucket
+         *  transitions only; verify_step_tools catches tools removed within a
+         *  bucket when the step closes.  When pin_to_map is set,
+         *  usage_from::player and usage_from::both allocations draw from the
+         *  map at origin instead of the crafter.  Returns false (consuming
+         *  nothing) on a shortfall. */
+        bool consume_step_tool_targets( item &craft, const std::vector<int> &targets,
+                                        const tripoint_bub_ms &origin, int radius,
+                                        bool pin_to_map );
+        /** Verify that every non-charged tool selected for a recipe step is
+         *  present at the source the step draws from.  Emits a player-visible
+         *  message naming the missing tool on failure and clears the craft's
+         *  tools_to_continue flag so resume re-validates and reselects.
+         *  Charged tools are outside the scope: their availability is enforced
+         *  when consumed.  When pin_to_map is set, presence is checked against
+         *  the map at origin instead of the crafter. */
+        bool verify_step_tools( item &craft, int step_idx,
+                                const tripoint_bub_ms &origin, int radius, bool pin_to_map );
         void consume_tools( const comp_selection<tool_comp> &tool, int batch );
         void consume_tools( map &m, const comp_selection<tool_comp> &tool, int batch,
                             const tripoint_bub_ms &origin = tripoint_bub_ms::zero, int radius = PICKUP_RANGE,
@@ -3930,9 +4001,8 @@ class Character : public Creature, public visitable
         time_duration get_consume_time( const item &it ) const;
 
         // For display purposes mainly, how far we are from the next level of weariness
-        std::pair<int, int> weariness_transition_progress() const;
         int weariness_level() const;
-        int weariness_transition_level() const;
+        int weariness_transition_percent() const;
         int weary_threshold() const;
         int weariness() const;
         float activity_level() const;
@@ -4175,7 +4245,7 @@ class Character : public Creature, public visitable
          * Clothing layers are multiplied, ex. two layers of 50% coverage will leave only 25% exposed.
          * Used to determine suffering effects of albinism and solar sensitivity.
          */
-        std::map<bodypart_id, float> bodypart_exposure();
+        std::map<bodypart_id, float> bodypart_exposure() const;
     private:
         /**
          * Check whether the other creature is in range and can be seen by this creature.
@@ -4245,8 +4315,13 @@ class Character : public Creature, public visitable
         bool cache_inventory_is_valid = false;
         mutable bool using_lifting_assist = false;
 
-        int stim;
-        int pkill;
+        struct pkill_source {
+            efftype_id source;
+            int amount;
+        };
+
+        int pkill;                 // Current overall painkiller value.
+        std::vector<pkill_source> pkill_sources;  // Contributions per effect.
 
         int bp_effect_mod = 0;
         int heart_rate_effect_mod = 0;

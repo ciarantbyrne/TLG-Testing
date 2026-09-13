@@ -99,6 +99,7 @@ class spell_events;
 class static_popup;
 class stats_tracker;
 class timed_event_manager;
+class item_wakeup_manager;
 class ui_adaptor;
 class uilist;
 class vehicle;
@@ -111,8 +112,8 @@ using item_filter = std::function<bool ( const item & )>;
 using item_location_filter = std::function<bool ( const item_location & )>;
 
 enum peek_act : int {
-    PA_BLIND_THROW
-    // obvious future additional value is PA_BLIND_FIRE
+    PA_BLIND_THROW,
+    PA_PEEK_DROP
 };
 
 struct look_around_result {
@@ -164,6 +165,7 @@ class game
         friend stats_tracker &get_stats();
         friend scent_map &get_scent();
         friend timed_event_manager &get_timed_events();
+        friend item_wakeup_manager &get_item_wakeups();
         friend memorial_logger &get_memorial();
         friend bool do_turn();
         friend bool turn_handler::cleanup_at_end();
@@ -612,8 +614,7 @@ class game
         /** validate camps to ensure they are on the overmap list */
         void validate_camps();
         /** Picks and spawns a random fish from the remaining fish list when a fish is caught. */
-        void catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p,
-                              const time_duration &catch_duration );
+        void catch_a_monster( monster *fish, const tripoint_bub_ms &pos, Character *p );
         /**
          * Get the contiguous fishable locations starting at fish_pos, out to the specified distance.
          * @param distance Distance around the fish_pos to examine for contiguous fishable locations.
@@ -1125,6 +1126,7 @@ class game
         live_view &liveview; // NOLINT(cata-serialize)
         pimpl<scent_map> scent_ptr; // NOLINT(cata-serialize)
         pimpl<timed_event_manager> timed_event_manager_ptr; // NOLINT(cata-serialize)
+        pimpl<item_wakeup_manager> item_wakeup_manager_ptr;
         pimpl<event_bus> event_bus_ptr; // NOLINT(cata-serialize)
         pimpl<stats_tracker> stats_tracker_ptr;
         pimpl<achievements_tracker> achievements_tracker_ptr;

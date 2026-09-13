@@ -48,10 +48,11 @@
     "symbol": ";",
     "material": [ "steel" ],
     "volume": "250 ml",
-    "flags": [ "ALLOWS_BODY_BLOCK", "DAMAGE_VEHICLE_WHEELS" ],
+    "flags": [ "DAMAGE_VEHICLE_WHEELS" ],
     "qualities": [ [ "BUTCHER", -42 ] ],
     "price_postapoc": "10 cent",
     "melee_damage": { "bash": 2, "stab": 6 },
+    "techniques": [ "WBLOCK_0" ],
     "weapon_category": [ "SHIVS" ]
   },
   {
@@ -380,7 +381,7 @@
     "longest_side": "30 cm",
     "price": "50 cent",
     "price_postapoc": "10 cent",
-    "material": [ "budget_steel" ],
+    "material": [ "steel" ],
     "symbol": "*",
     "color": "light_gray"
   },
@@ -892,36 +893,6 @@
     "material": [ "steel" ],
     "symbol": "=",
     "color": "light_gray"
-  },
-  {
-    "id": "5l_budget_steel",
-    "type": "ITEM",
-    "copy-from": "5l_steel",
-    "name": { "str": "budget steel ingot" },
-    "material": [ "budget_steel" ]
-  },
-  {
-    "id": "10l_budget_steel",
-    "type": "ITEM",
-    "copy-from": "10l_steel",
-    "name": { "str": "large budget steel ingot" },
-    "material": [ "budget_steel" ]
-  },
-  {
-    "id": "budget_steel_fragment",
-    "type": "ITEM",
-    "copy-from": "steel_fragment",
-    "name": { "str": "budget steel fragment", "str_pl": "budget steel fragments" },
-    "description": "A misshapen piece of budget steel.",
-    "material": [ "budget_steel" ]
-  },
-  {
-    "id": "budget_steel_chunk",
-    "type": "ITEM",
-    "copy-from": "steel_chunk",
-    "name": { "str": "chunk of budget steel", "str_pl": "chunks of budget steel" },
-    "description": "A heavy, formed piece of budget steel.  Useful for some crafting recipes.",
-    "material": [ "budget_steel" ]
   },
   {
     "id": "slag",

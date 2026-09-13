@@ -60,6 +60,7 @@ static const efftype_id effect_laserlocked( "laserlocked" );
 static const efftype_id effect_null( "null" );
 static const efftype_id effect_poison( "poison" );
 static const efftype_id effect_psi_stunned( "psi_stunned" );
+static const efftype_id effect_pulled( "pulled" );
 static const efftype_id effect_run( "run" );
 static const efftype_id effect_sensor_stun( "sensor_stun" );
 static const efftype_id effect_stunned( "stunned" );
@@ -153,7 +154,7 @@ bool leap_actor::call( monster &z ) const
     std::vector<tripoint_bub_ms> options;
     const tripoint_abs_ms target_abs = z.get_dest();
     // Calculate distance to target
-    const float best_float = rl_dist( z.pos_abs(), target_abs );
+    const float best_float = trig_dist( z.pos_abs(), target_abs );
     add_msg_debug( debugmode::DF_MATTACK, "Target distance %.1f", best_float );
     if( best_float < min_consider_range || best_float > max_consider_range ) {
         add_msg_debug( debugmode::DF_MATTACK, "Best float outside of considered range" );
@@ -332,9 +333,20 @@ bool mon_spellcasting_actor::call( monster &mon ) const
     spell spell_instance = spell_data.get_spell( mon );
     spell_instance.set_message( spell_data.trigger_message );
 
+    if( !spell_data.self && !allow_no_target ) {
+        Creature *tgt_creature = get_creature_tracker().creature_at( target_pos );
+        map &here = get_map();
+        // Prevent monsters from attacking through terrain if they are submerged under it & target isn't.
+        if( tgt_creature && mon.is_underwater() && !tgt_creature->is_underwater() &&
+            ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, mon.pos_bub() ) ||
+              here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, tgt_creature->pos_bub() ) ) ) {
+            return false;
+        }
+
+    }
+
     // Bail out if the target is out of range.
-    if( !spell_data.self && target &&
-        trig_dist( mon.pos_bub(), target_pos ) > spell_instance.range( mon ) ) {
+    if( !spell_data.self && trig_dist( mon.pos_bub(), target_pos ) > spell_instance.range( mon ) ) {
         return false;
     }
 
@@ -487,11 +499,30 @@ Creature *melee_actor::find_target( monster &z ) const
     }
 
     if( range > 1 ) {
-        if( !z.sees( here, *target ) ||
-            !here.clear_path( z.pos_bub( here ), target->pos_bub( here ), range, 1, 200 ) ) {
+        bool in_range = false;
+
+        if( z.posz() == target->posz() ) {
+            in_range = trig_dist( z.pos_bub(), target->pos_bub() ) <= range;
+        } else {
+            in_range = static_cast<int>(
+                           std::ceil(
+                               trig_dist_precise(
+                                   z.pos_bub(), target->pos_bub() ) ) ) <= range;
+        }
+        // Prevent attacking through terrain if the target isn't underwater.
+        if( in_range ) {
+            if( z.is_underwater() && !target->is_underwater() &&
+                ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, z.pos_bub() ) ||
+                  here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, target->pos_bub() ) ) ) {
+                in_range = false;
+            }
+        }
+        if( !in_range ||
+            !z.sees( here, *target ) ||
+            !here.clear_path( z.pos_bub( here ), target->pos_bub( here ),
+                              range, 1, 200 ) ) {
             return nullptr;
         }
-
     } else if( !z.is_adjacent( target, false ) ) {
         return nullptr;
     }
@@ -523,7 +554,8 @@ int melee_actor::do_grab( monster &z, Creature *target, bodypart_id bp_id ) cons
                    eff_grab_strength, grab_data.pull_chance );
 
     // Handle seatbelts and weight limits for pulls/drags TODO: tear you out depending on grab str?
-    if( grab_data.pull_chance > -1 || grab_data.drag_distance > 0 ) {
+    if( ( grab_data.pull_chance > -1 || grab_data.drag_distance > 0 ) &&
+        !target->has_effect( effect_pulled ) ) {
         if( target->get_weight() > z.get_weight() * grab_data.pull_weight_ratio ) {
             target->add_msg_player_or_npc( msg_type, grab_data.pull_fail_msg_u, grab_data.pull_fail_msg_npc,
                                            mon_name );
@@ -563,7 +595,7 @@ int melee_actor::do_grab( monster &z, Creature *target, bodypart_id bp_id ) cons
     if( grab_data.pull_chance > -1 && x_in_y( grab_data.pull_chance, 100 ) ) {
         add_msg_debug( debugmode::DF_MATTACK, "Pull chance roll succeeded" );
 
-        int pull_range = std::min( range, rl_dist( monster_pos, target_pos ) + 1 );
+        int pull_range = std::min( range, trig_dist( monster_pos, target_pos ) + 1 );
         tripoint_bub_ms pt = target_pos;
         while( pull_range > 0 ) {
             // Recalculate the ray each step
@@ -574,7 +606,7 @@ int melee_actor::do_grab( monster &z, Creature *target, bodypart_id bp_id ) cons
             tdir.advance();
             pt.x() = target_pos.x() + tdir.dx();
             pt.y() = target_pos.y() + tdir.dy();
-            //Cancel the grab if the space is occupied by something
+            // Cancel the grab if the space is occupied by something
             if( !g->is_empty( pt ) ) {
                 break;
             }
@@ -769,6 +801,13 @@ bool melee_actor::call( monster &z ) const
 
     Creature *target = find_target( z );
     if( target == nullptr ) {
+        return false;
+    }
+
+    // Prevent attacking through terrain if the target isn't underwater.
+    if( z.is_underwater() && !target->is_underwater() &&
+        ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, z.pos_bub() ) ||
+          here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, target->pos_bub() ) ) ) {
         return false;
     }
 
@@ -1257,6 +1296,11 @@ bool gun_actor::call( monster &z ) const
             }
             aim_at = random_entry( moving_veh_parts, tripoint_bub_ms() );
         }
+    }
+
+    if( target && z.is_underwater() && !target->is_underwater() &&
+        here.has_flag_ter_or_furn( ter_furn_flag::TFLAG_SWIM_UNDER, z.pos_bub() ) ) {
+        return false;
     }
 
     const int dist = trig_dist( z.pos_bub(), aim_at );

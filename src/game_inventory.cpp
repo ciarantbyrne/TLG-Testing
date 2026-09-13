@@ -51,6 +51,7 @@
 #include "output.h"
 #include "pimpl.h"
 #include "point.h"
+#include "proficiency.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
 #include "requirements.h"
@@ -183,9 +184,14 @@ static item_location inv_internal( Character &u, const inventory_selector_preset
     }
 
     if( inv_s.empty() ) {
+        if( using_consume_menu && !cm_uistate.consume_menu_selected_items.empty() ) {
+            return item_location();
+        }
+
         const std::string msg = none_message.empty()
                                 ? _( "You don't have the necessary item at hand." )
                                 : none_message;
+
         popup( msg, PF_GET_KEY );
         return item_location();
     }
@@ -652,7 +658,7 @@ class disassemble_inventory_preset : public inventory_selector_preset
 
             append_cell( [ this ]( const item_location & loc ) {
                 return to_string_clipped( get_recipe( loc ).time_to_craft( get_player_character(),
-                                          recipe_time_flag::ignore_proficiencies ) );
+                                          {}, recipe_time_flag::ignore_proficiencies ) );
             }, _( "TIME" ) );
         }
 
@@ -1747,7 +1753,8 @@ drop_locations game_menus::inv::edevice_select( Character &who, item_location &u
         inv_title += _( " which device" ) + used_device_name;
         select_one_edevice.set_title( inv_title );
         if( select_one_edevice.empty() ) {
-            popup( std::string( _( "You have no eligible devices to " + action_name + "." ) ), PF_GET_KEY );
+            std::string eligible_devices = ( _( "You have no eligible devices to " ) );
+            popup( std::string( _( eligible_devices + action_name + "." ) ), PF_GET_KEY );
             return drop_locations();
         }
         drop_locations returned_device;
@@ -1757,13 +1764,15 @@ drop_locations game_menus::inv::edevice_select( Character &who, item_location &u
         }
         return returned_device;
     } else {
-        inventory_multiselector inv_s( who, preset, _( "Select devices to " + action_name ) );
+        std::string select_devices = ( _( "Select devices to " ) );
+        inventory_multiselector inv_s( who, preset, _( select_devices + action_name ) );
         inv_s.add_character_items( who );
         inv_s.add_nearby_items( PICKUP_RANGE );
         inv_title += _( " which devices" ) + used_device_name;
         inv_s.set_title( inv_title );
         if( inv_s.empty() ) {
-            popup( std::string( _( "You have no eligible devices to " + action_name + "." ) ), PF_GET_KEY );
+            std::string eligible_devices = ( _( "You have no eligible devices to " ) );
+            popup( std::string( _( eligible_devices + action_name + "." ) ), PF_GET_KEY );
             return drop_locations();
         }
         return inv_s.execute();

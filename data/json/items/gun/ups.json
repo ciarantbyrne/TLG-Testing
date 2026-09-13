@@ -160,7 +160,7 @@
     "cooling_value": 2,
     "heat_per_shot": 5,
     "loudness": 12,
-    "energy_drain": "40 kJ",
+    "energy_drain": "25 kJ",
     "reload": 0,
     "valid_mod_locations": [
       [ "emitter", 1 ],
@@ -241,7 +241,7 @@
     "heat_per_shot": 6,
     "valid_mod_locations": [ [ "emitter", 1 ], [ "grip", 1 ], [ "lens", 1 ], [ "rail", 1 ], [ "sights", 1 ], [ "stock", 1 ], [ "underbarrel", 1 ] ],
     "ammo_effects": [ "LASER", "INCENDIARY" ],
-    "flags": [ "ALLOWS_BODY_BLOCK", "NEVER_JAMS", "NO_UNLOAD", "NON_FOULING", "NEEDS_NO_LUBE", "USE_UPS", "OVERHEATS" ],
+    "flags": [ "NEVER_JAMS", "NO_UNLOAD", "NON_FOULING", "NEEDS_NO_LUBE", "USE_UPS", "OVERHEATS" ],
     "faults": [ { "fault": "fault_overheat_melting" }, { "fault": "fault_overheat_safety" } ],
     "melee_damage": { "bash": 5 }
   },

@@ -74,7 +74,6 @@ static const mongroup_id GROUP_OCEAN_DEEP( "GROUP_OCEAN_DEEP" );
 static const mongroup_id GROUP_OCEAN_SHORE( "GROUP_OCEAN_SHORE" );
 static const mongroup_id GROUP_RIVER( "GROUP_RIVER" );
 static const mongroup_id GROUP_SUBWAY_CITY( "GROUP_SUBWAY_CITY" );
-static const mongroup_id GROUP_SWAMP( "GROUP_SWAMP" );
 static const mongroup_id GROUP_ZOMBIE_HORDE( "GROUP_ZOMBIE_HORDE" );
 
 static const oter_str_id oter_central_lab( "central_lab" );
@@ -6476,22 +6475,22 @@ void overmap::place_specials( overmap_special_batch &enabled_specials )
             point_abs_om new_om_addr = random_entry( nearest_candidates );
             overmap_buffer.create_custom_overmap( new_om_addr, custom_overmap_specials );
         } else {
-            std::string msg =
-                "The following specials could not be placed, some missions may fail to initialize: ";
+            std::string unplaced_specials;
             int n = 0;
             for( auto iter = custom_overmap_specials.begin(); iter != custom_overmap_specials.end(); ) {
                 if( iter->instances_placed < iter->special_details->get_constraints().occurrences.min ) {
-                    msg.append( iter->special_details->id.c_str() ).append( ", " );
+                    unplaced_specials.append( iter->special_details->id.c_str() ).append( ", " );
                     n++;
                 }
                 ++iter;
             }
             if( n > 0 ) {
-                msg = msg.substr( 0, msg.length() - 2 );
+                unplaced_specials = unplaced_specials.substr( 0, unplaced_specials.length() - 2 );
             } else {
-                msg = msg.append( "<unknown>" );
+                unplaced_specials = _( "<unknown>" );
             }
-            add_msg( _( msg ) );
+            add_msg( _( "The following specials could not be placed, "
+                        "some missions may fail to initialize: %s" ), unplaced_specials );
         }
     }
     // Then fill in non-mandatory specials.
@@ -6609,7 +6608,7 @@ void overmap::place_mongroups()
                 add_msg_debug( debugmode::DF_OVERMAP, "adding %i zombies in hordes to city %s centered at omt %s.",
                                desired_zombies, elem.name, city_center.to_string_writable() );
 
-                // if there aren't enough roads, we'll just reuse them, re-shuffled.
+                // If there aren't enough roads, we'll just reuse them, re-shuffled.
                 while( desired_zombies > 0 ) {
                     std::shuffle( submap_list.begin(), submap_list.end(), rng_get_engine() );
                     for( tripoint_om_sm const &s : submap_list ) {

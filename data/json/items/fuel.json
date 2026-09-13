@@ -57,7 +57,7 @@
     "type": "ITEM",
     "subtypes": [ "AMMO" ],
     "name": { "str_sp": "diesel" },
-    "description": "A petroleum-based fuel made from a byproduct of the gasoline making process.",
+    "description": "A petroleum-based fuel made from a byproduct of the gasoline making process.  Though it's used as fuel in combustion engines, it doesn't catch fire all that easily without help.",
     "category": "fuel",
     "weight": "850 mg",
     "volume": "200ml",
@@ -68,20 +68,16 @@
     "phase": "liquid",
     "container": "jerrycan",
     "material": [ "diesel" ],
-    "flags": [ "TINDER" ],
     "symbol": "=",
     "color": "green",
-    "ammo_type": "diesel",
-    "damage": { "damage_type": "heat", "amount": 5, "armor_penetration": 4 },
-    "range": 4,
-    "effects": [ "FLAME", "STREAM", "IGNITE", "NEVER_MISFIRES" ]
+    "ammo_type": "diesel"
   },
   {
     "id": "jp8",
     "type": "ITEM",
     "subtypes": [ "AMMO" ],
     "name": { "str_sp": "JP8 fuel" },
-    "description": "A kerosene-based fuel used mainly by US military vehicles as a replacement for diesel and jet fuel, to simplify logistics.",
+    "description": "A kerosene-based fuel used mainly by US military vehicles as a replacement for diesel and jet fuel, to simplify logistics. Though it's used as fuel in combustion engines, it doesn't catch fire all that easily without help.",
     "category": "fuel",
     "weight": "840 mg",
     "volume": "200ml",
@@ -95,10 +91,7 @@
     "material": [ "jp8" ],
     "symbol": "=",
     "color": "green",
-    "ammo_type": "jp8",
-    "damage": { "damage_type": "heat", "amount": 5, "armor_penetration": 5 },
-    "range": 4,
-    "effects": [ "FLAME", "STREAM", "IGNITE", "NEVER_MISFIRES" ]
+    "ammo_type": "jp8"
   },
   {
     "id": "avgas",
@@ -120,10 +113,7 @@
     "material": [ "avgas" ],
     "symbol": "=",
     "color": "green",
-    "ammo_type": "avgas",
-    "damage": { "damage_type": "heat", "amount": 5, "armor_penetration": 5 },
-    "range": 4,
-    "effects": [ "FLAME", "STREAM", "IGNITE", "NEVER_MISFIRES" ]
+    "ammo_type": "avgas"
   },
   {
     "id": "biodiesel",
@@ -156,10 +146,7 @@
     "flags": [ "TINDER" ],
     "symbol": "=",
     "color": "light_red",
-    "ammo_type": "gasoline",
-    "damage": { "damage_type": "heat", "amount": 5, "armor_penetration": 5 },
-    "range": 4,
-    "effects": [ "FLAME", "STREAM", "IGNITE", "NEVER_MISFIRES" ]
+    "ammo_type": "gasoline"
   },
   {
     "id": "lamp_oil",
@@ -181,10 +168,7 @@
     "symbol": "=",
     "color": "yellow",
     "material": [ "lamp_oil" ],
-    "ammo_type": "lamp_oil",
-    "range": 6,
-    "damage": { "damage_type": "heat", "amount": 2, "armor_penetration": 2 },
-    "effects": [ "FLAME", "STREAM" ]
+    "ammo_type": "lamp_oil"
   },
   {
     "id": "motor_oil",
@@ -205,10 +189,7 @@
     "symbol": "=",
     "color": "yellow",
     "material": [ "motor_oil" ],
-    "ammo_type": "motor_oil",
-    "range": 6,
-    "damage": { "damage_type": "heat", "amount": 2, "armor_penetration": 2 },
-    "effects": [ "FLAME", "STREAM" ]
+    "ammo_type": "motor_oil"
   },
   {
     "id": "crude_oil",
@@ -230,10 +211,7 @@
     "symbol": "=",
     "color": "black",
     "material": [ "crude_oil" ],
-    "ammo_type": "crude_oil",
-    "range": 3,
-    "damage": { "damage_type": "heat", "amount": 5, "armor_penetration": 5 },
-    "effects": [ "FLAME", "STREAM", "INCENDIARY" ]
+    "ammo_type": "crude_oil"
   },
   {
     "id": "napalm",
@@ -255,8 +233,8 @@
     "symbol": "=",
     "color": "light_red",
     "ammo_type": "flammable",
-    "damage": { "damage_type": "heat", "amount": 15, "armor_penetration": 30 },
-    "range": 6,
+    "damage": { "damage_type": "heat", "amount": 15, "armor_penetration": 10 },
+    "range": 8,
     "effects": [ "FLAME", "STREAM_BIG", "IGNITE", "NEVER_MISFIRES" ]
   },
   {
@@ -270,7 +248,7 @@
     "price_postapoc": "0 USD",
     "ammo_type": "flammable",
     "damage": { "damage_type": "heat", "amount": 10, "armor_penetration": 10 },
-    "range": 3
+    "range": 5
   },
   {
     "id": "flamethrower_fuel",
@@ -282,7 +260,7 @@
     "price": "0 USD",
     "price_postapoc": "0 USD",
     "ammo_type": "flammable",
-    "range": 0
+    "range": 3
   },
   {
     "id": "propane",
@@ -338,10 +316,7 @@
     "flags": [ "TINDER" ],
     "symbol": "~",
     "color": "white",
-    "ammo_type": "turpentine",
-    "range": 6,
-    "damage": { "damage_type": "heat", "amount": 2, "armor_penetration": 2 },
-    "effects": [ "FLAME", "STREAM" ]
+    "ammo_type": "turpentine"
   },
   {
     "id": "camphine",
@@ -362,10 +337,7 @@
     "flags": [ "TINDER" ],
     "symbol": "~",
     "color": "white",
-    "ammo_type": "lamp_oil",
-    "range": 6,
-    "damage": { "damage_type": "heat", "amount": 2, "armor_penetration": 2 },
-    "effects": [ "FLAME", "STREAM" ]
+    "ammo_type": "lamp_oil"
   },
   {
     "id": "crude_lamp_oil",
@@ -387,9 +359,6 @@
     "symbol": "=",
     "color": "yellow",
     "material": [ "crude_lamp_oil" ],
-    "ammo_type": "crude_lamp_oil",
-    "range": 6,
-    "damage": { "damage_type": "heat", "amount": 2, "armor_penetration": 2 },
-    "effects": [ "FLAME", "STREAM" ]
+    "ammo_type": "crude_lamp_oil"
   }
 ]

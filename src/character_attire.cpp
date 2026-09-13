@@ -398,7 +398,7 @@ std::optional<std::list<item>::iterator> outfit::wear_item( Character &guy, cons
         guy.add_msg_if_npc( _( "<npcname> puts on their %s." ), to_wear.tname() );
     }
 
-    // skip this for unsorted items in debug mode
+    // Skip this for unsorted items in debug mode.
     if( do_sort_items ) {
         new_item_it->on_wear( guy );
 
@@ -407,6 +407,7 @@ std::optional<std::list<item>::iterator> outfit::wear_item( Character &guy, cons
     }
 
     if( do_calc_encumbrance ) {
+        guy.invalidate_tile_eye_level_cache();
         guy.recalc_sight_limits();
         guy.calc_encumbrance();
         guy.calc_discomfort();
@@ -1285,13 +1286,13 @@ static ret_val<void> test_only_one_conflicts( const item &clothing, const item &
     };
 
     if( i.has_flag( flag_ONLY_ONE ) && i.typeId() == clothing.typeId() ) {
-        return ret_val<void>::make_failure( _( "Can't wear more than one %s!" ), clothing.tname() );
+        return ret_val<void>::make_failure( _( "Can't wear more than one %s." ), clothing.tname() );
     }
 
     if( this_restricts_only_one || i.has_flag( json_flag_ONE_PER_LAYER ) ) {
         std::optional<side> overlaps = clothing.covers_overlaps( i );
         if( overlaps && sidedness_conflicts( *overlaps ) ) {
-            return ret_val<void>::make_failure( _( "%1$s conflicts with %2$s!" ), clothing.tname(), i.tname() );
+            return ret_val<void>::make_failure( _( "%1$s conflicts with %2$s." ), clothing.tname(), i.tname() );
         }
     }
 
@@ -1319,40 +1320,79 @@ ret_val<void> outfit::only_one_conflicts( const item &clothing ) const
     return ret_val<void>::make_success();
 }
 
-static ret_val<void> rigid_test( const item &clothing, const item &i,
-                                 const std::unordered_set<sub_bodypart_id> &to_test )
+static ret_val<void> rigid_test(
+    const item &clothing,
+    const item &i,
+    const std::unordered_set<sub_bodypart_id> &to_test )
 {
-    // check each sublimb individually
     for( const sub_bodypart_id &sbp : to_test ) {
-        // skip if the item doesn't currently cover the bp
-        if( !i.covers( sbp ) ) {
-            continue;
-        }
-
-        // skip if either item cares only about its layer and they don't match up
-        if( ( i.is_bp_rigid_selective( sbp ) || clothing.is_bp_rigid_selective( sbp ) ) &&
-            !i.has_layer( clothing.get_layer( sbp ), sbp ) ) {
-            continue;
-        }
-
-        // allow wearing splints on integrated armor such as protective bark
+        // Allow splints on integrated armor such as protective bark.
         if( i.has_flag( flag_INTEGRATED ) && clothing.has_flag( flag_SPLINT ) ) {
             continue;
         }
-
-        if( i.is_bp_rigid( sbp ) ) {
-            return ret_val<void>::make_failure( _( "Can't wear more than one rigid item on %s!" ), sbp->name );
+        if( i.is_ablative() ) {
+            for( const item_pocket *p : i.get_all_ablative_pockets() ) {
+                for( const item *content : p->all_items_top() ) {
+                    if( content->is_null() ) {
+                        continue;
+                    }
+                    if( !content->covers( sbp ) ) {
+                        continue;
+                    }
+                    if( ( content->is_bp_rigid_selective( sbp ) ||
+                          clothing.is_bp_rigid_selective( sbp ) ) &&
+                        !content->has_layer( clothing.get_layer( sbp ), sbp ) ) {
+                        continue;
+                    }
+                    if( content->is_bp_rigid( sbp ) ) {
+                        return ret_val<void>::make_failure(
+                                   _( "Can't wear more than one rigid item on %s." ),
+                                   sbp->name );
+                    }
+                }
+            }
+        }
+        if( i.covers( sbp ) ) {
+            if( ( i.is_bp_rigid_selective( sbp ) ||
+                  clothing.is_bp_rigid_selective( sbp ) ) &&
+                !i.has_layer( clothing.get_layer( sbp ), sbp ) ) {
+                continue;
+            }
+            if( i.is_bp_rigid( sbp ) ) {
+                return ret_val<void>::make_failure(
+                           _( "Can't wear more than one rigid item on %s." ),
+                           sbp->name );
+            }
+        }
+        if( clothing.is_ablative() ) {
+            for( const item_pocket *p : clothing.get_all_ablative_pockets() ) {
+                for( const item *content : p->all_items_top() ) {
+                    if( content->is_null() ) {
+                        continue;
+                    }
+                    if( !content->covers( sbp ) ) {
+                        continue;
+                    }
+                    if( ( content->is_bp_rigid_selective( sbp ) ||
+                          i.is_bp_rigid_selective( sbp ) ) &&
+                        !content->has_layer( i.get_layer( sbp ), sbp ) ) {
+                        continue;
+                    }
+                    if( content->is_bp_rigid( sbp ) ) {
+                        return ret_val<void>::make_failure(
+                                   _( "Can't wear more than one rigid item on %s." ),
+                                   sbp->name );
+                    }
+                }
+            }
         }
     }
-
     return ret_val<void>::make_success();
 }
 
 ret_val<void> outfit::check_rigid_conflicts( const item &clothing, side s ) const
 {
-
     std::unordered_set<sub_bodypart_id> to_test;
-
     // if not overridden get the actual side of the item
     if( s == side::num_sides ) {
         s = clothing.get_side();
@@ -1394,14 +1434,11 @@ ret_val<void> outfit::check_rigid_conflicts( const item &clothing ) const
     if( !clothing.is_sided() ) {
         return check_rigid_conflicts( clothing, side::BOTH );
     }
-
     ret_val<void> ls = check_rigid_conflicts( clothing, side::LEFT );
     ret_val<void> rs = check_rigid_conflicts( clothing, side::RIGHT );
-
     if( !ls.success() && !rs.success() ) {
         return ls;
     }
-
     return ret_val<void>::make_success();
 }
 
@@ -2707,7 +2744,7 @@ int outfit::clatter_sound() const
 {
     int max_volume = 0;
     for( const item &i : worn ) {
-        // if the item has noise making pockets we should check if they have clatered
+        // if the item has noise making pockets we should check if they have clattered.
         if( i.has_noisy_pockets() ) {
             for( const item_pocket *pocket : i.get_all_contained_pockets() ) {
                 int noise_chance = pocket->get_pocket_data()->activity_noise.chance;

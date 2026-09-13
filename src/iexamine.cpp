@@ -27,6 +27,8 @@
 #include "construction_group.h"
 #include "coordinates.h"
 #include "craft_command.h"
+#include "crafting.h"
+#include "crafting_enums.h"
 #include "creature.h"
 #include "creature_tracker.h"
 #include "cursesdef.h"
@@ -37,6 +39,7 @@
 #include "event_bus.h"
 #include "field_type.h"
 #include "flag.h"
+#include "flat_set.h" // IWYU pragma: keep
 #include "fungal_effects.h"
 #include "game.h"
 #include "game_constants.h"
@@ -121,7 +124,6 @@ static const efftype_id effect_incorporeal( "incorporeal" );
 static const efftype_id effect_infected( "infected" );
 static const efftype_id effect_mending( "mending" );
 static const efftype_id effect_pblue( "pblue" );
-static const efftype_id effect_pkill2( "pkill2" );
 static const efftype_id effect_sleep( "sleep" );
 static const efftype_id effect_slow_descent( "slow_descent" );
 static const efftype_id effect_strong_antibiotic( "strong_antibiotic" );
@@ -1473,9 +1475,9 @@ void iexamine::rubble( Character &you, const tripoint_bub_ms &examp )
     int moves;
     if( you.has_quality( qual_DIG, 3 ) || you.has_trait( trait_BURROW ) ||
         you.has_trait( trait_BURROWLARGE ) ) {
-        moves = to_moves<int>( 1_minutes );
+        moves = to_moves<int>( 6_minutes );
     } else if( you.has_quality( qual_DIG, 2 ) ) {
-        moves = to_moves<int>( 2_minutes );
+        moves = to_moves<int>( 12_minutes );
     } else {
         add_msg( m_info, _( "If only you had a shovel…" ) );
         return;
@@ -3085,11 +3087,6 @@ void iexamine::stook_empty( Character &, const tripoint_bub_ms &examp )
     } else if( !here.is_outside( examp ) ) {
         add_msg( _( "The stook will need to be set up outside to dry." ) );
         return;
-    } else {
-        add_msg( _( "This pile contains grain that is ready to be left out for drying." ) );
-        if( !query_yn( _( "Stand the grain up to dry?" ) ) ) {
-            return;
-        }
     }
 
     here.furn_set( examp, next_stook_type );
@@ -5262,6 +5259,14 @@ void iexamine::pay_gas( Character &you, const tripoint_bub_ms &examp )
     }
 }
 
+void iexamine::ledge_ramp( Character &you, const tripoint_bub_ms &examp )
+{
+    map &here = get_map();
+    if( !here.has_flag_ter( "RAMP_DOWN_HIGH", you.pos_bub() ) ) {
+        ledge( you, examp );
+    }
+}
+
 void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
 {
     enum ledge_actions {
@@ -5352,10 +5357,6 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
             }
             break;
         }
-        /*case ledge_climb_down: {
-            g->climb_down( examp );
-            break;
-        }*/
         case ledge_peek_down: {
             // Peek
             tripoint_bub_ms where = examp;
@@ -5381,27 +5382,6 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
             here.furn( just_below ).obj().examine( you, just_below );
             break;
         }
-        /*case ledge_cling_down: {
-            // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
-            if( !you.move_effects( false ) ) {
-                you.mod_moves( -to_moves<int>( 1_seconds ) );
-                return;
-            }
-
-            if( !here.valid_move( you.pos(), examp, false, true ) ) {
-                // Covered with something
-                return;
-            } else {
-                you.setpos( examp );
-                g->vertical_move( -1, false );
-                if( here.has_flag( ter_furn_flag::TFLAG_DEEP_WATER, you.pos() ) ) {
-                    you.set_underwater( true );
-                    g->water_affect_items( you );
-                    you.add_msg_if_player( _( "You crawl down and dive underwater." ) );
-                }
-            }
-            break;
-        }*/
         case ledge_glide: {
             // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
             if( !you.move_effects( false, examp ) ) {
@@ -5445,7 +5425,7 @@ void iexamine::ledge( Character &you, const tripoint_bub_ms &examp )
         case ledge_fall_down: {
             if( query_yn( _( "Climbing might be safer.  Really fall from the ledge?" ) ) ) {
                 you.mod_moves( -to_moves<int>( 1_seconds ) );
-                // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free
+                // If player is grabbed, trapped, or somehow otherwise movement-impeded, first try to break free.
                 if( !you.move_effects( false, examp ) ) {
                     return;
                 }
@@ -5757,7 +5737,7 @@ void iexamine::autodoc( Character &you, const tripoint_bub_ms &examp )
                     }
                     you.invalidate_inventory();
                 }
-                installer.mod_moves( -to_moves<int>( 1_minutes ) );
+                installer.mod_moves( -to_moves<int>( 10_minutes ) );
 
                 patient.install_bionics( ( *itemtype ), installer, true, has_install_program ? 10 : -1 );
 
@@ -5806,7 +5786,7 @@ void iexamine::autodoc( Character &you, const tripoint_bub_ms &examp )
                 if( needs_anesthesia ) {
                     you.consume_tools( anesth_kit, volume_anesth );
                 }
-                installer.mod_moves( -to_moves<int>( 1_minutes ) );
+                installer.mod_moves( -to_moves<int>( 10_minutes ) );
                 patient.uninstall_bionic( *bionics[bionic_index], installer, true );
             }
             break;
@@ -7181,16 +7161,38 @@ void iexamine::workbench_internal( Character &you, const tripoint_bub_ms &examp,
             if( selected_craft->typeId() == itype_disassembly ) {
                 you.disassemble( crafts[amenu2.ret], true );
             } else {
+                craft_resolve_overdue_passive( *selected_craft, calendar::turn, crafts[amenu2.ret] );
+                if( !crafts[amenu2.ret] || !crafts[amenu2.ret].get_item() ) {
+                    break;
+                }
+                selected_craft = crafts[amenu2.ret].get_item();
+                const recipe &rec = selected_craft->get_making();
+                std::optional<std::vector<attention_plan>> chosen;
+                if( rec.has_remaining_attention_steps( selected_craft->get_current_step() )
+                    && you.is_avatar() ) {
+                    chosen = show_craft_planning_modal( rec, you,
+                                                        selected_craft->get_making_batch_size(),
+                                                        selected_craft->get_current_step(),
+                                                        selected_craft->get_step_plans(),
+                                                        selected_craft );
+                    if( !chosen ) {
+                        break;
+                    }
+                }
                 if( !you.can_continue_craft( *selected_craft ) ) {
                     break;
                 }
-                const recipe &rec = selected_craft->get_making();
                 if( !you.has_recipe( &rec ) ) {
                     you.add_msg_player_or_npc(
                         _( "You don't know the recipe for the %s and can't continue crafting." ),
                         _( "<npcname> doesn't know the recipe for the %s and can't continue crafting." ),
                         rec.result_name() );
                     break;
+                }
+                if( chosen ) {
+                    selected_craft->set_step_plans( std::move( *chosen ) );
+                    selected_craft->set_crafter_id( you.getID() );
+                    craft_apply_resume_replan( crafts[amenu2.ret] );
                 }
                 you.add_msg_player_or_npc(
                     pgettext( "in progress craft", "You start working on the %s." ),
@@ -7302,6 +7304,7 @@ iexamine_functions iexamine_functions_from_string( const std::string &function_n
             { "autoclave_full", &iexamine::autoclave_full },
             { "fireplace", &iexamine::fireplace },
             { "ledge", &iexamine::ledge },
+            { "ledge_ramp", &iexamine::ledge_ramp },
             { "autodoc", &iexamine::autodoc },
             { "quern_examine", &iexamine::quern_examine },
             { "smoker_options", &iexamine::smoker_options },
@@ -7339,9 +7342,9 @@ iexamine_functions iexamine_functions_from_string( const std::string &function_n
 
 void iexamine::practice_survival_while_foraging( Character &who )
 {
-    ///\EFFECT_INT Intelligence caps survival skill gains from foraging
+    ///\EFFECT_INT Intelligence caps ecology skill gains from foraging
     const int max_forage_skill = who.int_cur / 3 + 1;
-    ///\EFFECT_SURVIVAL decreases survival skill gain from foraging (NEGATIVE)
+    ///\EFFECT_SURVIVAL decreases ecology skill gain from foraging (NEGATIVE)
     const int max_exp = 2 * ( max_forage_skill - static_cast<int>( who.get_skill_level(
                                   skill_survival ) ) );
     // Award experience for foraging attempt regardless of success

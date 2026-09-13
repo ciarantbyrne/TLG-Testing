@@ -101,7 +101,7 @@
       }
     ],
     "use_action": { "type": "holster", "holster_prompt": "Stash ammo", "holster_msg": "You stash your %s." },
-    "flags": [ "BELTED", "PALS_LARGE" ],
+    "flags": [ "BELTED", "PALS_LARGE", "OVERSIZE", "UNRESTRICTED" ],
     "armor": [ { "encumbrance": 1, "coverage": 100, "covers": [ "torso" ], "specifically_covers": [ "torso_waist" ] } ]
   },
   {
@@ -372,7 +372,7 @@
     "type": "ITEM",
     "subtypes": [ "ARMOR" ],
     "name": { "str": "quiver" },
-    "description": "A leather quiver worn at the waist that can hold twelve arrows or fifteen bolts.",
+    "description": "A leather quiver worn at the waist that can hold twelve arrows or sixteen bolts.",
     "weight": "260 g",
     "volume": "500 ml",
     "price": "65 USD",
@@ -387,10 +387,28 @@
     "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY" ],
     "armor": [
       {
-        "encumbrance": 3,
+        "encumbrance": 4,
         "coverage": 25,
         "covers": [ "leg_l", "leg_r" ],
         "specifically_covers": [ "leg_upper_l", "leg_upper_r" ]
+      },
+      {
+        "encumbrance": 4,
+        "coverage": 30,
+        "covers": [ "cephalopod_arm_2", "cephalopod_arm_5" ],
+        "specifically_covers": [ "cephalopod_arm_2_base", "cephalopod_arm_5_base" ]
+      },
+      {
+        "encumbrance": 4,
+        "coverage": 30,
+        "covers": [ "crab_leg_1", "crab_leg_3" ],
+        "specifically_covers": [ "crab_leg_1_merus", "crab_leg_3_merus" ]
+      },
+      {
+        "encumbrance": 3,
+        "coverage": 15,
+        "covers": [ "gastropod_foot" ],
+        "specifically_covers": [ "gastropod_foot_upper" ]
       }
     ],
     "melee_damage": { "bash": 2 }
@@ -415,10 +433,28 @@
     "flags": [ "BELTED", "OVERSIZE", "PALS_LARGE" ],
     "armor": [
       {
-        "encumbrance": 2,
+        "encumbrance": 4,
         "coverage": 25,
         "covers": [ "leg_l", "leg_r" ],
         "specifically_covers": [ "leg_upper_l", "leg_upper_r" ]
+      },
+      {
+        "encumbrance": 4,
+        "coverage": 30,
+        "covers": [ "cephalopod_arm_2", "cephalopod_arm_5" ],
+        "specifically_covers": [ "cephalopod_arm_2_base", "cephalopod_arm_5_base" ]
+      },
+      {
+        "encumbrance": 4,
+        "coverage": 30,
+        "covers": [ "crab_leg_1", "crab_leg_3" ],
+        "specifically_covers": [ "crab_leg_1_merus", "crab_leg_3_merus" ]
+      },
+      {
+        "encumbrance": 3,
+        "coverage": 15,
+        "covers": [ "gastropod_foot" ],
+        "specifically_covers": [ "gastropod_foot_upper" ]
       }
     ],
     "melee_damage": { "bash": 2 }
@@ -433,30 +469,47 @@
     "volume": "500 ml",
     "price": "65 USD",
     "price_postapoc": "7 USD 50 cent",
-    "material": [ "wood" ],
+    "material": [ "dry_plant" ],
     "symbol": "[",
     "looks_like": "quiver",
     "color": "light_gray",
     "sided": true,
     "material_thickness": 1,
     "pocket_data": [ { "ammo_restriction": { "arrow": 12, "bolt": 16 }, "moves": 20 } ],
-    "flags": [ "BELTED", "VARSIZE", "OVERSIZE", "WATER_FRIENDLY" ],
+    "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY" ],
     "armor": [
       {
-        "encumbrance": 10,
+        "encumbrance": 6,
         "coverage": 25,
         "covers": [ "leg_l", "leg_r" ],
         "specifically_covers": [ "leg_upper_l", "leg_upper_r" ]
+      },
+      {
+        "encumbrance": 6,
+        "coverage": 30,
+        "covers": [ "cephalopod_arm_2", "cephalopod_arm_5" ],
+        "specifically_covers": [ "cephalopod_arm_2_base", "cephalopod_arm_5_base" ]
+      },
+      {
+        "encumbrance": 6,
+        "coverage": 30,
+        "covers": [ "crab_leg_1", "crab_leg_3" ],
+        "specifically_covers": [ "crab_leg_1_merus", "crab_leg_3_merus" ]
+      },
+      {
+        "encumbrance": 4,
+        "coverage": 15,
+        "covers": [ "gastropod_foot" ],
+        "specifically_covers": [ "gastropod_foot_upper" ]
       }
-    ],
-    "melee_damage": { "bash": 2 }
+    ]
   },
   {
     "id": "pipe_quiver",
     "type": "ITEM",
     "subtypes": [ "ARMOR" ],
     "name": { "str": "pipe quiver" },
-    "description": "A makeshift quiver fashioned from a pipe, worn at the waist.  Heavier and thinner than a typical quiver, it can only hold six arrows or eight bolts.",
+    "description": "A makeshift quiver fashioned from sections of pipe strapped together and worn at the waist.  Heavier and thinner than a typical quiver, it can only hold six arrows or eight bolts.",
     "weight": "800 g",
     "volume": "370 ml",
     "price": "65 USD",
@@ -471,10 +524,28 @@
     "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY" ],
     "armor": [
       {
-        "encumbrance": 10,
+        "encumbrance": 8,
         "coverage": 25,
         "covers": [ "leg_l", "leg_r" ],
         "specifically_covers": [ "leg_upper_l", "leg_upper_r" ]
+      },
+      {
+        "encumbrance": 8,
+        "coverage": 30,
+        "covers": [ "cephalopod_arm_2", "cephalopod_arm_5" ],
+        "specifically_covers": [ "cephalopod_arm_2_base", "cephalopod_arm_5_base" ]
+      },
+      {
+        "encumbrance": 8,
+        "coverage": 30,
+        "covers": [ "crab_leg_1", "crab_leg_3" ],
+        "specifically_covers": [ "crab_leg_1_merus", "crab_leg_3_merus" ]
+      },
+      {
+        "encumbrance": 6,
+        "coverage": 15,
+        "covers": [ "gastropod_foot" ],
+        "specifically_covers": [ "gastropod_foot_upper" ]
       }
     ],
     "melee_damage": { "bash": 10 }
@@ -509,13 +580,13 @@
     "volume": "1500 ml",
     "price": "88 USD",
     "price_postapoc": "12 USD 50 cent",
-    "material": [ "wood" ],
+    "material": [ "dry_plant" ],
     "symbol": "[",
     "looks_like": "quiver_birchbark",
     "color": "light_gray",
     "material_thickness": 1,
     "pocket_data": [ { "ammo_restriction": { "arrow": 24, "bolt": 32, "atlatl": 8, "fishspear": 8 }, "moves": 20 } ],
-    "flags": [ "BELTED", "VARSIZE", "OVERSIZE", "WATER_FRIENDLY" ],
+    "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY" ],
     "armor": [ { "encumbrance": 14, "coverage": 20, "covers": [ "torso" ], "specifically_covers": [ "torso_hanging_back" ] } ],
     "melee_damage": { "bash": 4 }
   },
@@ -1144,6 +1215,12 @@
         "specifically_covers": [ "cephalopod_arm_2_base", "cephalopod_arm_5_base" ]
       },
       {
+        "encumbrance": [ 3, 4 ],
+        "coverage": 2,
+        "covers": [ "crab_leg_1", "crab_leg_3" ],
+        "specifically_covers": [ "crab_leg_1_merus", "crab_leg_3_merus" ]
+      },
+      {
         "encumbrance": [ 2, 3 ],
         "coverage": 2,
         "covers": [ "gastropod_foot" ],
@@ -1195,14 +1272,13 @@
     "id": "tactical_grenade_pouch",
     "type": "ITEM",
     "subtypes": [ "ARMOR" ],
-    "//": " stats taken from: https://www.tacticalassaultgearstore.com/molle-frag-grenade-pouch.html",
     "name": { "str": "tactical grenade pouch", "str_pl": "tactical grenade pouches" },
-    "description": "A pouch designed to hold one military grenade, keeping it both accessible and secure.  Has MOLLE straps for attaching to a belt or vest.",
+    "description": "A pouch designed to hold one hand grenade, keeping it both accessible and secure.  Has MOLLE straps for attaching to a belt or vest.",
     "weight": "200 g",
     "volume": "100 ml",
     "price": "20 USD",
-    "price_postapoc": "2 USD",
-    "material": [ "nylon" ],
+    "price_postapoc": "50 cent",
+    "material": [ { "type": "nylon", "portion": 4 }, { "type": "plastic", "portion": 1 } ],
     "symbol": "[",
     "looks_like": "holster",
     "color": "dark_gray",
@@ -1217,7 +1293,7 @@
       }
     ],
     "material_thickness": 0.5,
-    "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY", "PALS_SMALL" ],
+    "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY", "PALS_SMALL", "UNRESTRICTED" ],
     "armor": [ { "encumbrance": 1, "coverage": 100, "covers": [ "torso" ], "specifically_covers": [ "torso_waist" ] } ]
   },
   {
@@ -1314,49 +1390,6 @@
     "material_thickness": 0.5,
     "flags": [ "BELTED", "OVERSIZE", "WATER_FRIENDLY", "PALS_MEDIUM" ],
     "armor": [ { "encumbrance": 2, "coverage": 100, "covers": [ "torso" ], "specifically_covers": [ "torso_waist" ] } ]
-  },
-  {
-    "id": "xlkevlar",
-    "type": "ITEM",
-    "subtypes": [ "ARMOR" ],
-    "category": "armor",
-    "name": { "str": "Kevlar vest" },
-    "description": "A massive handmade imitation of a proper ballistic vest for abnormally large folks.  Large and heavy, but will still fit under an abnormally large coat.",
-    "weight": "4210 g",
-    "volume": "8 L",
-    "price_postapoc": "25 USD",
-    "to_hit": -3,
-    "material": [ "kevlar_layered", "nylon" ],
-    "symbol": "[",
-    "looks_like": "ballistic_vest_concealable",
-    "color": "light_gray",
-    "warmth": 20,
-    "material_thickness": 5,
-    "flags": [ "STURDY", "OVERSIZE", "PREFIX_XL" ],
-    "armor": [
-      {
-        "material": [
-          { "type": "nylon", "covered_by_mat": 100, "thickness": 1.0 },
-          { "type": "kevlar_layered", "covered_by_mat": 95, "thickness": 4.4 }
-        ],
-        "encumbrance": 6,
-        "coverage": 98,
-        "covers": [ "torso" ],
-        "specifically_covers": [ "torso_upper" ]
-      },
-      {
-        "material": [
-          { "type": "nylon", "covered_by_mat": 100, "thickness": 1.0 },
-          { "type": "kevlar_layered", "covered_by_mat": 95, "thickness": 4.4 }
-        ],
-        "//": "encumbrance handled above",
-        "encumbrance": 0,
-        "coverage": 92,
-        "covers": [ "torso" ],
-        "specifically_covers": [ "torso_lower" ]
-      }
-    ],
-    "melee_damage": { "bash": 6 }
   },
   {
     "id": "ammo_satchel_leather",

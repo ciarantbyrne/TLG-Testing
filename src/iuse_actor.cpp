@@ -138,6 +138,7 @@ static const itype_id itype_stock_none( "stock_none" );
 static const itype_id itype_syringe( "syringe" );
 
 static const json_character_flag json_flag_BIONIC_LIMB( "BIONIC_LIMB" );
+static const json_character_flag json_flag_GRAPNEL( "GRAPNEL" );
 static const json_character_flag json_flag_MANUAL_CBM_INSTALLATION( "MANUAL_CBM_INSTALLATION" );
 
 static const morale_type morale_pyromania_nofire( "morale_pyromania_nofire" );
@@ -157,6 +158,7 @@ static const material_id material_wood( "wood" );
 static const proficiency_id proficiency_prof_traps( "prof_traps" );
 static const proficiency_id proficiency_prof_trapsetting( "prof_trapsetting" );
 static const proficiency_id proficiency_prof_field_medic( "prof_field_medic" );
+static const proficiency_id proficiency_prof_robotic_programming( "prof_robotic_programming" );
 
 static const quality_id qual_DIG( "DIG" );
 static const quality_id qual_MOP( "MOP" );
@@ -165,6 +167,10 @@ static const skill_id skill_fabrication( "fabrication" );
 static const skill_id skill_firstaid( "firstaid" );
 static const skill_id skill_survival( "survival" );
 static const skill_id skill_traps( "traps" );
+
+static const species_id species_CYBORG( "CYBORG" );
+static const species_id species_ROBOT( "ROBOT" );
+static const species_id species_ROBOT_FLYING( "ROBOT_FLYING" );
 
 static const std::string flag_CARGO( "CARGO" );
 static const std::string flag_FLUIDTANK( "FLUIDTANK" );
@@ -178,6 +184,119 @@ static const trait_id trait_TOLERANCE( "TOLERANCE" );
 static const trap_str_id tr_firewood_source( "tr_firewood_source" );
 
 static const zone_type_id zone_type_SOURCE_FIREWOOD( "SOURCE_FIREWOOD" );
+
+template<typename T>
+item_location form_loc_recursive( T &loc, item &it )
+{
+    item *parent = loc.find_parent( it );
+    if( parent != nullptr ) {
+        return item_location( form_loc_recursive( loc, *parent ), &it );
+    }
+
+    return item_location( loc, &it );
+}
+
+//explict template instantiation
+template item_location form_loc_recursive<Character>( Character &loc, item &it );
+template item_location form_loc_recursive<npc>( npc &loc, item &it );
+
+static std::optional<item_location> try_form_loc( Character &you, map *here,
+        const tripoint_bub_ms &p, item &it )
+{
+    if( you.has_item( it ) ) {
+        return form_loc_recursive( you, it );
+    }
+    if( here ) {
+        map_cursor mc( here, p );
+        if( mc.has_item( it ) ) {
+            return form_loc_recursive( mc, it );
+        }
+        const optional_vpart_position vp = here->veh_at( p );
+        if( vp ) {
+            vehicle_cursor vc( vp->vehicle(), vp->part_index() );
+            if( vc.has_item( it ) ) {
+                return form_loc_recursive( vc, it );
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+static item_location form_loc( Character &you, map *here, const tripoint_bub_ms &p, item &it )
+{
+    if( std::optional<item_location> loc = try_form_loc( you, here, p, it ) ) {
+        return *loc;
+    }
+    debugmsg( "Couldn't find item %s to form item_location, forming dummy location to ensure minimum functionality",
+              it.display_name() );
+    return item_location( you, &it );
+}
+
+// Like parents_can_contain_recursive but with replacement semantics: an
+// in-place transform swaps `it` out, so each level credits `it`'s footprint.
+static ret_val<void> transform_fits_parent_pocket( const Character &p, const item &it,
+        const item &result, map *here, const tripoint_bub_ms &pos )
+{
+    const std::optional<item_location> loc = try_form_loc(
+                const_cast<Character &>( p ), here, pos, const_cast<item &>( it ) );
+    if( !loc || !loc->has_parent() ) {
+        return ret_val<void>::make_success();
+    }
+
+    units::mass result_weight = result.weight();
+    units::volume result_volume = result.volume();
+    units::length result_length = result.length();
+    units::mass it_weight = it.weight();
+    units::volume it_volume = it.volume();
+    units::length it_length = it.length();
+    const std::vector<const item_pocket *> innermost = loc->get_item()->get_all_standard_pockets();
+    const item_pocket *current_pocket = innermost.empty() ? nullptr : innermost.front();
+    const pocket_data *current_pocket_data = current_pocket ? current_pocket->get_pocket_data()
+            : nullptr;
+
+    item_location current = *loc;
+    while( current.has_parent() ) {
+        const item_pocket *parent_pocket = current.parent_pocket();
+        if( parent_pocket == nullptr ) {
+            break;
+        }
+        if( current_pocket && current_pocket->rigid() ) {
+            result_volume = 0_ml;
+            result_length = 0_mm;
+            it_volume = 0_ml;
+            it_length = 0_mm;
+        }
+        if( current_pocket_data ) {
+            result_weight = result_weight * current_pocket_data->weight_multiplier;
+            result_volume = result_volume * current_pocket_data->volume_multiplier;
+            result_length = result_length * std::cbrt( current_pocket_data->volume_multiplier );
+            it_weight = it_weight * current_pocket_data->weight_multiplier;
+            it_volume = it_volume * current_pocket_data->volume_multiplier;
+            it_length = it_length * std::cbrt( current_pocket_data->volume_multiplier );
+        }
+
+        if( result_weight - it_weight > parent_pocket->remaining_weight() ) {
+            return ret_val<void>::make_failure(
+                       _( "The %1$s would not fit in its container after transforming: item is too heavy for a parent pocket" ),
+                       result.tname() );
+        }
+        if( result_volume - it_volume > parent_pocket->remaining_volume() ) {
+            return ret_val<void>::make_failure(
+                       _( "The %1$s would not fit in its container after transforming: item is too big for a parent pocket" ),
+                       result.tname() );
+        }
+        if( result_length > parent_pocket->get_pocket_data()->max_item_length ) {
+            return ret_val<void>::make_failure(
+                       _( "The %1$s would not fit in its container after transforming: item is too long for a parent pocket" ),
+                       result.tname() );
+        }
+
+        current_pocket = parent_pocket;
+        current_pocket_data = current_pocket->get_pocket_data();
+        current = current.parent_item();
+    }
+    return ret_val<void>::make_success();
+}
 
 std::unique_ptr<iuse_actor> iuse_transform::clone() const
 {
@@ -275,15 +394,23 @@ std::optional<int> iuse_transform::use( Character *p, item &it, map *,
         }
     }
 
+    const bool was_replica = it.has_flag( flag_REPLICA_EQUIPMENT );
+
     if( transform.target_group.is_empty() &&
         it.count_by_charges() != transform.target->count_by_charges() &&
         it.count() > 1 ) {
         item take_one = it.split( 1 );
         transform.transform( p, take_one );
+        if( was_replica ) {
+            take_one.set_flag( flag_REPLICA_EQUIPMENT );
+        }
         // TODO: Change to map aware operation when available
         p->i_add_or_drop( take_one );
     } else {
         transform.transform( p, it, true );
+        if( was_replica ) {
+            it.set_flag( flag_REPLICA_EQUIPMENT );
+        }
     }
 
     if( set_timer ) {
@@ -302,7 +429,7 @@ std::optional<int> iuse_transform::use( Character *p, item &it, map *,
 }
 
 ret_val<void> iuse_transform::can_use( const Character &p, const item &it,
-                                       map *here, const tripoint_bub_ms & ) const
+                                       map *here, const tripoint_bub_ms &pos ) const
 {
     if( need_worn && !p.is_worn( it ) ) {
         return ret_val<void>::make_failure( _( "You need to wear the %1$s before activating it." ),
@@ -315,6 +442,16 @@ ret_val<void> iuse_transform::can_use( const Character &p, const item &it,
     if( need_empty && !it.empty() ) {
         return ret_val<void>::make_failure( _( "You need to empty the %1$s before activating it." ),
                                             it.tname() );
+    }
+
+    if( transform.target_group.is_empty() && !transform.target.is_empty() ) {
+        const item result = transform.container.is_empty()
+                            ? item( transform.target )
+                            : item( transform.container );
+        ret_val<void> fits = transform_fits_parent_pocket( p, it, result, here, pos );
+        if( !fits.success() ) {
+            return fits;
+        }
     }
 
     if( p.is_worn( it ) ) {
@@ -552,7 +689,6 @@ std::optional<int> sound_iuse::use( Character *, item &,
                                     map *here, const tripoint_bub_ms &pos ) const
 {
     map &bubble_map = reality_bubble();
-
     if( bubble_map.inbounds( here->get_abs( pos ) ) ) {
         sounds::sound( bubble_map.get_bub( here->get_abs( pos ) ), sound_volume, sound_type,
                        sound_message.translated(), true,
@@ -964,10 +1100,15 @@ std::optional<int> place_monster_iuse::use( Character *p, item &it, map *here,
     for( const skill_id &sk : skills ) {
         skill_offset += p->get_skill_level( sk ) / 2.0f;
     }
+    if( p->has_proficiency( proficiency_prof_robotic_programming ) &&
+        ( newmon.in_species( species_ROBOT ) || newmon.in_species( species_CYBORG ) ||
+          newmon.in_species( species_ROBOT_FLYING ) ) ) {
+        skill_offset += 2;
+    }
     /** @EFFECT_INT increases chance of a placed turret being friendly */
     if( rng( 0, p->int_cur / 2 ) + skill_offset < rng( 0, difficulty ) ) {
         if( hostile_msg.empty() ) {
-            p->add_msg_if_player( m_bad, _( "You deploy the %s wrong.  It is hostile!" ), newmon.name() );
+            p->add_msg_if_player( m_bad, _( "You deploy the %s improperly.  It is hostile!" ), newmon.name() );
         } else {
             p->add_msg_if_player( m_bad, "%s", hostile_msg );
         }
@@ -1083,6 +1224,7 @@ static ret_val<tripoint_bub_ms> check_deploy_square( Character *p, item &it,
         return ret_val<tripoint_bub_ms>::make_failure( pos );
     }
     tripoint_bub_ms pnt( pos );
+
     if( pos == p->pos_bub( *here ) ) {
         // TODO: Use map aware 'choose_adjacent' when available, or reject operation if not reality bubble map
         if( const std::optional<tripoint_bub_ms> pnt_ = choose_adjacent( _( "Deploy where?" ) ) ) {
@@ -1095,6 +1237,34 @@ static ret_val<tripoint_bub_ms> check_deploy_square( Character *p, item &it,
     if( pnt == p->pos_bub( *here ) ) {
         return ret_val<tripoint_bub_ms>::make_failure( pos,
                 _( "You attempt to become one with the %s.  It doesn't work." ), it.tname() );
+    }
+
+
+    if( it.has_flag( json_flag_GRAPNEL ) ) {
+        if( pnt.z() != pos.z() ) {
+            return ret_val<tripoint_bub_ms>::make_failure( pos,
+                    _( "You must pick an adjacent tile on the same level." ) );
+        }
+        const tripoint_bub_ms above = pnt + tripoint::above;
+
+        // TODO: Hook onto ladders that don't reach down far enough.
+        if( !here->ter( above )->has_flag( "EMPTY_SPACE" ) ) {
+            return ret_val<tripoint_bub_ms>::make_failure(
+                       pos, _( "There needs to be open air up above." ) );
+        }
+
+        bool found_anchor = false;
+        for( const tripoint_bub_ms &adj : here->points_in_radius( above, 1 ) ) {
+            if( here->has_floor( adj ) && !here->impassable( adj ) ) {
+                found_anchor = true;
+                break;
+            }
+        }
+
+        if( !found_anchor ) {
+            return ret_val<tripoint_bub_ms>::make_failure(
+                       pos, _( "There is no ledge above to anchor it to." ) );
+        }
     }
 
     tripoint_bub_ms where = pnt;
@@ -1834,7 +2004,7 @@ void salvage_actor::cut_up( Character &p, item_location &cut ) const
     const bool filthy = cut.get_item()->is_filthy();
 
     // Clean up before removing the item.
-    remove_ammo( *cut.get_item(), p );
+    remove_ammo( *cut.get_item(), p, false );
     // Original item has been consumed.
     cut.remove_item();
     // Force an encumbrance update in case they were wearing that item.
@@ -2222,9 +2392,12 @@ ret_val<void> play_instrument_iuse::can_use( const Character &p, const item &it,
     if( p.is_mounted() ) {
         return ret_val<void>::make_failure( _( "You can't do that while mounted." ) );
     }
-    if( !p.is_worn( it ) && !p.is_wielding( it ) ) {
-        return ret_val<void>::make_failure( _( "You need to hold or wear %s to play it." ),
+    if( !p.is_wielding( it ) ) {
+        return ret_val<void>::make_failure( _( "You need to hold %s to play it." ),
                                             it.type_name() );
+    }
+    if( p.controlling_vehicle ) {
+        return ret_val<void>::make_failure( _( "You can't do that while driving." ) );
     }
     // No one-man band for now
     // Remove/rework this check after we will be able to distinguish between wind, string, and percussion instruments
@@ -2267,6 +2440,10 @@ std::optional<int> musical_instrument_actor::use( Character *p, item &it,
         return std::nullopt;
     }
 
+    if( it.is_null() ) {
+        return std::nullopt;
+    }
+
     if( !p->is_npc() && music::is_active_music_id( music::music_id::instrument ) ) {
         music::deactivate_music_id( music::music_id::instrument );
         // Because musical instrument creates musical sound too
@@ -2291,7 +2468,7 @@ std::optional<int> musical_instrument_actor::use( Character *p, item &it,
 
     // Stop playing a wind instrument when winded or even eventually become winded while playing it?
     // It's impossible to distinguish instruments for now anyways.
-    if( p->has_effect( effect_sleep ) || p->has_effect( effect_stunned ) ||
+    if( p->in_sleep_state() || p->has_effect( effect_stunned ) ||
         p->has_effect( effect_asthma ) ) {
         p->add_msg_player_or_npc( m_bad,
                                   _( "You stop playing your %s." ),
@@ -2301,19 +2478,27 @@ std::optional<int> musical_instrument_actor::use( Character *p, item &it,
         return std::nullopt;
     }
 
-    // Check for worn or wielded - no "floating"/bionic instruments for now
-    // TODO: Distinguish instruments played with hands and with mouth, consider encumbrance
-    const int inv_pos = p->get_item_position( &it );
-    if( inv_pos >= 0 || inv_pos == INT_MIN ) {
+    // TODO: Allow playing instruments while deaf if extremely skilled.
+    if( p->is_deaf() ) {
         p->add_msg_player_or_npc( m_bad,
-                                  _( "You need to hold or wear %s to play it." ),
-                                  _( "<npcname> needs to hold or wear %s to play it." ),
+                                  _( "You can't hear anything, so you stop playing your %s." ),
+                                  _( "<npcname> can't hear anything, so they stops playing their %s." ),
                                   it.display_name() );
         it.active = false;
         return std::nullopt;
     }
 
-    // At speed this low you can't coordinate your actions well enough to play the instrument
+    // TODO: Distinguish instruments played with hands and with mouth, consider encumbrance.
+    if( &it != p->get_wielded_item().get_item() ) {
+        p->add_msg_player_or_npc( m_bad,
+                                  _( "You need to hold %s to play it." ),
+                                  _( "<npcname> needs to hold %s to play it." ),
+                                  it.display_name() );
+        it.active = false;
+        return std::nullopt;
+    }
+
+    // At speed this low you can't coordinate your actions well enough to play the instrument.
     if( p->get_speed() <= 25 + speed_penalty ) {
         p->add_msg_player_or_npc( m_bad,
                                   _( "You feel too weak to play your %s." ),
@@ -2323,7 +2508,7 @@ std::optional<int> musical_instrument_actor::use( Character *p, item &it,
         return std::nullopt;
     }
 
-    // We can play the music now
+    // We can play the music now.
     if( !p->is_npc() ) {
         music::activate_music_id( music::music_id::instrument );
     }
@@ -2364,13 +2549,13 @@ std::optional<int> musical_instrument_actor::use( Character *p, item &it,
     }
 
     if( !p->has_effect( effect_music ) && p->can_hear( p->pos_bub( *here ), volume ) ) {
-        // Sound code doesn't describe noises at the player position
+        // Sound code doesn't describe noises at the player position.
         if( desc != "music" ) {
             p->add_msg_if_player( m_info, desc );
         }
     }
 
-    // We already played the sounds, just handle applying effects now
+    // We already played the sounds, just handle applying effects now.
     iuse::play_music( p, p->pos_bub( *here ), volume, morale_effect, /*play_sounds=*/false );
 
     return 0;
@@ -2654,39 +2839,6 @@ bool holster_actor::store( Character &you, item &holster, item &obj ) const
     you.as_character()->store( holster, obj, true, holster.insert_cost( obj ),
                                pocket_type::CONTAINER, true );
     return true;
-}
-
-template<typename T>
-static item_location form_loc_recursive( T &loc, item &it )
-{
-    item *parent = loc.find_parent( it );
-    if( parent != nullptr ) {
-        return item_location( form_loc_recursive( loc, *parent ), &it );
-    }
-
-    return item_location( loc, &it );
-}
-
-static item_location form_loc( Character &you, map *here, const tripoint_bub_ms &p, item &it )
-{
-    if( you.has_item( it ) ) {
-        return form_loc_recursive( you, it );
-    }
-    map_cursor mc( here, p );
-    if( mc.has_item( it ) ) {
-        return form_loc_recursive( mc, it );
-    }
-    const optional_vpart_position vp = here->veh_at( p );
-    if( vp ) {
-        vehicle_cursor vc( vp->vehicle(), vp->part_index() );
-        if( vc.has_item( it ) ) {
-            return form_loc_recursive( vc, it );
-        }
-    }
-
-    debugmsg( "Couldn't find item %s to form item_location, forming dummy location to ensure minimum functionality",
-              it.display_name() );
-    return item_location( you, &it );
 }
 
 std::optional<int> holster_actor::use( Character *you, item &it, map *here,
@@ -3199,10 +3351,11 @@ static bool damage_item( Character &pl, item_location &fix )
     const std::string startdurability = fix->durability_indicator( true );
     const bool destroyed = fix->inc_damage();
     const std::string resultdurability = fix->durability_indicator( true );
-    pl.add_msg_if_player( m_bad, _( "You damage your %s!  ( %s-> %s)" ), fix->tname( 1, false ),
+    std::string iname = fix->tname( 1, false );
+    pl.add_msg_if_player( m_bad, _( "You damage your %s!  ( %s-> %s)" ), iname,
                           startdurability, resultdurability );
     if( destroyed ) {
-        pl.add_msg_if_player( m_bad, _( "You destroy it!" ) );
+        pl.add_msg_if_player( m_bad, _( "Your %s is destroyed!" ), iname );
         if( fix.where() == item_location::type::character ) {
             pl.i_rem_keep_contents( fix.get_item() );
         } else {

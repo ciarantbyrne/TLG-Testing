@@ -799,7 +799,7 @@
     "components": [
       [ [ "power_supply", 4 ] ],
       [ [ "plut_cell", 1 ] ],
-      [ [ "motor_small", 2 ] ],
+      [ [ "motor_medium", 2 ] ],
       [ [ "tazer", 1 ] ],
       [ [ "e_scrap", 3 ] ],
       [ [ "steel_fragment", 12 ] ]
@@ -1590,7 +1590,7 @@
     "using": [ [ "soldering_standard", 5 ] ],
     "qualities": [ { "id": "SCREW", "level": 1 }, { "id": "SAW_M", "level": 1 } ],
     "components": [
-      [ [ "motor_tiny", 8 ] ],
+      [ [ "motor_tiny", 4 ] ],
       [ [ "power_supply", 8 ] ],
       [ [ "cable", 16 ] ],
       [ [ "scrap", 6 ] ],
@@ -1700,8 +1700,7 @@
   {
     "result": "cable",
     "type": "uncraft",
-    "time": "8 s",
-    "//": "This may need to be modified, a plastic sheath would give plastic chunks, but there already is a plastic sheathed cable",
+    "time": "2 m",
     "activity_level": "LIGHT_EXERCISE",
     "qualities": [ { "id": "CUT", "level": 2 } ],
     "components": [ [ [ "copper_wire", 1 ] ] ]
@@ -1761,13 +1760,7 @@
     "difficulty": 1,
     "time": "3 m 30 s",
     "qualities": [ { "id": "SCREW", "level": 1 } ],
-    "components": [
-      [ [ "scrap_aluminum", 1 ] ],
-      [ [ "medium_battery_cell", 1 ] ],
-      [ [ "small_lcd_screen", 1 ] ],
-      [ [ "memory_card", 1 ] ],
-      [ [ "processor", 1 ] ]
-    ]
+    "components": [ [ [ "scrap_aluminum", 1 ] ], [ [ "medium_battery_cell", 1 ] ], [ [ "small_lcd_screen", 1 ] ], [ [ "processor", 1 ] ] ]
   },
   {
     "result": "smart_phone_locked",
@@ -1777,13 +1770,7 @@
     "difficulty": 1,
     "time": "3 m 30 s",
     "qualities": [ { "id": "SCREW", "level": 1 } ],
-    "components": [
-      [ [ "scrap_aluminum", 1 ] ],
-      [ [ "medium_battery_cell", 1 ] ],
-      [ [ "small_lcd_screen", 1 ] ],
-      [ [ "memory_card", 1 ] ],
-      [ [ "processor", 1 ] ]
-    ]
+    "components": [ [ [ "scrap_aluminum", 1 ] ], [ [ "medium_battery_cell", 1 ] ], [ [ "small_lcd_screen", 1 ] ], [ [ "processor", 1 ] ] ]
   },
   {
     "result": "mp3",
@@ -1941,7 +1928,7 @@
     "activity_level": "NO_EXERCISE",
     "time": "30 s",
     "qualities": [ { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "lycra_sheet", 6 ] ] ]
+    "components": [ [ [ "nylon_sheet", 4 ] ] ]
   },
   {
     "result": "pride_flag",
@@ -1949,7 +1936,7 @@
     "activity_level": "NO_EXERCISE",
     "time": "30 s",
     "qualities": [ { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "lycra_sheet", 6 ] ] ]
+    "components": [ [ [ "nylon_sheet", 4 ] ] ]
   },
   {
     "result": "american_flag",
@@ -1957,7 +1944,7 @@
     "activity_level": "NO_EXERCISE",
     "time": "30 s",
     "qualities": [ { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "lycra_sheet", 6 ] ] ]
+    "components": [ [ [ "nylon_sheet", 4 ] ] ]
   },
   {
     "result": "state_flag",
@@ -1965,7 +1952,7 @@
     "activity_level": "NO_EXERCISE",
     "time": "30 s",
     "qualities": [ { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "lycra_sheet", 6 ] ] ]
+    "components": [ [ [ "nylon_sheet", 4 ] ] ]
   },
   {
     "result": "canvas_sheet",
@@ -2357,7 +2344,7 @@
     "result": "knife_meat_cleaver",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
-    "components": [ [ [ "blade", 1 ], [ "scrap", 10 ] ] ]
+    "components": [ [ [ "scrap", 10 ] ] ]
   },
   {
     "type": "uncraft",
@@ -2819,7 +2806,7 @@
     "time": "45 m",
     "using": [ [ "soldering_standard", 20 ] ],
     "qualities": [ { "id": "SCREW", "level": 1 }, { "id": "WRENCH", "level": 1 }, { "id": "SAW_M", "level": 1 } ],
-    "components": [ [ [ "motor_tiny", 3 ] ], [ [ "processor", 3 ] ], [ [ "RAM", 2 ] ], [ [ "plastic_chunk", 2 ] ] ]
+    "components": [ [ [ "motor_tiny", 2 ] ], [ [ "processor", 3 ] ], [ [ "RAM", 2 ] ], [ [ "plastic_chunk", 2 ] ] ]
   },
   {
     "result": "sewing_kit",
@@ -2844,7 +2831,7 @@
     "time": "6 m",
     "activity_level": "MODERATE_EXERCISE",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
-    "components": [ [ [ "blade_scythe", 1 ] ], [ [ "spear_shaft", 1 ] ] ]
+    "components": [ [ [ "blade_scythe", 1 ] ], [ [ "stick", 1 ] ] ]
   },
   {
     "result": "sf_watch",
@@ -3096,8 +3083,7 @@
     "result": "hickory_nut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "hickory_nut_shelled", 1 ] ] ],
@@ -3107,8 +3093,7 @@
     "result": "hazelnut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "hazelnut_shelled", 1 ] ] ],
@@ -3118,8 +3103,7 @@
     "result": "chestnut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "chestnut_shelled", 1 ] ] ],
@@ -3129,8 +3113,7 @@
     "result": "almond",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "almond_shelled", 1 ] ] ],
@@ -3140,8 +3123,7 @@
     "result": "pistachio",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "pistachio_shelled", 1 ] ] ],
@@ -3151,8 +3133,7 @@
     "result": "pecan",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "pecan_shelled", 1 ] ] ],
@@ -3162,8 +3143,7 @@
     "result": "walnut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "10 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "walnut_shelled", 1 ] ] ],
@@ -3173,8 +3153,7 @@
     "result": "butternut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "10 m",
     "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "butternut_shelled", 1 ] ] ],
@@ -3200,10 +3179,8 @@
     "result": "peanut",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
-    "difficulty": 1,
+    "skill_used": "cooking",
     "time": "5 m",
-    "qualities": [ { "id": "HAMMER", "level": 1 } ],
     "components": [ [ [ "peanut_shelled", 1 ] ] ],
     "flags": [ "BLIND_EASY" ]
   },
@@ -3413,7 +3390,7 @@
       [ [ "cable", 8 ] ],
       [ [ "hose", 1 ] ],
       [ [ "cu_pipe", 3 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "e_scrap", 4 ] ],
       [ [ "element", 4 ] ],
       [ [ "power_supply", 4 ] ],
@@ -3438,7 +3415,7 @@
       [ [ "cable", 15 ] ],
       [ [ "hose", 2 ] ],
       [ [ "pipe_fittings", 6 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "cu_pipe", 5 ] ]
     ]
   },
@@ -3453,7 +3430,7 @@
       [ [ "cable", 8 ] ],
       [ [ "hose", 1 ] ],
       [ [ "cu_pipe", 3 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "e_scrap", 4 ] ],
       [ [ "element", 4 ] ],
       [ [ "power_supply", 4 ] ],
@@ -3477,7 +3454,7 @@
       [ [ "sheet_metal", 6 ] ],
       [ [ "cable", 15 ] ],
       [ [ "hose", 2 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "pipe_fittings", 6 ] ],
       [ [ "cu_pipe", 5 ] ]
     ]
@@ -3495,7 +3472,7 @@
       [ [ "sheet_metal", 2 ] ],
       [ [ "cable", 10 ] ],
       [ [ "hose", 4 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "pipe_fittings", 2 ] ],
       [ [ "cu_pipe", 4 ] ]
     ]
@@ -3514,7 +3491,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "spike", 1 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3529,7 +3506,7 @@
       [ [ "cable", 12 ] ],
       [ [ "pipe", 4 ] ],
       [ [ "clamp", 1 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "medium_storage_battery", 2 ] ],
       [ [ "frame", 1 ] ]
     ]
@@ -3548,7 +3525,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "circsaw_blade", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3565,7 +3542,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "circsaw_blade", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3582,7 +3559,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "wire", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3599,7 +3576,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "spike", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3616,7 +3593,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "blade", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3633,7 +3610,7 @@
       [ [ "steel_plate", 3 ] ],
       [ [ "blade", 2 ] ],
       [ [ "plastic_chunk", 8 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3648,7 +3625,7 @@
       [ [ "sheet_metal_small", 4 ] ],
       [ [ "cable", 10 ] ],
       [ [ "hose", 5 ] ],
-      [ [ "motor_small", 1 ] ],
+      [ [ "motor_medium", 1 ] ],
       [ [ "metal_tank", 1 ] ],
       [ [ "plastic_chunk", 5 ] ],
       [ [ "pipe_fittings", 4 ] ]
@@ -3668,7 +3645,7 @@
       [ [ "steel_plate", 2 ] ],
       [ [ "pipe", 4 ] ],
       [ [ "chain", 1 ] ],
-      [ [ "motor_small", 1 ] ]
+      [ [ "motor_medium", 1 ] ]
     ]
   },
   {
@@ -3703,7 +3680,7 @@
       [ [ "sheet_metal", 6 ] ],
       [ [ "cable", 15 ] ],
       [ [ "hose", 2 ] ],
-      [ [ "motor_tiny", 1 ] ],
+      [ [ "motor_small", 1 ] ],
       [ [ "cu_pipe", 5 ] ]
     ]
   },
@@ -4353,6 +4330,16 @@
     "difficulty": 3,
     "qualities": [ { "id": "FABRIC_CUT", "level": 2 } ],
     "components": [ [ [ "nylon_patch", 10 ] ], [ [ "kevlar_sheet_layered", 12 ] ] ]
+  },
+  {
+    "result": "plate_carrier_xl",
+    "type": "uncraft",
+    "activity_level": "LIGHT_EXERCISE",
+    "time": "15 m",
+    "skill_used": "tailor",
+    "difficulty": 3,
+    "qualities": [ { "id": "FABRIC_CUT", "level": 2 } ],
+    "components": [ [ [ "nylon_patch", 20 ] ], [ [ "kevlar_sheet_layered", 20 ] ] ]
   },
   {
     "result": "soft_3a_vest",
@@ -5395,9 +5382,10 @@
     "time": "60 m",
     "qualities": [ { "id": "CUT_FINE", "level": 1 }, { "id": "SAW_W", "level": 2 }, { "id": "SCREW", "level": 1 } ],
     "components": [
-      [ [ "cotton_sheet", 13 ] ],
-      [ [ "cotton_patch", 6 ] ],
+      [ [ "nylon_sheet", 13 ] ],
+      [ [ "nylon_patch", 6 ] ],
       [ [ "wooden_post_short", 6 ] ],
+      [ [ "synthetic_fluff", 1000 ] ],
       [ [ "wood_block", 4 ] ],
       [ [ "nuts_bolts", 16 ] ],
       [ [ "splinter", 30 ] ]
@@ -5603,14 +5591,6 @@
     "components": [ [ [ "copper", 49 ] ] ]
   },
   {
-    "result": "wrench_large",
-    "type": "uncraft",
-    "activity_level": "MODERATE_EXERCISE",
-    "time": "15 m",
-    "qualities": [ { "id": "HAMMER", "level": 2 }, { "id": "SAW_M", "level": 2 } ],
-    "components": [ [ [ "steel_chunk", 1 ] ], [ [ "steel_fragment", 3 ] ] ]
-  },
-  {
     "result": "wheel_rim_bicycle",
     "type": "uncraft",
     "activity_level": "MODERATE_EXERCISE",
@@ -5649,6 +5629,14 @@
     "time": "20 s",
     "qualities": [ { "id": "CUT", "level": 1 } ],
     "components": [ [ [ "fish_scrap", 10 ] ] ]
+  },
+  {
+    "result": "fish_freshwater",
+    "type": "uncraft",
+    "activity_level": "NO_EXERCISE",
+    "time": "20 s",
+    "qualities": [ { "id": "CUT", "level": 1 } ],
+    "components": [ [ [ "fish_scrap_freshwater", 10 ] ] ]
   },
   {
     "result": "meat",
@@ -5944,7 +5932,7 @@
     "result": "arm_zed",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
+    "skill_used": "cooking",
     "time": "2 m",
     "qualities": [ { "id": "CUT", "level": 1 } ],
     "components": [ [ [ "meat_tainted", 3 ] ], [ [ "bone_tainted", 2 ] ], [ [ "sinew", 1 ] ] ]
@@ -5953,7 +5941,7 @@
     "result": "leg_zed",
     "type": "uncraft",
     "activity_level": "LIGHT_EXERCISE",
-    "skill_used": "survival",
+    "skill_used": "cooking",
     "time": "4 m",
     "qualities": [ { "id": "CUT", "level": 1 } ],
     "components": [ [ [ "meat_tainted", 6 ] ], [ [ "bone_tainted", 3 ] ], [ [ "sinew", 2 ] ] ]
@@ -5975,5 +5963,51 @@
     "time": "20 s",
     "tools": [ [ "boltcutters", [ "oxy_torch", 8 ] ] ],
     "components": [ [ [ "chain", 2 ] ] ]
+  },
+  {
+    "result": "p_carpet",
+    "type": "uncraft",
+    "activity_level": "LIGHT_EXERCISE",
+    "skill_used": "fabrication",
+    "time": "4 m",
+    "qualities": [ { "id": "CUT", "level": 2 } ],
+    "components": [ [ [ "carpet_scrap", 10 ] ] ]
+  },
+  {
+    "result": "y_carpet",
+    "type": "uncraft",
+    "activity_level": "LIGHT_EXERCISE",
+    "skill_used": "fabrication",
+    "time": "4 m",
+    "qualities": [ { "id": "CUT", "level": 2 } ],
+    "components": [ [ [ "carpet_scrap", 10 ] ] ]
+  },
+  {
+    "result": "r_carpet",
+    "type": "uncraft",
+    "activity_level": "LIGHT_EXERCISE",
+    "skill_used": "fabrication",
+    "time": "4 m",
+    "qualities": [ { "id": "CUT", "level": 2 } ],
+    "components": [ [ [ "carpet_scrap", 10 ] ] ]
+  },
+  {
+    "result": "g_carpet",
+    "type": "uncraft",
+    "activity_level": "LIGHT_EXERCISE",
+    "skill_used": "fabrication",
+    "time": "4 m",
+    "qualities": [ { "id": "CUT", "level": 2 } ],
+    "components": [ [ [ "carpet_scrap", 10 ] ] ]
+  },
+  {
+    "result": "wood_door",
+    "type": "uncraft",
+    "activity_level": "MODERATE_EXERCISE",
+    "skill_used": "fabrication",
+    "time": "10 m",
+    "autolearn": true,
+    "qualities": [ { "id": "SCREW", "level": 1 } ],
+    "components": [ [ [ "wood_panel", 1 ] ], [ [ "hinge", 2 ] ], [ [ "scrap", 6 ] ] ]
   }
 ]

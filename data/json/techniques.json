@@ -60,6 +60,15 @@
   },
   {
     "type": "technique",
+    "id": "WBLOCK_0",
+    "name": "Block",
+    "dummy": true,
+    "mult_bonuses": [ { "stat": "movecost", "scale": 0.0 } ],
+    "messages": [ "You block %s!", "<npcname> blocks %s!" ],
+    "description": "Poor blocking ability"
+  },
+  {
+    "type": "technique",
     "id": "WBLOCK_1",
     "name": "Block",
     "dummy": true,
@@ -102,7 +111,7 @@
         "message": "%s has lost control of their weapon!"
       }
     ],
-    "attack_vectors": [ "vector_grasp" ]
+    "attack_vectors": [ "vector_grasp", "vector_null" ]
   },
   {
     "type": "technique",
@@ -417,6 +426,7 @@
     "id": "tec_break",
     "name": "Grab Break",
     "melee_allowed": true,
+    "unarmed_allowed": true,
     "defensive": true,
     "grab_break": true,
     "messages": [
@@ -653,7 +663,6 @@
     ],
     "skill_requirements": [ { "name": "unarmed", "level": 3 } ],
     "unarmed_allowed": true,
-    "melee_allowed": true,
     "defensive": true,
     "grab_break": true
   },
@@ -864,7 +873,7 @@
           "or": [
             { "npc_bodytype": "human" },
             { "npc_bodytype": "mi-go" },
-            { "npc_bodytype": "kangoroo" },
+            { "npc_bodytype": "kangaroo" },
             { "npc_bodytype": "horse" },
             { "npc_bodytype": "bear" },
             { "npc_bodytype": "angel" }
@@ -1632,7 +1641,6 @@
     "messages": [ "You were almost grabbed by %s, but you break free!", "<npcname> was almost grabbed by %s, but they break free!" ],
     "skill_requirements": [ { "name": "unarmed", "level": 1 } ],
     "unarmed_allowed": true,
-    "melee_allowed": true,
     "defensive": true,
     "grab_break": true
   },
@@ -1710,7 +1718,7 @@
     "messages": [ "You strike %s", "<npcname> strikes %s" ],
     "skill_requirements": [ { "name": "melee", "level": 3 } ],
     "melee_allowed": true,
-    "weapon_categories_allowed": [ "QUARTERSTAVES", "KARATE_WEAPONS" ],
+    "weapon_categories_allowed": [ "STAFFS", "KARATE_WEAPONS" ],
     "mult_bonuses": [ { "stat": "movecost", "scale": 0.9 } ],
     "attack_vectors": [ "vector_null" ]
   },
@@ -1721,7 +1729,7 @@
     "messages": [ "You swing hard at %s", "<npcname> swings hard at %s!" ],
     "skill_requirements": [ { "name": "melee", "level": 4 } ],
     "melee_allowed": true,
-    "weapon_categories_allowed": [ "QUARTERSTAVES", "KARATE_WEAPONS" ],
+    "weapon_categories_allowed": [ "STAFFS", "KARATE_WEAPONS" ],
     "crit_tec": true,
     "condition": {
       "and": [
@@ -1896,7 +1904,7 @@
           "or": [
             { "npc_bodytype": "human" },
             { "npc_bodytype": "mi-go" },
-            { "npc_bodytype": "kangoroo" },
+            { "npc_bodytype": "kangaroo" },
             { "npc_bodytype": "horse" },
             { "npc_bodytype": "bear" },
             { "npc_bodytype": "angel" }
@@ -2284,7 +2292,7 @@
       { "stat": "damage", "type": "cut", "scale": 1.4 },
       { "stat": "damage", "type": "stab", "scale": 1.4 }
     ],
-    "attack_vectors": [ "vector_shin", "vector_foot_toes", "vector_talon", "vector_hoof_toe" ]
+    "attack_vectors": [ "vector_shin" ]
   },
   {
     "type": "technique",
@@ -2368,7 +2376,6 @@
     ],
     "skill_requirements": [ { "name": "unarmed", "level": 3 } ],
     "unarmed_allowed": true,
-    "melee_allowed": true,
     "defensive": true,
     "grab_break": true
   },
@@ -2492,7 +2499,7 @@
     "skill_requirements": [ { "name": "melee", "level": 3 } ],
     "required_buffs_all": [ "buff_ninjutsu_onattack" ],
     "melee_allowed": true,
-    "weapon_categories_allowed": [ "QUARTERSTAVES", "WHIPS" ],
+    "weapon_categories_allowed": [ "STAFFS", "WHIPS" ],
     "crit_ok": true,
     "//condition": "Humanoids of similar size and no flying",
     "condition": {
@@ -2840,6 +2847,7 @@
     "messages": [ "You were almost grabbed by %s, but you slither free!", "<npcname> was almost grabbed by %s, but they slither free!" ],
     "skill_requirements": [ { "name": "unarmed", "level": 4 } ],
     "unarmed_allowed": true,
+    "melee_allowed": true,
     "defensive": true,
     "grab_break": true
   },
@@ -3149,9 +3157,9 @@
     "condition_desc": "* Only works on a target of <info>similar or smaller</info> size, requires <info>Cross Hands</info>",
     "knockback_dist": 1,
     "mult_bonuses": [
-      { "stat": "damage", "type": "bash", "scale": 1.25 },
-      { "stat": "damage", "type": "cut", "scale": 1.25 },
-      { "stat": "damage", "type": "stab", "scale": 1.25 }
+      { "stat": "damage", "type": "bash", "scale": 1.15 },
+      { "stat": "damage", "type": "cut", "scale": 1.15 },
+      { "stat": "damage", "type": "stab", "scale": 1.15 }
     ],
     "attack_vectors": [ "vector_palm" ]
   },
@@ -3176,12 +3184,7 @@
     },
     "condition_desc": "* Only works on a <info>non-downed</info> target of <info>similar or smaller</info> size incapable of flight, requires <info>Repulse the Monkey</info>",
     "down_dur": 1,
-    "mult_bonuses": [
-      { "stat": "movecost", "scale": 0.75 },
-      { "stat": "damage", "type": "bash", "scale": 1.25 },
-      { "stat": "damage", "type": "cut", "scale": 1.25 },
-      { "stat": "damage", "type": "stab", "scale": 1.25 }
-    ],
+    "mult_bonuses": [ { "stat": "movecost", "scale": 0.75 } ],
     "attack_vectors": [ "vector_grasp" ]
   },
   {
@@ -3221,9 +3224,9 @@
     "tech_effects": [ { "id": "staggered", "chance": 80, "duration": 200, "on_damage": true, "message": "%s is knocked off-balance!" } ],
     "knockback_dist": 1,
     "mult_bonuses": [
-      { "stat": "damage", "type": "bash", "scale": 1.75 },
-      { "stat": "damage", "type": "cut", "scale": 1.75 },
-      { "stat": "damage", "type": "stab", "scale": 1.75 }
+      { "stat": "damage", "type": "bash", "scale": 1.5 },
+      { "stat": "damage", "type": "cut", "scale": 1.5 },
+      { "stat": "damage", "type": "stab", "scale": 1.5 }
     ],
     "attack_vectors": [ "vector_palm" ]
   },
@@ -3236,6 +3239,7 @@
       "<npcname> was almost grabbed by %s, but they are too powerful to be caged!"
     ],
     "unarmed_allowed": true,
+    "melee_allowed": true,
     "defensive": true,
     "grab_break": true
   },
@@ -3687,6 +3691,7 @@
     "name": "Hidden Claw",
     "melee_allowed": false,
     "messages": [ "You claw %s", "<npcname> claws %s" ],
+    "description": "An unarmed attack made with a worn weapon",
     "unarmed_allowed": true,
     "basic": true,
     "weighting": -2,

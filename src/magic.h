@@ -48,8 +48,8 @@ class event;
 template <typename E> struct enum_traits;
 
 enum class spell_flag : int {
-    AIRBORNE,
-    CHARM_PET, // Applies the pet friendliness adjustment to a monster when charming them
+    AIRBORNE, // This dash effect will treat the caster as airborne until they reach their destination.
+    CHARM_PET, // Applies the pet friendliness adjustment to a monster when charming them.
     CONCENTRATE, // Focus affects spell fail %.
     DODGEABLE, // The target can dodge this attack completely if they succeed on a dodge roll against its spell level. Implies NO_DODGE_MITIGATION.
     EXTRA_EFFECTS_FIRST, // The extra effects are cast before the main spell.
@@ -63,6 +63,7 @@ enum class spell_flag : int {
     LIQUID_DAMAGE_TARGET, // Requires LIQUID. Will damage target characters according to the liquid_volume amount that isn't blocked by their armor. Monsters are damaged normally.
     LOUD, // Spell makes extra noise at target.
     MAKE_FILTHY, // Requires LIQUID. The liquid splashed by this spell can add the FILTHY flag to items worn by characters, according to its liquid_volume.
+    MAX_RANGE_ONLY, // The spell can only target the farthest tile(s) in its range.
     MUST_HAVE_CLASS_TO_LEARN, // You can't learn the spell unless you already have the class.
     MUTATE_TRAIT, // Overrides the mutate spell_effect to use a specific trait_id instead of a category.
     NO_BLOCK_MITIGATION, // This attack does not allow for the usual 1/3 damage mitigation via a block roll.
@@ -696,11 +697,17 @@ class spell
         // heals the critter at the location, returns amount healed (Character heals each body part)
         int heal( const tripoint_bub_ms &target, Creature &caster ) const;
 
-        // casts the spell effect. returns true if successful
+        // Casts the spell effect from an item.  Less functionality compared to creature casting.
+        void cast_spell_effect( const tripoint_bub_ms &target ) const;
+        // Casts the spell effect.
         void cast_spell_effect( Creature &source, const tripoint_bub_ms &target ) const;
-        // goes through the spell effect and all of its internal spells
+        // Goes through all effects when casting from an item.
+        void cast_all_effects( const tripoint_bub_ms &target ) const;
+        // Goes through the spell effect and all of its internal spells.
         void cast_all_effects( Creature &source, const tripoint_bub_ms &target ) const;
-        // goes through the spell effect and all of its internal spells
+        // Casts extra_effects when casting from an item (labeled as additional_spells internally)
+        void cast_extra_spell_effects( const tripoint_bub_ms &target ) const;
+        // Casts extra_effects (labeled as additional_spells internally)
         void cast_extra_spell_effects( Creature &source, const tripoint_bub_ms &target ) const;
         // uses up the components in @guy's inventory
         void use_components( Character &guy ) const;
@@ -866,6 +873,7 @@ void charm_monster( const spell &sp, Creature &caster, const tripoint_bub_ms &ta
 void mutate( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
 void bash( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
 void dash( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
+void fling_away( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
 void banishment( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
 // revives a monster into some kind of zombie if the monster has the revives flag
 void revive( const spell &sp, Creature &caster, const tripoint_bub_ms &target );
@@ -921,6 +929,7 @@ effect_map{
     { "mutate", spell_effect::mutate },
     { "bash", spell_effect::bash },
     { "dash", spell_effect::dash },
+    { "fling_away", spell_effect::fling_away },
     { "banishment", spell_effect::banishment },
     { "revive", spell_effect::revive },
     { "revive_dormant", spell_effect::revive_dormant },

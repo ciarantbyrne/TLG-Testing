@@ -12,7 +12,12 @@
     "items": [
       { "group": "western_medieval_weapon" },
       {
-        "distribution": [ { "item": "junk_platemail_suit", "prob": 40 }, { "item": "chainmail_junk_hauberk", "prob": 60 } ]
+        "distribution": [
+          { "item": "platemail_suit", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 36 },
+          { "item": "chainmail_hauberk", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 54 },
+          { "item": "platemail_suit", "prob": 4 },
+          { "item": "chainmail_hauberk", "prob": 6 }
+        ]
       },
       { "item": "platemail_visored_helm", "prob": 80 }
     ]
@@ -21,7 +26,29 @@
     "id": "soa_samurai",
     "type": "item_group",
     "subtype": "collection",
-    "items": [ { "group": "samurai_weapon" }, [ "armor_samurai", 80 ], [ "helmet_kabuto", 80 ] ]
+    "items": [
+      { "group": "samurai_weapon" },
+      { "group": "o-yoroi_real_or_fake", "prob": 70 },
+      { "group": "kabuto_real_or_fake", "prob": 70 }
+    ]
+  },
+  {
+    "id": "o-yoroi_real_or_fake",
+    "type": "item_group",
+    "subtype": "distribution",
+    "items": [
+      { "item": "armor_samurai", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 15 },
+      { "item": "armor_samurai", "prob": 1 }
+    ]
+  },
+  {
+    "id": "kabuto_real_or_fake",
+    "type": "item_group",
+    "subtype": "distribution",
+    "items": [
+      { "item": "helmet_kabuto", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 15 },
+      { "item": "helmet_kabuto", "prob": 1 }
+    ]
   },
   {
     "id": "western_sword_with_scabbard",
@@ -70,6 +97,7 @@
       { "item": "lucerne_hammer", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 15 },
       { "item": "mace_bronze", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 3 },
       { "item": "spear_bronze", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 3 },
+      { "item": "poignard", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 1 },
       { "group": "western_sword_fake", "prob": 80 }
     ]
   },
@@ -93,6 +121,7 @@
       { "item": "lucerne_hammer", "prob": 15 },
       { "item": "mace_bronze", "prob": 3 },
       { "item": "spear_bronze", "prob": 3 },
+      { "item": "poignard", "prob": 1 },
       { "group": "western_sword_real", "prob": 80 }
     ]
   },
@@ -104,7 +133,6 @@
       { "item": "broadsword", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
       { "item": "longsword", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 25 },
       { "item": "cavalry_sabre", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
-      { "item": "scimitar", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
       { "item": "estoc", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 15 },
       { "item": "arming_sword", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
       { "item": "zweihander", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 20 },
@@ -113,7 +141,7 @@
       { "item": "kriegsmesser", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 20 },
       { "item": "falx", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 15 },
       { "item": "kilij", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 10 },
-      { "item": "talwar", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 10 },
+      { "item": "talwar", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
       { "item": "sword_xiphos", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 3 },
       { "item": "khopesh", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 3 }
     ]
@@ -126,16 +154,16 @@
       { "item": "broadsword", "prob": 30 },
       { "item": "longsword", "prob": 25 },
       { "item": "cavalry_sabre", "prob": 30 },
-      { "item": "scimitar", "prob": 30 },
       { "item": "estoc", "prob": 15 },
       { "item": "arming_sword", "prob": 30 },
       { "item": "zweihander", "prob": 20 },
       { "item": "rapier", "prob": 25 },
+      { "item": "poignard", "prob": 3 },
       { "item": "cutlass", "prob": 25 },
       { "item": "kriegsmesser", "prob": 20 },
       { "item": "falx", "prob": 15 },
       { "item": "kilij", "prob": 10 },
-      { "item": "talwar", "prob": 10 },
+      { "item": "talwar", "prob": 30 },
       { "item": "sword_xiphos", "prob": 3 },
       { "item": "khopesh", "prob": 3 }
     ]
@@ -157,7 +185,9 @@
       { "item": "kanabo_wood", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 20 },
       { "item": "spear_steel", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 20 },
       { "item": "longbow", "prob": 10 },
-      { "item": "naginata", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 }
+      { "item": "naginata", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 30 },
+      { "item": "jitte", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 1 },
+      { "item": "sai", "custom-flags": [ "REPLICA_EQUIPMENT" ], "prob": 2 }
     ]
   },
   {
@@ -171,7 +201,9 @@
       { "item": "kanabo_wood", "prob": 20 },
       { "item": "spear_steel", "prob": 20 },
       { "item": "woodgreatbow", "prob": 10 },
-      { "item": "naginata", "prob": 30 }
+      { "item": "naginata", "prob": 30 },
+      { "item": "jitte", "prob": 1 },
+      { "item": "sai", "prob": 2 }
     ]
   },
   {

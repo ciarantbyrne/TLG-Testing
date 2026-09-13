@@ -1986,13 +1986,13 @@ void Item_factory::init()
     add_iuse( "BLECH", &iuse::blech );
     add_iuse( "BLECH_BECAUSE_UNCLEAN", &iuse::blech_because_unclean );
     add_iuse( "BOLTCUTTERS", &iuse::boltcutters );
+    add_iuse( "BUGSPRAY", &iuse::bugspray );
     add_iuse( "CAMERA", &iuse::camera );
     add_iuse( "CAN_GOO", &iuse::can_goo );
     add_iuse( "COIN_FLIP", &iuse::coin_flip );
     add_iuse( "DIRECTIONAL_HOLOGRAM", &iuse::directional_hologram );
     add_iuse( "CAPTURE_MONSTER_ACT", &iuse::capture_monster_act );
     add_iuse( "CAPTURE_MONSTER_VEH", &iuse::capture_monster_veh );
-    add_iuse( "CHEW", &iuse::chew );
     add_iuse( "RPGDIE", &iuse::rpgdie );
     add_iuse( "CHANGE_EYES", &iuse::change_eyes );
     add_iuse( "CHANGE_SKIN", &iuse::change_skin );
@@ -2123,8 +2123,6 @@ void Item_factory::init()
     add_iuse( "VIEW_RECIPES", &iuse::view_recipes );
     add_iuse( "HAND_CRANK", &iuse::hand_crank );
     add_iuse( "VORTEX", &iuse::vortex );
-    add_iuse( "WASH_SOFT_ITEMS", &iuse::wash_soft_items );
-    add_iuse( "WASH_HARD_ITEMS", &iuse::wash_hard_items );
     add_iuse( "WASH_ALL_ITEMS", &iuse::wash_all_items );
     add_iuse( "HEAT_LIQUID_ITEMS", &iuse::heat_liquid_items );
     add_iuse( "HEAT_SOLID_ITEMS", &iuse::heat_solid_items );
@@ -3467,7 +3465,6 @@ void islot_comestible::deserialize( const JsonObject &jo )
     optional( jo, was_loaded, "stack_size", stack_size );
     optional( jo, was_loaded, "quench", quench );
     optional( jo, was_loaded, "fun", fun );
-    optional( jo, was_loaded, "stim", stim );
     optional( jo, was_loaded, "fatigue_mod", fatigue_mod );
     optional( jo, was_loaded, "healthy", healthy );
     optional( jo, was_loaded, "parasites", parasites, numeric_bound_reader<int> {0} );

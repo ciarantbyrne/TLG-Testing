@@ -142,6 +142,7 @@ std::string enum_to_string<spell_flag>( spell_flag data )
         case spell_flag::LIQUID_DAMAGE_TARGET: return "LIQUID_DAMAGE_TARGET";
         case spell_flag::LOUD: return "LOUD";
         case spell_flag::MAKE_FILTHY: return "MAKE_FILTHY";
+        case spell_flag::MAX_RANGE_ONLY: return "MAX_RANGE_ONLY";
         case spell_flag::MUST_HAVE_CLASS_TO_LEARN: return "MUST_HAVE_CLASS_TO_LEARN";
         case spell_flag::MUTATE_TRAIT: return "MUTATE_TRAIT";
         case spell_flag::NO_BLOCK_MITIGATION: return "NO_BLOCK_MITIGATION";
@@ -717,7 +718,6 @@ std::string spell::damage_string( const Character &caster ) const
 std::optional<tripoint_bub_ms> spell::select_target( Creature *source )
 {
     const map &here = get_map();
-
     tripoint_bub_ms target = source->pos_bub();
     bool target_is_valid = false;
     if( range( *source ) > 0 && !is_valid_target( spell_target::none ) &&
@@ -730,6 +730,11 @@ std::optional<tripoint_bub_ms> spell::select_target( Creature *source )
                 if( !trajectory.empty() ) {
                     target = trajectory.back();
                     target_is_valid = is_valid_target( source_avatar, target );
+                    if( has_flag( spell_flag::MAX_RANGE_ONLY ) &&
+                        trig_dist( source_avatar.pos_bub(), target ) != range( source_avatar ) &&
+                        !( is_valid_target( spell_target::ground ) || source_avatar.sees( here, target ) ) ) {
+                        target_is_valid = false;
+                    }
                     if( !( is_valid_target( spell_target::ground ) || source_avatar.sees( here, target ) ) ) {
                         target_is_valid = false;
                     }
@@ -858,7 +863,14 @@ std::vector<tripoint_bub_ms> spell::targetable_locations( const Character &sourc
     };
 
     std::vector<tripoint_bub_ms> selectable_targets;
-    for( const tripoint_bub_ms &query : here.points_in_radius( char_pos, range( source ) ) ) {
+    const bool max_range_only = has_flag( spell_flag::MAX_RANGE_ONLY );
+    const int spell_range = range( source );
+
+    for( const tripoint_bub_ms &query : here.points_in_radius( char_pos, spell_range ) ) {
+        if( max_range_only && trig_dist( char_pos, query ) != spell_range ) {
+            continue;
+        }
+
         if( !ignore_walls && has_obstruction( query ) ) {
             // it's blocked somewhere!
             continue;
@@ -1801,6 +1813,17 @@ int spell::heal( const tripoint_bub_ms &target, Creature &caster ) const
     return -1;
 }
 
+void spell::cast_spell_effect( const tripoint_bub_ms &target ) const
+{
+    map &here = get_map();
+    avatar fake_avatar;
+    fake_avatar.setpos( here, target );
+    get_event_bus().send<event_type::character_casts_spell>( character_id( -1 ),
+            this->id(), this->spell_class(),
+            0, 0, 0, this->damage( fake_avatar ) );
+    type->effect( *this, fake_avatar, target );
+}
+
 void spell::cast_spell_effect( Creature &source, const tripoint_bub_ms &target ) const
 {
     Character *caster = source.as_character();
@@ -1811,8 +1834,37 @@ void spell::cast_spell_effect( Creature &source, const tripoint_bub_ms &target )
                 this->get_difficulty( source ), this->energy_cost( *caster ), this->casting_time( *caster ),
                 this->damage( source ) );
     }
-
     type->effect( *this, source, target );
+}
+
+void spell::cast_all_effects( const tripoint_bub_ms &target ) const
+{
+    map &here = get_map();
+    avatar fake_avatar;
+    fake_avatar.setpos( here, target );
+    if( has_flag( spell_flag::WONDER ) ) {
+        const auto iter = type->additional_spells.begin();
+        for( int num_spells = std::abs( damage( fake_avatar ) ); num_spells > 0; num_spells-- ) {
+            if( type->additional_spells.empty() ) {
+                debugmsg( "ERROR: %s has WONDER flag but no spells to choose from!", type->id.c_str() );
+                return;
+            }
+            const int rand_spell = rng( 0, type->additional_spells.size() - 1 );
+            spell sp = ( iter + rand_spell )->get_spell( fake_avatar, get_effective_level() );
+            // This spell flag makes it so the message of the spell that's cast using this spell will be sent.
+            // if a message is added to the casting spell, it will be sent as well.
+            add_msg( sp.message() );
+            sp.cast_all_effects( target );
+        }
+    } else {
+        if( has_flag( spell_flag::EXTRA_EFFECTS_FIRST ) ) {
+            cast_extra_spell_effects( target );
+            cast_spell_effect( target );
+        } else {
+            cast_spell_effect( target );
+            cast_extra_spell_effects( target );
+        }
+    }
 }
 
 void spell::cast_all_effects( Creature &source, const tripoint_bub_ms &target ) const
@@ -1853,6 +1905,17 @@ void spell::cast_all_effects( Creature &source, const tripoint_bub_ms &target ) 
             cast_spell_effect( source, target );
             cast_extra_spell_effects( source, target );
         }
+    }
+}
+
+void spell::cast_extra_spell_effects( const tripoint_bub_ms &target ) const
+{
+    map &here = get_map();
+    avatar fake_avatar;
+    fake_avatar.setpos( here, target );
+    for( const fake_spell &extra_spell : type->additional_spells ) {
+        spell sp = extra_spell.get_spell( fake_avatar, get_effective_level() );
+        sp.cast_all_effects( target );
     }
 }
 

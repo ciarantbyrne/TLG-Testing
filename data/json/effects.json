@@ -281,6 +281,14 @@
   },
   {
     "type": "effect_type",
+    "id": "sound_triggered",
+    "name": [ "Heard Sound" ],
+    "max_intensity": 400,
+    "max_duration": "10 s",
+    "desc": [ "AI tag used for monsters responding to sound.  This is a bug if you have it." ]
+  },
+  {
+    "type": "effect_type",
     "id": "worked_on",
     "name": [ "Worked On" ],
     "desc": [ "AI tag used for robots being disabled.  This is a bug if you have it." ]
@@ -492,6 +500,23 @@
   },
   {
     "type": "effect_type",
+    "id": "winded_crab_leg",
+    "name": [ "Winded (Crab Leg)" ],
+    "desc": [ "You're short of breath.  Your leg has impaired function until you recover." ],
+    "rating": "bad",
+    "max_duration": "30 s",
+    "base_mods": { "speed_mod": [ -3 ], "pain_min": [ 1 ], "pain_chance": [ 20 ], "pain_max_val": [ 20 ] },
+    "limb_score_mods": [
+      { "limb_score": "block", "modifier": 0.95 },
+      { "limb_score": "swim", "modifier": 0.85 },
+      { "limb_score": "move_speed", "modifier": 0.9 },
+      { "limb_score": "footing", "modifier": 0.9 },
+      { "limb_score": "balance", "modifier": 0.9 }
+    ],
+    "flags": [ "EFFECT_LIMB_SCORE_MOD" ]
+  },
+  {
+    "type": "effect_type",
     "id": "winded_leg_l",
     "name": [ "Winded (Left Leg)" ],
     "desc": [ "You're short of breath.  Your left leg has impaired function until you recover." ],
@@ -591,7 +616,7 @@
   },
   {
     "type": "effect_type",
-    "id": "winded_cephalopod_arm_lower",
+    "id": "winded_cephalopod_arm",
     "name": [ "Winded (Arms)" ],
     "desc": [ "You're short of breath.  Your arms have impaired function until you recover." ],
     "rating": "bad",
@@ -618,8 +643,8 @@
   },
   {
     "type": "effect_type",
-    "id": "winded_cephalopod_arm_upper",
-    "name": [ "Winded (Arms)" ],
+    "id": "winded_cephalopod_tentacle",
+    "name": [ "Winded (Tentacles)" ],
     "desc": [ "You're short of breath.  Your arms have impaired function until you recover." ],
     "rating": "bad",
     "max_duration": "30 s",
@@ -810,7 +835,7 @@
     "max_intensity": 3,
     "int_dur_factor": "100 s",
     "show_in_info": true,
-    "base_mods": { "pain_min": [ 1 ], "pain_chance": [ -50 ], "pain_chance_bot": [ 1000 ] },
+    "base_mods": { "pain_min": [ 1 ], "pain_chance": [ -50 ], "pain_max_val": [ 15 ], "pain_chance_bot": [ 1000 ] },
     "scaling_mods": { "pain_max_val": [ 5 ], "pain_chance": [ 150 ] },
     "limb_score_mods": [ { "limb_score": "reaction", "modifier": 0.9, "scaling": -0.2 } ],
     "flags": [ "EFFECT_LIMB_SCORE_MOD" ]
@@ -837,7 +862,7 @@
     "id": "poison",
     "name": [ "Poisoned" ],
     "desc": [ "You have been poisoned!" ],
-    "miss_messages": [ [ "You feel bad inside.", 1 ] ],
+    "miss_messages": [ [ "You feel sick.", 1 ] ],
     "rating": "bad",
     "immune_bp_flags": [ "BIONIC_LIMB" ],
     "resist_traits": [ "POISRESIST" ],
@@ -849,8 +874,10 @@
       "dex_mod": [ -1, -1 ],
       "str_mod": [ -2, 0 ],
       "pain_min": [ 1 ],
+      "pain_max": [ 1 ],
       "pain_chance": [ 150, 900 ],
       "hurt_min": [ 1 ],
+      "hurt_max": [ 1 ],
       "hurt_chance": [ 450, 2700 ],
       "health_chance": [ 250, 750 ],
       "health_min": [ -1 ]
@@ -863,7 +890,7 @@
     "id": "badpoison",
     "name": [ "Badly Poisoned" ],
     "desc": [ "You have been badly poisoned!" ],
-    "miss_messages": [ [ "You feel bad inside.", 2 ] ],
+    "miss_messages": [ [ "You feel really sick.", 2 ] ],
     "rating": "bad",
     "immune_bp_flags": [ "BIONIC_LIMB" ],
     "resist_traits": [ "POISRESIST" ],
@@ -872,10 +899,11 @@
     "main_parts_only": true,
     "base_mods": {
       "per_mod": [ -2 ],
-      "dex_mod": [ -2 ],
+      "dex_mod": [ -2, -1 ],
       "str_mod": [ -3, -1 ],
       "speed_mod": [ -10 ],
-      "pain_min": [ 2 ],
+      "pain_min": [ 2, 1 ],
+      "pain_max": [ 2 ],
       "pain_chance": [ 100, 500 ],
       "hurt_min": [ 1 ],
       "hurt_max": [ 2 ],
@@ -885,6 +913,38 @@
     },
     "show_in_info": true,
     "blood_analysis_description": "Poison"
+  },
+  {
+    "type": "effect_type",
+    "//": "Mostly just used to let fungal spores do damage over time to monsters.  Characters work via the fungus effect.",
+    "id": "fungalpoison",
+    "name": [ "Fungal Toxin" ],
+    "desc": [ "You have been poisoned!" ],
+    "miss_messages": [ [ "You feel horrible.", 2 ] ],
+    "max_duration": "10 m",
+    "rating": "bad",
+    "immune_bp_flags": [ "BIONIC_LIMB" ],
+    "resist_traits": [ "POISRESIST" ],
+    "pain_sizing": true,
+    "hurt_sizing": true,
+    "main_parts_only": true,
+    "base_mods": {
+      "per_mod": [ -2 ],
+      "dex_mod": [ -2, -1 ],
+      "str_mod": [ -3, -1 ],
+      "speed_mod": [ -10 ],
+      "pain_min": [ 2, 1 ],
+      "pain_max": [ 2 ],
+      "pain_chance": [ 100, 500 ],
+      "hurt_min": [ 1 ],
+      "hurt_max": [ 2 ],
+      "hurt_chance": [ 100, 200 ],
+      "health_chance": [ 100, 400 ],
+      "health_min": [ -1 ]
+    },
+    "show_in_info": true,
+    "blood_analysis_description": "Poison",
+    "immune_flags": [ "MYCUS_IMMUNE" ]
   },
   {
     "type": "effect_type",
@@ -1865,7 +1925,6 @@
     "max_intensity": 3,
     "resist_traits": [ "THRESH_URSINE" ],
     "base_mods": {
-      "str_mod": [ 1 ],
       "fatigue_min": [ 1 ],
       "fatigue_chance": [ 1100 ],
       "hurt_min": [ 1 ],
@@ -1981,7 +2040,7 @@
       [ "Your eyes sting badly and tears stream from them continuously.", "bad" ],
       [ "Your eyes are so badly inflamed that you can hardly see.", "bad" ]
     ],
-    "miss_messages": [ [ "Your eyes sting and tear from the smoke.", 1 ] ],
+    "miss_messages": [ [ "Your eyes are so irritated you can barely see.", 1 ] ],
     "max_duration": "3 m",
     "max_intensity": 4,
     "int_decay_tick": 40,
@@ -2138,7 +2197,6 @@
     "id": "took_xanax",
     "max_duration": 14400,
     "dur_add_perc": 22,
-    "base_mods": { "stim_tick": [ 150 ], "stim_min": [ -1 ], "stim_min_val": [ -1 ] },
     "rating": "good",
     "blood_analysis_description": "Alprazolam"
   },
@@ -2196,6 +2254,12 @@
     "desc": [ "You took an antipsychotic some time ago and you might still be under its influence." ],
     "max_duration": 72000,
     "dur_add_perc": 35
+  },
+  {
+    "type": "effect_type",
+    "id": "took_analgesic",
+    "//": "Helps NPCs know if they took pain medicine.",
+    "max_duration": 1200
   },
   {
     "type": "effect_type",
@@ -2301,7 +2365,7 @@
       { "limb_score": "breathing", "modifier": 0.9, "scaling": -0.1 },
       { "limb_score": "balance", "modifier": 0.8, "scaling": -0.2 }
     ],
-    "flags": [ "EFFECT_LIMB_SCORE_MOD" ],
+    "flags": [ "EFFECT_LIMB_SCORE_MOD", "EFFECT_IMPEDING", "PREVENT_TRAINING" ],
     "show_in_info": true,
     "show_intensity": false
   },
@@ -2470,7 +2534,7 @@
     "int_decay_tick": 720,
     "int_add_val": 1,
     "main_parts_only": true,
-    "resist_traits": [ "M_IMMUNE" ],
+    "immune_flags": [ "MYCUS_IMMUNE" ],
     "base_mods": { "speed_mod": [ -7, 0 ] },
     "scaling_mods": { "speed_mod": [ -3, 0 ] }
   },
@@ -2486,10 +2550,10 @@
     "max_intensity": 3,
     "int_dur_factor": "6 h",
     "max_duration": "18 h",
-    "resist_traits": [ "POISRESIST" ],
     "resist_effects": [ "antifungal" ],
     "base_mods": { "speed_mod": [ -10 ], "str_mod": [ -1 ], "dex_mod": [ -1 ] },
-    "blood_analysis_description": "Fungal Infection"
+    "blood_analysis_description": "Fungal Infection",
+    "immune_flags": [ "MYCUS_IMMUNE" ]
   },
   {
     "type": "effect_type",
@@ -2518,7 +2582,7 @@
     ],
     "flags": [ "EFFECT_LIMB_SCORE_MOD" ],
     "show_in_info": true,
-    "resist_traits": [ "M_IMMUNE" ]
+    "immune_flags": [ "MYCUS_IMMUNE" ]
   },
   {
     "type": "effect_type",
@@ -2547,7 +2611,7 @@
     ],
     "flags": [ "EFFECT_LIMB_SCORE_MOD" ],
     "show_in_info": true,
-    "resist_traits": [ "M_IMMUNE" ]
+    "immune_flags": [ "MYCUS_IMMUNE" ]
   },
   {
     "type": "effect_type",
@@ -2819,11 +2883,24 @@
   {
     "type": "effect_type",
     "id": "chafing",
-    "name": [ "Uncomfortable" ],
-    "desc": [ "Your %s is uncomfortable.  Wearing something soft under your hard armor would help." ],
+    "name": [ "Chafing" ],
+    "desc": [ "Rigid equipment worn over your %s is causing discomfort.  Wearing something soft underneath it would help." ],
     "max_intensity": 1,
     "part_descs": true,
-    "base_mods": { "speed_mod": [ -2 ], "pain_min": [ 1 ], "pain_chance": [ 2 ], "pain_max_val": [ -1 ] }
+    "immune_bp_flags": [ "BIONIC_LIMB" ],
+    "base_mods": { "speed_mod": [ -4 ], "pain_min": [ 1 ], "pain_chance": [ 2 ], "pain_max_val": [ 15 ] },
+    "limb_score_mods": [
+      { "limb_score": "manip", "modifier": 0.8 },
+      { "limb_score": "grip", "modifier": 0.8 },
+      { "limb_score": "block", "modifier": 0.8 },
+      { "limb_score": "lift", "modifier": 0.8 },
+      { "limb_score": "move_speed", "modifier": 0.8 },
+      { "limb_score": "balance", "modifier": 0.8 },
+      { "limb_score": "swimming", "modifier": 0.8 },
+      { "limb_score": "crawl", "modifier": 0.8 },
+      { "limb_score": "reaction", "modifier": 0.8 }
+    ],
+    "flags": [ "EFFECT_LIMB_SCORE_MOD_LOCAL" ]
   },
   {
     "type": "effect_type",
@@ -2879,8 +2956,8 @@
     "max_intensity": 2,
     "scaling_mods": { "speed_mod": [ -5 ] },
     "limb_score_mods": [
-      { "limb_score": "manip", "modifier": 0 },
-      { "limb_score": "grip", "modifier": 0 },
+      { "limb_score": "manip", "modifier": 0.5, "scaling": -0.25 },
+      { "limb_score": "grip", "modifier": 0.5, "scaling": -0.25 },
       { "limb_score": "block", "modifier": 0.5, "scaling": -0.25 },
       { "limb_score": "lift", "modifier": 0.5, "scaling": -0.25 },
       { "limb_score": "move_speed", "modifier": 0.75, "scaling": -0.25 },
@@ -2904,7 +2981,7 @@
     "desc": [ "Your %s is blistering from the intense heat." ],
     "main_parts_only": true,
     "part_descs": true,
-    "miss_messages": [ [ "Your blisters distract you", 1 ] ],
+    "miss_messages": [ [ "Your burns distract you.", 1 ] ],
     "immune_bp_flags": [ "BIONIC_LIMB" ],
     "base_mods": {
       "dex_mod": [ -1 ],
@@ -3273,8 +3350,8 @@
       "winded_leg_r",
       "winded_arm_l",
       "winded_arm_r",
-      "winded_cephalopod_arm_upper",
-      "winded_cephalopod_arm_lower",
+      "winded_cephalopod_tentacle",
+      "winded_cephalopod_arm",
       "winded_gastropod_foot"
     ],
     "base_mods": { "str_mod": [ -1 ], "dex_mod": [ -2 ], "per_mod": [ -2 ], "int_mod": [ -1 ] },
@@ -3297,8 +3374,8 @@
       "winded_leg_r",
       "winded_arm_l",
       "winded_arm_r",
-      "winded_cephalopod_arm_upper",
-      "winded_cephalopod_arm_lower",
+      "winded_cephalopod_tentacle",
+      "winded_cephalopod_arm",
       "winded_gastropod_foot"
     ],
     "base_mods": { "speed_mod": [ -5 ], "dex_mod": [ -2 ], "per_mod": [ -1 ], "int_mod": [ -2 ] },
@@ -3330,8 +3407,8 @@
       "winded_leg_r",
       "winded_arm_l",
       "winded_arm_r",
-      "winded_cephalopod_arm_upper",
-      "winded_cephalopod_arm_lower",
+      "winded_cephalopod_arm",
+      "winded_cephalopod_tentacle",
       "winded_gastropod_foot"
     ],
     "base_mods": {
@@ -3390,7 +3467,8 @@
     "base_mods": {
       "focus_min": [ 1 ],
       "focus_max": [ 2 ],
-      "focus_max_val": [ 10 ],
+      "focus_max_val": [ 110 ],
+      "focus_min_val": [ 5 ],
       "focus_chance": [ 60 ],
       "int_mod": [ 1 ],
       "per_mod": [ 0.5 ],
@@ -3407,7 +3485,6 @@
     },
     "scaling_mods": {
       "focus_min": [ -1 ],
-      "focus_min_val": [ -10 ],
       "focus_max_val": [ 5 ],
       "speed_mod": [ 3 ],
       "str_mod": [ 0.5 ],
@@ -3424,7 +3501,7 @@
   {
     "type": "effect_type",
     "id": "cocaine",
-    "name": [ "Sharp", "Wired", "Geeked", "Whiteout" ],
+    "name": [ "Cocaine Buzz", "Coked Up", "Geeked", "Whiteout" ],
     "desc": [
       "You've got a mild cocaine buzz going.  Feels good, feels clean.",
       "You're feeling chatty and energized, and probably way too confident.",
@@ -3438,7 +3515,8 @@
       "focus_min": [ 1 ],
       "focus_max": [ 2 ],
       "speed_mod": [ 3 ],
-      "focus_max_val": [ 6 ],
+      "focus_max_val": [ 106 ],
+      "focus_min_val": [ 20 ],
       "focus_chance": [ 40 ],
       "int_mod": [ 1 ],
       "per_mod": [ 0.5 ],
@@ -3474,7 +3552,7 @@
   {
     "type": "effect_type",
     "id": "cig",
-    "name": [ "Nicotine", "Nicotine Overdose" ],
+    "name": [ "Nicotine Buzz", "Nicotine Overdose" ],
     "desc": [ "You feel a slight buzz from the tobacco.", "You feel awful, you've had far too much." ],
     "max_intensity": 2,
     "base_mods": {
@@ -3483,17 +3561,18 @@
       "vomit_tick": [ 180 ],
       "focus_min": [ 1 ],
       "focus_max": [ 2 ],
-      "focus_chance": [ 10 ],
-      "focus_max_val": [ 8 ],
+      "focus_chance": [ 100 ],
+      "focus_max_val": [ 104 ],
+      "focus_min_val": [ 50 ],
       "fatigue_min": [ -1 ],
       "fatigue_max": [ -3 ],
       "fatigue_chance": [ 100 ],
-      "fatigue_max_val": [ -25 ]
+      "fatigue_min_val": [ 100 ]
     },
     "scaling_mods": {
-      "focus_min_val": [ -8 ],
-      "focus_max_val": [ -8 ],
-      "focus_min": [ -1 ],
+      "focus_min": [ -8 ],
+      "focus_max": [ -4 ],
+      "focus_min_val": [ -20 ],
       "vomit_chance": [ 21 ],
       "int_mod": [ -1 ],
       "per_mod": [ -1 ]
@@ -3504,14 +3583,14 @@
     "type": "effect_type",
     "id": "took_antihistamine",
     "rating": "good",
-    "base_mods": { "fatigue_min": [ 2 ], "fatigue_max": [ 10 ], "fatigue_chance": [ 60 ], "fatigue_max_val": [ 90 ] },
+    "base_mods": { "fatigue_min": [ 0 ], "fatigue_max": [ 5 ], "fatigue_chance": [ 600 ], "fatigue_max_val": [ 200 ] },
     "blood_analysis_description": "Diphenhydramine"
   },
   {
     "type": "effect_type",
     "id": "zolpidem",
     "name": [ "Zolpidem" ],
-    "desc": [ "Medication is making you more drowsy by the minute" ],
+    "desc": [ "Medication is making you more drowsy by the minute." ],
     "rating": "good",
     "base_mods": {
       "int_mod": [ -1 ],
@@ -3519,13 +3598,14 @@
       "fatigue_min": [ 2 ],
       "fatigue_max": [ 60 ],
       "fatigue_chance": [ 60 ],
-      "fatigue_max_val": [ 350 ]
+      "fatigue_max_val": [ 500 ]
     },
     "blood_analysis_description": "Zolpidem"
   },
   {
     "type": "effect_type",
-    "id": "teleglow"
+    "id": "teleglow",
+    "max_duration": "960 m"
   },
   {
     "type": "effect_type",
@@ -3549,7 +3629,7 @@
       "pkill_max_val": [ 7 ],
       "pkill_min": [ 1 ],
       "pkill_tick": [ 45 ],
-      "fatigue_max_val": [ 90 ],
+      "fatigue_max_val": [ 130 ],
       "fatigue_chance": [ 1000 ],
       "fatigue_min": [ 1 ]
     },
@@ -3702,6 +3782,7 @@
       "per_mod": [ -0.67 ],
       "dex_mod": [ -1.0 ],
       "int_mod": [ -1.67 ],
+      "pain_max_val": [ 15 ],
       "pain_chance": [ -500 ],
       "stamina_max": [ -500 ],
       "stamina_chance": [ -300 ],
@@ -3742,7 +3823,7 @@
     "miss_messages": [ [ "You feel horrible.", 1 ] ],
     "rating": "bad",
     "base_mods": {
-      "pain_max_val": [ 35 ],
+      "pain_max_val": [ 25 ],
       "pain_min": [ 1, 0 ],
       "pain_chance": [ 1800 ],
       "stamina_min": [ -100 ],
@@ -3750,6 +3831,7 @@
       "stamina_chance": [ 2400 ]
     },
     "scaling_mods": {
+      "pain_max_val": [ 15 ],
       "per_mod": [ -0.5 ],
       "dex_mod": [ -1.0 ],
       "int_mod": [ -1.0 ],
@@ -3764,6 +3846,71 @@
       { "limb_score": "move_speed", "modifier": 1.0, "scaling": -0.05 },
       { "limb_score": "balance", "modifier": 0.9, "scaling": -0.2 },
       { "limb_score": "footing", "modifier": 0.8, "scaling": -0.2 },
+      { "limb_score": "swim", "modifier": 1.0, "scaling": -0.2 }
+    ],
+    "flags": [ "EFFECT_LIMB_SCORE_MOD" ]
+  },
+  {
+    "type": "effect_type",
+    "id": "withdrawal_opioid_timer",
+    "max_intensity": 3,
+    "int_dur_factor": "48 h",
+    "max_duration": "144 h",
+    "//": "Helper effect to track progression of withdrawals."
+  },
+  {
+    "type": "effect_type",
+    "id": "withdrawal_opioid_detoxed",
+    "//": "Safe from withdrawals until you dose again."
+  },
+  {
+    "type": "effect_type",
+    "id": "withdrawal_opioid",
+    "name": [ "Mild Opioid Withdrawal", "Moderate Opioid Withdrawal", "Severe Opioid Withdrawal" ],
+    "desc": [
+      "You feel sick and everything hurts more than it should.",
+      "You swing between fever and chills, and you can't stop thinking about painkillers.",
+      "You're horribly sick.  Everything hurts, and not a moment goes by that you aren't desperate to get your fix."
+    ],
+    "max_intensity": 3,
+    "apply_message": "A chill runs through your body.",
+    "miss_messages": [ [ "You feel horrible.", 1 ] ],
+    "rating": "bad",
+    "base_mods": {
+      "thirst_tick": [ 1800 ],
+      "thirst_min": [ 1 ],
+      "fatigue_tick": [ 300 ],
+      "fatigue_min": [ 1 ],
+      "pain_max_val": [ 15 ],
+      "pain_min": [ 1, 0 ],
+      "pain_chance": [ 3600 ],
+      "stamina_min": [ -100 ],
+      "stamina_max": [ -200 ],
+      "stamina_chance": [ 1200 ],
+      "h_mod_min": [ -1 ],
+      "h_mod_chance": [ 43200 ],
+      "vomit_chance": [ 100 ],
+      "vomit_tick": [ 1800 ]
+    },
+    "scaling_mods": {
+      "pain_max_val": [ 15 ],
+      "str_mod": [ -1.0 ],
+      "per_mod": [ -0.67 ],
+      "dex_mod": [ -1.34 ],
+      "int_mod": [ -1.67 ],
+      "pain_chance": [ -600 ],
+      "stamina_max": [ -500 ],
+      "stamina_chance": [ -300 ],
+      "vomit_chance": [ -12 ]
+    },
+    "limb_score_mods": [
+      { "limb_score": "manip", "modifier": 0.9, "scaling": -0.1 },
+      { "limb_score": "block", "modifier": 1.0, "scaling": -0.1 },
+      { "limb_score": "vision", "modifier": 1.0, "scaling": -0.05 },
+      { "limb_score": "reaction", "modifier": 0.9, "scaling": -0.2 },
+      { "limb_score": "move_speed", "modifier": 0.95, "scaling": -0.1 },
+      { "limb_score": "balance", "modifier": 0.9, "scaling": -0.1 },
+      { "limb_score": "footing", "modifier": 0.8, "scaling": -0.1 },
       { "limb_score": "swim", "modifier": 1.0, "scaling": -0.2 }
     ],
     "flags": [ "EFFECT_LIMB_SCORE_MOD" ]
@@ -3819,7 +3966,6 @@
     "type": "effect_type",
     "id": "valium",
     "removes_effects": [ "shakes" ],
-    "base_mods": { "stim_tick": [ 150 ], "stim_chance": [ 2 ], "stim_min": [ 1 ], "stim_min_val": [ -1 ] },
     "rating": "good",
     "blood_analysis_description": "Benzodiazepines",
     "max_duration": 64800,
@@ -3967,6 +4113,12 @@
       { "limb_score": "swim", "modifier": 0.0 }
     ],
     "flags": [ "EFFECT_LIMB_SCORE_MOD_LOCAL", "GRAB" ]
+  },
+  {
+    "type": "effect_type",
+    "id": "pulled",
+    "//": "Dummy effect to prevent multiple creatures from pulling a creature in the same turn",
+    "max_duration": "1 s"
   },
   {
     "type": "effect_type",
@@ -4292,6 +4444,30 @@
   },
   {
     "type": "effect_type",
+    "id": "bionic_painkiller",
+    "max_intensity": 150,
+    "max_duration": "30 s",
+    "int_add_val": 1,
+    "base_mods": {
+      "fatigue_min": [ 1 ],
+      "fatigue_max_val": [ 100 ],
+      "fatigue_chance": [ 190 ],
+      "pkill_max_val": [ 1 ],
+      "pkill_min": [ 1 ],
+      "pkill_max": [ 1 ],
+      "pkill_tick": [ 1 ]
+    },
+    "scaling_mods": {
+      "pkill_max_val": [ 1 ],
+      "per_mod": [ -0.03 ],
+      "dex_mod": [ -0.03 ],
+      "int_mod": [ -0.02 ],
+      "fatigue_max_val": [ 1 ],
+      "fatigue_chance": [ -1 ]
+    }
+  },
+  {
+    "type": "effect_type",
     "id": "toxin_buildup",
     "name": [ "", "Concerning symptoms", "Unnerving symptoms" ],
     "desc": [
@@ -4308,10 +4484,10 @@
     "id": "opioid_eff",
     "//": "Pain relief increases linearly. Vomit chance increases and then becomes impossible due to CNS depression. Sleep is mostly impossible but ramps up sharply at i4 toward 100% at i7.",
     "name": [
-      "Pain Relief",
-      "Painkillers",
-      "Heavy Opioid Euphoria",
+      "Opioid Painkillers",
+      "Opioid Buzz",
       "Opioid High",
+      "Heavy Opioid High",
       "Nodding Out",
       "Opioid Overdose",
       "Severe Opioid Overdose"
@@ -4328,7 +4504,7 @@
     "blood_analysis_description": "Opioids",
     "max_intensity": 7,
     "miss_messages": [ [ "You feel numb.", 1 ] ],
-    "chance_kill": [ [ -1, 1 ], [ -1, 1 ], [ -1, 1 ], [ -1, 1 ], [ 1, 250000 ], [ 1, 50000 ], [ 1, 5000 ] ],
+    "chance_kill": [ [ -1, 1 ], [ -1, 1 ], [ -1, 1 ], [ -1, 1 ], [ 1, 500000 ], [ 1, 100000 ], [ 1, 5000 ] ],
     "death_msg": "Your breathing grows weaker and weaker, and then you are gone.",
     "pkill_addict_reduces": true,
     "base_mods": {
@@ -4340,10 +4516,10 @@
       "fatigue_max_val": [ 150 ],
       "cough_chance": [ -1002 ],
       "sleep_chance": [ -584 ],
-      "sleep_chance_bot": [ 1000 ],
+      "sleep_chance_bot": [ 6000 ],
       "sleep_tick": [ 1800 ],
       "sleep_min": [ 5 ],
-      "sleep_max": [ 10 ],
+      "sleep_max": [ 50 ],
       "pkill_max_val": [ 15 ],
       "pkill_min": [ 1 ],
       "pkill_tick": [ 45 ]
@@ -4378,6 +4554,12 @@
   },
   {
     "type": "effect_type",
+    "id": "lithium",
+    "max_duration": "86000 s",
+    "//": "Invisible effect from taking lithium tablets.  Helps with the Mood Swings trait."
+  },
+  {
+    "type": "effect_type",
     "id": "naloxone_eff",
     "max_duration": "1 s",
     "//": "Just used to trigger an EOC that ditches some morale bonuses."
@@ -4398,7 +4580,7 @@
       "focus_min": [ 1 ],
       "focus_max": [ 1 ],
       "focus_chance": [ 600 ],
-      "focus_max_val": [ 5 ],
+      "focus_max_val": [ 105 ],
       "fatigue_min": [ -1 ],
       "fatigue_max": [ -1 ],
       "fatigue_chance": [ 100 ],
@@ -4440,7 +4622,7 @@
   {
     "type": "effect_type",
     "id": "cough_suppress",
-    "base_mods": { "fatigue_min": [ 1 ], "fatigue_max": [ 6 ], "fatigue_chance": [ 60 ], "fatigue_max_val": [ 60 ] }
+    "base_mods": { "fatigue_min": [ 1 ], "fatigue_max": [ 6 ], "fatigue_chance": [ 60 ], "fatigue_max_val": [ 200 ] }
   },
   {
     "type": "effect_type",
@@ -4467,8 +4649,8 @@
     "name": [ { "ctxt": "physically", "str": "Disabled" } ],
     "desc": [ "This limb is damaged beyond use and may require a splint to recover." ],
     "//": "This sounds weird. We need <bp_affected> tag or something",
-    "apply_message": "Your limb breaks!",
-    "remove_message": "The broken limb has mended.",
+    "apply_message": "A body part has been critically injured!",
+    "remove_message": "Your disabled body part has recovered enough for use.",
     "max_duration": "2 s",
     "rating": "bad"
   },
@@ -4548,27 +4730,6 @@
       "hurt_chance": [ 8000 ]
     },
     "blood_analysis_description": "Irradiated"
-  },
-  {
-    "type": "effect_type",
-    "id": "stim",
-    "name": [ "Stimulants" ],
-    "desc": [ "You're very jittery and pumped up, probably from some stimulants." ],
-    "max_intensity": 1000,
-    "int_dur_factor": "1 s",
-    "scaling_mods": { "speed_mod": [ 0.08 ], "per_mod": [ 0.04 ] },
-    "blood_analysis_description": "Stimulants"
-  },
-  {
-    "type": "effect_type",
-    "id": "depressants",
-    "name": [ "Depressants" ],
-    "desc": [ "You are under the influence of depressants, and in a bit of a daze." ],
-    "max_intensity": 1000,
-    "int_dur_factor": "1 s",
-    "scaling_mods": { "speed_mod": [ -0.1 ], "dex_mod": [ -0.05 ] },
-    "miss_messages": [ [ "You feel woozy.", 1 ] ],
-    "blood_analysis_description": "Depressants"
   },
   {
     "type": "effect_type",
@@ -5509,6 +5670,13 @@
     "max_intensity": 20,
     "max_duration": "1 s",
     "//": "Helper for airborne effect, handles interactions with terrain, traps etc when landing after using AIRBORNE spells."
+  },
+  {
+    "type": "effect_type",
+    "id": "dashing",
+    "max_intensity": 20,
+    "max_duration": "1 s",
+    "//": "Helper for airborne effect, handles interactions with terrain, traps etc when dashing via spells while not airborne."
   },
   {
     "type": "effect_type",

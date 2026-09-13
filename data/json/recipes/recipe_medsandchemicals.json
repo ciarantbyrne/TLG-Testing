@@ -18,8 +18,8 @@
     "category": "CC_OTHER",
     "subcategory": "CSC_OTHER_MEDICAL",
     "skill_used": "chemistry",
-    "difficulty": 2,
-    "skills_required": [ "firstaid", 2 ],
+    "difficulty": 0,
+    "skills_required": [ "firstaid", 1 ],
     "time": "30 m",
     "book_learn": [
       [ "textbook_firstaid", 2 ],
@@ -82,7 +82,7 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_DRUGS",
     "skill_used": "chemistry",
-    "difficulty": 4,
+    "difficulty": 1,
     "time": "30 m",
     "book_learn": [ [ "textbook_chemistry", 4 ], [ "adv_chemistry", 4 ], [ "recipe_labchem", 4 ] ],
     "proficiencies": [
@@ -106,7 +106,6 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_DRUGS",
     "skill_used": "cooking",
-    "skills_required": [ "survival", 2 ],
     "difficulty": 2,
     "time": "20 m",
     "book_learn": [
@@ -127,7 +126,6 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_DRUGS",
     "skill_used": "cooking",
-    "skills_required": [ "survival", 2 ],
     "difficulty": 3,
     "time": "30 m",
     "book_learn": [
@@ -153,8 +151,7 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_DRUGS",
     "skill_used": "cooking",
-    "skills_required": [ "survival", 2 ],
-    "difficulty": 2,
+    "difficulty": 3,
     "time": "30 m",
     "book_learn": [
       [ "pocket_survival", 3 ],
@@ -212,8 +209,7 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_CHEMICALS",
     "skill_used": "chemistry",
-    "skills_required": [ "survival", 1 ],
-    "difficulty": 2,
+    "difficulty": 3,
     "time": "5 m",
     "flags": [ "SECRET" ],
     "book_learn": [
@@ -813,7 +809,16 @@
     "autolearn": true,
     "batch_time_factors": [ 90, 4 ],
     "flags": [ "BLIND_EASY", "ALLOW_ROTTEN" ],
-    "components": [ [ [ "water", 3 ], [ "water_clean", 3 ] ], [ [ "fish", 5 ], [ "lobster", 5 ], [ "fish_scrap", 75 ] ] ],
+    "components": [
+      [ [ "water", 3 ], [ "water_clean", 3 ] ],
+      [
+        [ "fish", 5 ],
+        [ "fish_freshwater", 5 ],
+        [ "lobster", 5 ],
+        [ "fish_scrap", 75 ],
+        [ "fish_scrap_freshwater", 75 ]
+      ]
+    ],
     "using": [ [ "sugar_standard", 1 ] ]
   },
   {
@@ -856,7 +861,6 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_CHEMICALS",
     "skill_used": "chemistry",
-    "skills_required": [ "survival", 2 ],
     "difficulty": 4,
     "time": "20 m",
     "autolearn": true,
@@ -974,7 +978,6 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_DRUGS",
     "skill_used": "chemistry",
-    "skills_required": [ "survival", 1 ],
     "difficulty": 1,
     "time": "5 m",
     "book_learn": [ [ "pocket_survival", 3 ], [ "survival_book", 3 ], [ "textbook_herbal_remedies", 2 ] ],
@@ -1727,8 +1730,7 @@
     "category": "CC_CHEM",
     "subcategory": "CSC_CHEM_OTHER",
     "skill_used": "chemistry",
-    "difficulty": 1,
-    "skills_required": [ "survival", 2 ],
+    "difficulty": 2,
     "time": "1 h",
     "batch_time_factors": [ 99, 1 ],
     "autolearn": true,
@@ -2545,14 +2547,14 @@
     "batch_time_factors": [ 25, 2 ],
     "//2": "some loss/waste, e.g. imperfect smelting; powder escaping",
     "//2a": "Lower limit is based on a guesstimate about how much charge you need in the furnace for it to operate",
-    "charges": 95000,
+    "charges": 950,
     "book_learn": [ [ "textbook_chemistry", 4 ], [ "textbook_gaswarfare", 4 ], [ "atomic_survival", 3 ] ],
     "//3": "At least some knowledge on chemicals handling is required.",
     "proficiencies": [ { "proficiency": "prof_intro_chemistry" } ],
     "qualities": [ { "id": "FINE_GRIND", "level": 1 } ],
     "//4": "460kJ per mole @ 70% energy efficiency",
-    "tools": [ [ [ "fake_arc_furnace", 650000 ] ] ],
-    "components": [ [ [ "cac2powder", 100000 ] ] ]
+    "tools": [ [ [ "fake_arc_furnace", 6500 ] ] ],
+    "components": [ [ [ "cac2powder", 1000 ] ] ]
   },
   {
     "type": "recipe",

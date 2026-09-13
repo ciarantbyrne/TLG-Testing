@@ -25,7 +25,7 @@
     "reload": 80,
     "valid_mod_locations": [  ],
     "faults": [ { "fault": "fault_gun_blackpowder" }, { "fault": "fault_gun_dirt" } ],
-    "flags": [ "ALLOWS_BODY_BLOCK", "NEVER_JAMS", "RELOAD_EJECT", "EASY_CLEAN" ],
+    "flags": [ "NEVER_JAMS", "RELOAD_EJECT", "EASY_CLEAN" ],
     "pocket_data": [ { "pocket_type": "MAGAZINE", "rigid": true, "ammo_restriction": { "shot": 1 } } ],
     "melee_damage": { "bash": 6 }
   },
@@ -283,6 +283,7 @@
     "barrel_volume": "0 ml",
     "valid_mod_locations": [
       [ "barrel", 1 ],
+      [ "bayonet lug", 1 ],
       [ "loading port", 1 ],
       [ "mechanism", 2 ],
       [ "muzzle", 1 ],
@@ -940,6 +941,7 @@
     "clip_size": 6,
     "valid_mod_locations": [
       [ "barrel", 1 ],
+      [ "bayonet lug", 1 ],
       [ "mechanism", 2 ],
       [ "muzzle", 1 ],
       [ "rail mount", 1 ],

@@ -58,6 +58,7 @@
 #include "player_activity.h"
 #include "pocket_type.h"
 #include "point.h"
+#include "proficiency.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
 #include "requirements.h"
@@ -123,6 +124,8 @@ static const quality_id qual_SAW_W( "SAW_W" );
 static const quality_id qual_WELD( "WELD" );
 
 static const requirement_id requirement_data_mining_standard( "mining_standard" );
+
+static const skill_id skill_survival( "survival" );
 
 static const species_id species_FERAL( "FERAL" );
 static const species_id species_HUMAN( "HUMAN" );
@@ -358,7 +361,6 @@ std::vector<item_location> drop_on_map( Character &you, item_drop_reason reason,
         const item &it = items.front();
         const int dropcount = items.size() * it.count();
         const std::string it_name = it.tname( dropcount );
-
         switch( reason ) {
             case item_drop_reason::deliberate:
                 if( can_move_there ) {
@@ -456,7 +458,6 @@ void put_into_vehicle_or_drop( Character &you, item_drop_reason reason,
                                const std::list<item> &items )
 {
     map &here = get_map();
-
     put_into_vehicle_or_drop( you, reason, items, &here, you.pos_bub( here ) );
 }
 
@@ -469,7 +470,17 @@ void put_into_vehicle_or_drop( Character &you, item_drop_reason reason,
         try_to_put_into_vehicle( you, reason, items, *vp );
         return;
     }
-    drop_on_map( you, reason, items, here, where );
+    if( !here->can_put_items_ter_furn( where ) ) {
+        for( const tripoint_bub_ms &pos : here->points_in_radius( where, 1 ) ) {
+            if( here->can_put_items_ter_furn( pos ) ) {
+                drop_on_map( you, reason, items, here, pos );
+                return;
+            }
+            debugmsg( _( "A dropped item was lost because there was no valid tile to contain it." ) );
+        }
+    } else {
+        drop_on_map( you, reason, items, here, where );
+    }
 }
 
 std::vector<item_location> put_into_vehicle_or_drop_ret_locs( Character &you,
@@ -1450,9 +1461,28 @@ static activity_reason_info can_do_activity_there( const activity_id &act, Chara
                 const recipe &r = to_craft->get_making();
                 std::vector<std::vector<item_comp>> item_comp_vector =
                                                      to_craft->get_continue_reqs().get_components();
-                std::vector<std::vector<quality_requirement>> quality_comp_vector =
-                            r.simple_requirements().get_qualities();
-                std::vector<std::vector<tool_comp>> tool_comp_vector = r.simple_requirements().get_tools();
+                std::vector<std::vector<quality_requirement>> quality_comp_vector;
+                std::vector<std::vector<tool_comp>> tool_comp_vector;
+                if( r.has_steps() ) {
+                    // Step recipes consume tools per step; gate continuation on the
+                    // current step's tools and qualities plus the recipe-root tools,
+                    // not the whole recipe, so a later step's tool cannot block the
+                    // current one.
+                    const int n_steps = static_cast<int>( r.steps().size() );
+                    const int cur = std::clamp( to_craft->get_current_step(), 0, n_steps - 1 );
+                    const recipe_step &step = r.steps()[cur];
+                    const requirement_data &root = r.root_requirements();
+                    quality_comp_vector = step.requirements.get_qualities();
+                    const std::vector<std::vector<quality_requirement>> &root_quals = root.get_qualities();
+                    quality_comp_vector.insert( quality_comp_vector.end(), root_quals.begin(),
+                                                root_quals.end() );
+                    tool_comp_vector = step.requirements.get_tools();
+                    const std::vector<std::vector<tool_comp>> &root_tools = root.get_tools();
+                    tool_comp_vector.insert( tool_comp_vector.end(), root_tools.begin(), root_tools.end() );
+                } else {
+                    quality_comp_vector = r.simple_requirements().get_qualities();
+                    tool_comp_vector = r.simple_requirements().get_tools();
+                }
                 requirement_data req = requirement_data( tool_comp_vector, quality_comp_vector, item_comp_vector );
                 if( req.can_make_with_inventory( inv, is_crafting_component ) ) {
                     return activity_reason_info::ok( do_activity_reason::NEEDS_CRAFT );
@@ -2603,13 +2633,22 @@ void activity_on_turn_move_loot( player_activity &act, Character &you )
 
 static int chop_moves( Character &you, item &it )
 {
-    // quality of tool
+    // Quality of tool.
     const int quality = it.get_quality( qual_AXE );
 
-    // attribute; regular tools - based on STR, powered tools - based on DEX
+    // Attribute; regular tools - based on STR, powered tools - based on DEX.
     const int attr = it.has_flag( flag_POWERED ) ? you.dex_cur : you.get_arm_str();
 
-    int moves = to_moves<int>( time_duration::from_minutes( 60 - attr ) / std::pow( 2, quality - 1 ) );
+    // Ecology skill cuts chopping time.
+    int skill_modifier = 450 - std::clamp( static_cast<int>( ( you.get_skill_level(
+            skill_survival ) * 40.f ) ), 0, 400 );
+
+    if( it.has_flag( flag_POWERED ) ) {
+        skill_modifier = 50 + ( skill_modifier - 50 ) * 0.5f;
+    }
+
+    int moves = to_moves<int>( time_duration::from_minutes( 60 - attr + skill_modifier ) / std::pow( 2,
+                               quality - 1 ) );
     const int helpersize = you.get_num_crafting_helpers( 3 );
     moves *= ( 1.0f - ( helpersize / 10.0f ) );
     return moves;
@@ -3459,7 +3498,7 @@ static bool generic_multi_activity_do(
                                       recipe_dictionary::get_uncraft( elem.typeId() );
                     int const qty = std::max( 1, elem.typeId() == itype_disassembly ? elem.get_making_batch_size() :
                                               elem.charges );
-                    player_activity act = player_activity( disassemble_activity_actor( r.time_to_craft_moves( you,
+                    player_activity act = player_activity( disassemble_activity_actor( r.time_to_craft_moves( you, {},
                                                            recipe_time_flag::ignore_proficiencies ) * qty ) );
                     act.targets.emplace_back( map_cursor( src_loc ), &elem );
                     act.placement = here.get_abs( src_loc );

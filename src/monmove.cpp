@@ -68,6 +68,7 @@ static const efftype_id effect_grabbed( "grabbed" );
 static const efftype_id effect_harnessed( "harnessed" );
 static const efftype_id effect_immobilization( "immobilization" );
 static const efftype_id effect_in_pit( "in_pit" );
+static const efftype_id effect_incorporeal( "incorporeal" );
 static const efftype_id effect_invisibility( "invisibility" );
 static const efftype_id effect_led_by_leash( "led_by_leash" );
 static const efftype_id effect_no_sight( "no_sight" );
@@ -103,7 +104,7 @@ static const ter_str_id ter_t_pit_spiked( "t_pit_spiked" );
 
 bool monster::is_immune_field( const field_type_id &fid ) const
 {
-    if( fid == fd_fungal_haze ) {
+    if( fid == fd_spores ) {
         return has_flag( mon_flag_NO_BREATHE ) || type->in_species( species_FUNGUS );
     }
     if( fid == fd_fungicidal_gas ) {
@@ -775,7 +776,7 @@ static float get_stagger_adjust( const tripoint_bub_ms &source, const tripoint_b
                                  const tripoint_bub_ms &next_step )
 {
     const float initial_dist =
-        trig_dist( source, destination );
+        trig_dist_precise( source, destination );
     const float new_dist =
         trig_dist_precise( next_step, destination );
     // If we return 0, it wil cancel the action.
@@ -929,6 +930,16 @@ void monster::move()
         return;
     }
 
+    // If the monster is aquatic and not a zombie, it will soon die out of water.
+    if( !here.has_flag_ter( ter_furn_flag::TFLAG_DEEP_WATER, pos_bub() ) &&
+        !here.has_flag_ter( ter_furn_flag::TFLAG_SHALLOW_WATER, pos_bub() ) &&
+        !here.has_flag( ter_furn_flag::TFLAG_LIQUID, pos_bub() )
+        && has_flag( mon_flag_AQUATIC ) && !has_flag( mon_flag_NO_BREATHE ) && one_in( 20 ) ) {
+        add_msg_if_player_sees( *this, _( "The %s flops around in a vain attempt to return to the water." ),
+                                name() );
+        die( &here, nullptr );
+    }
+
     if( moves < 0 ) {
         return;
     }
@@ -962,7 +973,7 @@ void monster::move()
     const std::optional<vpart_reference> vp_boardable = ovp.part_with_feature( "BOARDABLE", true );
     if( vp_boardable && friendly != 0 ) {
         const vehicle &veh = vp_boardable->vehicle();
-        if( veh.is_moving() && veh.get_monster( here,  vp_boardable->part_index() ) ) {
+        if( veh.is_moving() && veh.get_monster( here, vp_boardable->part_index() ) ) {
             moves = 0;
             return; // don't move if friendly and passenger in a moving vehicle
         }
@@ -1009,7 +1020,7 @@ void monster::move()
     // Check z-level neighbors too so creatures on stairs aren't falsely stuck
     for( const tripoint_bub_ms &dest : here.points_in_radius( pos_bub(), 1, 1 ) ) {
         if( dest != pos_bub() ) {
-            if( can_move_to( dest ) && can_squeeze_to( dest ) &&
+            if( can_move_to( dest ) && vehicle_not_blocking( dest ) &&
                 creatures.creature_at( dest, true ) == nullptr ) {
                 try_to_move = true;
                 break;
@@ -1183,7 +1194,9 @@ void monster::move()
                     const tripoint_bub_ms upper = candidate.z() > pos_abs().z() ? candidate : pos_bub();
                     const tripoint_bub_ms lower = candidate.z() > pos_abs().z() ? pos_bub() : candidate;
                     if( here.has_flag( ter_furn_flag::TFLAG_GOES_DOWN, upper ) &&
-                        here.has_flag( ter_furn_flag::TFLAG_GOES_UP, lower ) ) {
+                        here.has_flag( ter_furn_flag::TFLAG_GOES_UP, lower ) && ( can_climb() ||
+                                ( !here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, upper ) &&
+                                  !here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, lower ) ) ) ) {
                         can_z_move = true;
                     }
                 }
@@ -1234,7 +1247,7 @@ void monster::move()
             // Try to shove vehicle out of the way
             shove_vehicle( destination, tripoint_bub_ms( candidate ) );
             // Bail out if we can't move there and we can't bash.
-            if( !pathed && ( !can_move_to( candidate ) || !can_squeeze_to( candidate ) ) ) {
+            if( !pathed && ( !can_move_to( candidate ) || !vehicle_not_blocking( candidate ) ) ) {
                 if( !can_bash || has_flag( json_flag_CANNOT_ATTACK ) ) {
                     continue;
                 }
@@ -1409,47 +1422,58 @@ void monster::footsteps( const tripoint_bub_ms &p )
     if( is_hallucination() ) {
         return;
     }
-
+    // This just tracks if we've already run this function this turn.
     if( made_footstep ) {
         return;
     }
     made_footstep = true;
-    int volume = 6; // same as player's footsteps
-    if( flies() || has_flag( mon_flag_SILENTMOVES ) ) {
-        volume = 0;    // Flying monsters don't have footsteps!
+    int volume = 6; // Same as base sound for a character's footsteps.
+
+    if( has_flag( mon_flag_SILENTMOVES ) || has_effect( effect_incorporeal ) ) {
+        return;
     }
     if( digging() ) {
         volume = 10;
     }
-    switch( type->size ) {
-        case creature_size::tiny:
-            volume = 0; // No sound for the tinies
-            break;
-        case creature_size::small:
-            volume /= 3;
-            break;
-        case creature_size::medium:
-            break;
-        case creature_size::large:
-            volume *= 1.5;
-            break;
-        case creature_size::huge:
-            volume *= 2;
-            break;
-        default:
-            break;
+    bool flying = flies();
+    if( flying ) { // Flight gets really loud for big boys.
+        volume = static_cast<int>( type->size ) * 2;
+    } else {
+        switch( type->size ) {
+            case creature_size::tiny:
+                volume = 0; // No sound for the tinies
+                break;
+            case creature_size::small:
+                volume /= 3;
+                break;
+            case creature_size::medium:
+                break;
+            case creature_size::large:
+                volume *= 1.5;
+                break;
+            case creature_size::huge:
+                volume *= 2;
+                break;
+            default:
+                break;
+        }
     }
     if( has_flag( mon_flag_LOUDMOVES ) ) {
         volume += 6;
     } else if( has_flag( mon_flag_QUIETMOVES ) ) {
         volume -= 3;
     }
-    if( volume == 0 ) {
+
+    if( volume <= 0 ) {
         return;
     }
     int dist = trig_dist( p,
                           get_player_character().pos_bub() );
-    sounds::add_footstep( p, volume, dist, this, type->get_footsteps() );
+    if( flying ) {
+        sounds::add_footstep( p, volume, dist, this, type->get_flight_sound() );
+    } else {
+        sounds::add_footstep( p, volume, dist, this, type->get_footsteps() );
+    }
 }
 
 tripoint_bub_ms monster::scent_move()
@@ -1560,56 +1584,77 @@ int monster::calc_movecost( const tripoint_bub_ms &f, const tripoint_bub_ms &t )
     map &here = get_map();
     const int source_cost = here.move_cost( f );
     const int dest_cost = here.move_cost( t );
-    // Digging and flying monsters ignore terrain cost
+    int snow_penalty = 0;
+    // Digging and flying monsters ignore terrain cost.
     if( flies() || ( digging() && here.has_flag( ter_furn_flag::TFLAG_DIGGABLE, t ) ) ) {
         movecost = 100;
-        // Swimming monsters move super fast in water
+        // Swimming monsters move very fast in water, like fish and sharks.
     } else if( swims() ) {
         if( here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, f ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) && is_underwater() ) ) {
             movecost += 25;
         } else {
             movecost += 50 * here.move_cost( f );
+            snow_penalty += 1;
         }
         if( here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, t ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, t ) &&
+              ( is_underwater() || here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, f ) ) ) ) {
             movecost += 25;
         } else {
             movecost += 50 * here.move_cost( t );
+            snow_penalty += 1;
         }
     } else if( can_submerge() ) {
-        // No-breathe monsters have to walk underwater slowly
+        // No-breathe monsters that can't swim have to walk underwater slowly.
         if( here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, f ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) && is_underwater() ) ) {
             movecost += 250;
         } else {
             movecost += 50 * here.move_cost( f );
+            snow_penalty += 1;
         }
         if( here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, t ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            ( here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, t ) &&
+              ( is_underwater() || here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, f ) ) ) ) {
             movecost += 250;
         } else {
             movecost += 50 * here.move_cost( t );
+            snow_penalty += 1;
         }
         movecost /= 2;
     } else if( climbs() ) {
         if( here.has_flag( ter_furn_flag::TFLAG_CLIMBABLE, f ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            here.has_flag( ter_furn_flag::TFLAG_LADDER, f ) ) {
             movecost += 150;
         } else {
             movecost += 50 * here.move_cost( f );
+            snow_penalty += 1;
         }
         if( here.has_flag( ter_furn_flag::TFLAG_CLIMBABLE, t ) ||
-            here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, f ) ) {
+            here.has_flag( ter_furn_flag::TFLAG_LADDER, t ) ) {
             movecost += 150;
         } else {
             movecost += 50 * here.move_cost( t );
+            snow_penalty += 1;
         }
         movecost /= 2;
     } else {
         movecost = ( ( 50 * source_cost ) + ( 50 * dest_cost ) ) / 2.0;
     }
-
+    if( snow_penalty > 0 ) {
+        // Snow depth movement penalty (outdoor, unroofed tiles only)
+        if( here.is_outside( pos_bub() ) && !here.is_roofed( pos_bub() ) ) {
+            const double snow_mm = get_weather().get_snow_depth_mm( pos_abs_omt() );
+            if( snow_mm >= 100 ) {
+                int penalty = snow_mm >= 500 ? 100 : ( snow_mm >= 250 ? 50 : 20 );
+                if( snow_penalty == 1 ) {
+                    penalty /= 2;
+                }
+                movecost += penalty;
+            }
+        }
+    }
     return movecost;
 }
 
@@ -1871,7 +1916,7 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
     map &here = get_map();
     const tripoint_bub_ms pos = pos_bub( here );
 
-    const bool on_ground = !digging() && !flies();
+    const bool not_flying_or_digging = !digging() && !flies();
 
     const bool z_move = p.z() != pos.z();
     const bool going_up = p.z() > pos.z();
@@ -1881,11 +1926,13 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
     // This is stair teleportation hackery.
     // TODO: Remove this in favor of stair alignment
     if( going_up ) {
-        if( here.has_flag( ter_furn_flag::TFLAG_GOES_UP, pos ) ) {
+        if( here.has_flag( ter_furn_flag::TFLAG_GOES_UP, pos ) && ( can_climb() ||
+                !here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, pos ) ) ) {
             destination = find_closest_stair( tripoint_bub_ms( p ), ter_furn_flag::TFLAG_GOES_DOWN );
         }
     } else if( z_move ) {
-        if( here.has_flag( ter_furn_flag::TFLAG_GOES_DOWN, pos ) ) {
+        if( here.has_flag( ter_furn_flag::TFLAG_GOES_DOWN, pos ) && ( can_climb() ||
+                !here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, pos ) ) ) {
             destination = find_closest_stair( tripoint_bub_ms( p ), ter_furn_flag::TFLAG_GOES_UP );
         }
     }
@@ -1922,7 +1969,7 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
     if( critter != nullptr && !step_on_critter ) {
         return false;
     }
-    if( !can_squeeze_to( destination ) ) {
+    if( !vehicle_not_blocking( destination ) ) {
         return false;
     }
 
@@ -1948,22 +1995,27 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
         }
     }
 
-    //Check for moving into/out of water
-    bool was_water = underwater;
+    // Check for moving into/out of water. Use map-based check for current location because
+    // the "underwater" member is always out-of-sync for monsters.
+    bool was_water = is_likely_underwater( here );
     bool will_be_water =
-        on_ground && (
-            // AQUATIC monsters always "swim under" the vehicles, while other swimming monsters are forced to surface
-            has_flag( mon_flag_AQUATIC ) || ( can_submerge() && !here.veh_at( destination ) ) ||
-            // If the destination terrain has SWIM_UNDER, swimmers should remain submerged there.
-            ( swims() && here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, destination ) )
-        ) && ( here.is_divable( destination ) ||
-               here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, destination ) ||
-               // AQUATIC creatures stay submerged in any swimmable terrain (including shallow water)
-               ( has_flag( mon_flag_AQUATIC ) &&
-                 here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, destination ) ) );
-
+        not_flying_or_digging && (
+            // AQUATIC monsters always swim under vehicles, while other swimming monsters are forced to surface.
+            has_flag( mon_flag_AQUATIC ) ||
+            ( can_submerge() && !here.veh_at( destination ) ) ||
+            ( swims() && here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, destination ) &&
+              ( was_water || here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, pos ) ) )
+        ) && (
+            here.is_divable( destination ) ||
+            // If the destination terrain has SWIM_UNDER, swimmers should remain submerged when they move there.
+            ( swims() && here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, destination ) &&
+              ( was_water || here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, pos ) ) ) ||
+            // AQUATIC creatures stay submerged in any swimmable terrain (including shallow water).
+            ( has_flag( mon_flag_AQUATIC ) &&
+              here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, destination ) )
+        );
     if( get_option<bool>( "LOG_MONSTER_MOVEMENT" ) ) {
-        // Birds and other flying creatures flying over the deep water terrain
+        // Birds and other flying creatures flying over the deep water terrain.
         Character &player_character = get_player_character();
         if( was_water && flies() && sees( here, player_character ) &&
             attitude_to( player_character ) == Attitude::HOSTILE ) {
@@ -1973,7 +2025,7 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
             }
         } else if( was_water && sees( here, player_character ) && !will_be_water &&
                    attitude_to( player_character ) == Attitude::HOSTILE ) {
-            // Use more dramatic messages for swimming monsters
+            // Use more dramatic messages for swimming monsters.
             add_msg_if_player_sees( *this, m_warning,
                                     //~ Message when a monster emerges from water
                                     //~ %1$s: monster name, %2$s: leaps/emerges, %3$s: terrain name
@@ -2012,20 +2064,21 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
     }
 
     if( here.has_flag( ter_furn_flag::TFLAG_UNSTABLE, destination ) &&
-        on_ground && !here.has_vehicle_floor( destination ) ) {
+        not_flying_or_digging && !here.has_vehicle_floor( destination ) ) {
         add_effect( effect_bouldering, 1_turns, true );
     } else if( has_effect( effect_bouldering ) ) {
         remove_effect( effect_bouldering );
     }
 
-    if( here.has_flag_ter_or_furn( ter_furn_flag::TFLAG_NO_SIGHT, destination ) && on_ground ) {
+    if( here.has_flag_ter_or_furn( ter_furn_flag::TFLAG_NO_SIGHT, destination ) &&
+        not_flying_or_digging ) {
         add_effect( effect_no_sight, 1_turns, true );
     } else if( has_effect( effect_no_sight ) ) {
         remove_effect( effect_no_sight );
     }
 
     if( !here.has_vehicle_floor( destination ) ) {
-        if( type->size != creature_size::tiny && on_ground ) {
+        if( type->size != creature_size::tiny && not_flying_or_digging ) {
             const int sharp_damage = rng( 1, 10 );
             const int rough_damage = rng( 1, 2 );
             if( here.has_flag( ter_furn_flag::TFLAG_SHARP, pos ) && !one_in( 4 ) &&
@@ -2105,27 +2158,6 @@ bool monster::move_to( const tripoint_bub_ms &p, bool force, bool step_on_critte
         }
     }
 
-    // Don't leave any kind of liquids on water tiles
-    if( !here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, destination ) ) {
-        if( has_flag( mon_flag_DRIPS_NAPALM ) ) {
-            if( one_in( 10 ) ) {
-                // if it has more napalm, drop some and reduce ammo in tank
-                if( ammo[itype_pressurized_tank] > 0 ) {
-                    here.add_item_or_charges( pos_bub(), item( itype_napalm, calendar::turn, 50 ) );
-                    ammo[itype_pressurized_tank] -= 50;
-                } else {
-                    // TODO: remove mon_flag_DRIPS_NAPALM flag since no more napalm in tank
-                    // Not possible for now since flag check is done on type, not individual monster
-                }
-            }
-        }
-        if( has_flag( mon_flag_DRIPS_GASOLINE ) ) {
-            if( one_in( 5 ) ) {
-                // TODO: use same idea that limits napalm dripping
-                here.add_item_or_charges( pos_bub(), item( itype_gasoline ) );
-            }
-        }
-    }
     return true;
 }
 
@@ -2294,9 +2326,25 @@ void monster::stumble()
             }
         }
     }
+
+    // The same-z radius scan above cannot produce straight-up or straight-down
+    // candidates; add them here, gated by stair / climb / swim / fly rules.
     const tripoint_bub_ms below( pos_bub() + tripoint::below );
     if( here.valid_move( pos_bub(), below, false, true ) ) {
         valid_stumbles.push_back( below );
+    }
+    const tripoint_bub_ms above( pos_bub() + tripoint::above );
+    const bool stair_up = here.has_flag( ter_furn_flag::TFLAG_GOES_UP, pos_bub() ) &&
+                          !here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, pos_bub() );
+    const bool ladder_up = here.has_flag( ter_furn_flag::TFLAG_DIFFICULT_Z, pos_bub() ) &&
+                           can_climb() &&
+                           here.has_floor_or_support( above );
+    const bool swim_up = swims() &&
+                         here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, pos_bub() ) &&
+                         here.has_flag( ter_furn_flag::TFLAG_SWIMMABLE, above );
+    if( ( flies() || stair_up || ladder_up || swim_up ) &&
+        here.valid_move( pos_bub(), above, false, flies() ) ) {
+        valid_stumbles.push_back( above );
     }
 
     creature_tracker &creatures = get_creature_tracker();
@@ -2315,6 +2363,7 @@ void monster::stumble()
             }
         }
     }
+    invalidate_tile_eye_level_cache();
 }
 
 void monster::knock_back_to( const tripoint_bub_ms &to )
@@ -2370,11 +2419,13 @@ void monster::knock_back_to( const tripoint_bub_ms &to )
     // If we're still in the function at this point, we're actually moving a tile!
     // die_if_drowning will kill the monster if necessary, but if the deep water
     // tile is on a vehicle, we should check for swimmers out of water
-    if( !die_if_drowning( to ) && has_flag( mon_flag_AQUATIC ) ) {
+    if( !here.has_flag_ter( ter_furn_flag::TFLAG_DEEP_WATER, pos_bub() ) &&
+        !here.has_flag_ter( ter_furn_flag::TFLAG_SHALLOW_WATER, pos_bub() ) &&
+        !here.has_flag( ter_furn_flag::TFLAG_LIQUID, pos_bub() )
+        && has_flag( mon_flag_AQUATIC ) && !has_flag( mon_flag_NO_BREATHE ) && one_in( 20 ) ) {
+        add_msg_if_player_sees( *this, _( "The %s flops around in a vain attempt to return to the water." ),
+                                name() );
         die( &here, nullptr );
-        if( u_see ) {
-            add_msg( _( "The %s flops around and dies!" ), name() );
-        }
     }
 
     // It's some kind of wall.
@@ -2391,81 +2442,6 @@ void monster::knock_back_to( const tripoint_bub_ms &to )
         setpos( here, to );
     }
     check_dead_state( &here );
-}
-
-/* will_reach() is used for determining whether we'll get to stairs (and
- * potentially other locations of interest).  It is generally permissive.
- * TODO: Pathfinding;
-         Make sure that non-smashing monsters won't "teleport" through windows
-         Injure monsters if they're gonna be walking through pits or whatever
- */
-bool monster::will_reach( const point_bub_ms &p )
-{
-    const map &here = get_map();
-    const tripoint_bub_ms t = { p, posz() };
-
-    monster_attitude att = attitude( &get_player_character() );
-    if( att != MATT_FOLLOW && att != MATT_ATTACK && att != MATT_FRIEND ) {
-        return false;
-    }
-
-    if( digs() || has_flag( mon_flag_AQUATIC ) ) {
-        return false;
-    }
-
-    if( ( has_flag( mon_flag_IMMOBILE ) ||
-          has_flag( json_flag_CANNOT_MOVE ) ) &&
-        ( pos_bub().xy() != p ) ) {
-        return false;
-    }
-
-    const std::vector<tripoint_bub_ms> path = here.route( *this, pathfinding_target::point( t ) );
-    if( path.empty() ) {
-        return false;
-    }
-
-    if( has_flag( mon_flag_SMELLS ) && get_scent().get( pos_bub() ) > 0 &&
-        get_scent().get( tripoint_bub_ms( { p, posz() } ) ) > get_scent().get( pos_bub() ) ) {
-        return true;
-    }
-
-    if( can_hear() && wandf > 0 && rl_dist( here.get_bub( wander_pos ).xy(), p ) <= 2 &&
-        rl_dist( pos_abs().xy(), wander_pos.xy() ) <= wandf ) {
-        return true;
-    }
-
-    if( can_see() && sees( here, tripoint_bub_ms( p, posz() ) ) ) {
-        return true;
-    }
-
-    return false;
-}
-
-int monster::turns_to_reach( const point_bub_ms &p )
-{
-    map &here = get_map();
-    const tripoint_bub_ms t = { p, posz() };
-    // HACK: This function is a(n old) temporary hack that should soon be removed
-    const std::vector<tripoint_bub_ms> path = here.route( *this, pathfinding_target::point( t ) );
-    if( path.empty() ) {
-        return 999;
-    }
-
-    double turns = 0.;
-    for( size_t i = 0; i < path.size(); i++ ) {
-        const tripoint_bub_ms &next = path[i];
-        if( here.impassable( next ) ) {
-            // No bashing through, it looks stupid when you go back and find
-            // the doors intact.
-            return 999;
-        } else if( i == 0 ) {
-            turns += static_cast<double>( calc_movecost( pos_bub(), next ) ) / get_speed();
-        } else {
-            turns += static_cast<double>( calc_movecost( path[i - 1], next ) ) / get_speed();
-        }
-    }
-
-    return static_cast<int>( turns + .9 ); // Halve (to get turns) and round up
 }
 
 void monster::shove_vehicle( const tripoint_bub_ms &remote_destination,
@@ -2528,6 +2504,51 @@ void monster::shove_vehicle( const tripoint_bub_ms &remote_destination,
                 int shove_moves = shove_veh_mass_moves_factor * veh_mass / 10_kilogram;
                 shove_moves = std::max( shove_moves, shove_moves_minimal );
                 this->mod_moves( -shove_moves );
+
+                // Knock over/disconnect if it is flagged for that.
+                for( const vpart_reference &vp : veh.get_all_parts() ) {
+                    const vpart_info &vpi = vp.info();
+                    // Quick failsafe in case it somehow broke or got removed already.
+                    if( vp.part().removed ) {
+                        continue;
+                    }
+                    if( vpi.has_flag( "UNMOUNT_ON_DAMAGE" ) ) {
+                        const int vp_idx = veh.index_of_part( &vp.part(), /* include_removed = */ true );
+                        monster *mon = veh.get_monster( here, vp_idx );
+                        if( mon != nullptr && mon->has_effect( effect_harnessed ) ) {
+                            mon->remove_effect( effect_harnessed );
+                        }
+                        if( vpi.has_flag( "TOW_CABLE" ) ) {
+                            veh.invalidate_towing( here, true );
+                        } else {
+                            item part_as_item = veh.part_to_item( here, vp.part() );
+                            if( vpi.has_flag( "INITIAL_PART" ) ) {
+                                add_msg_if_player_sees( nearby_destination, m_bad, _( "The %s falls over!" ), veh.name );
+                            } else {
+                                add_msg_if_player_sees( nearby_destination, m_bad, _( "The %1$s's %2$s is disconnected!" ),
+                                                        veh.name,
+                                                        vp.part().name() );
+                            }
+                            if( vpi.has_flag( VPFLAG_POWER_TRANSFER ) ) {
+                                veh.remove_remote_part( here, vp.part() );
+                                part_as_item.set_damage( 0 );
+                            } else {
+                                part_as_item.set_damage( vpi.base_item.obj().damage_max() - 1 );
+                            }
+                            if( !veh.magic ) {
+                                here.add_item_or_charges( nearby_destination, part_as_item );
+                            }
+                            if( !g || &reality_bubble() !=
+                                &here ) { // TODO: Refine logic to determine if this is mapgen or gameplay.
+                                MapgenRemovePartHandler handler( here );
+                                veh.remove_part( vp.part(), handler );
+                            } else {
+                                veh.remove_part( vp.part() );
+                            }
+                        }
+                    }
+                }
+
                 const tripoint_rel_ms destination_delta( remote_destination - nearby_destination );
                 const tripoint_rel_ms shove_destination( clamp( destination_delta.x(), -1, 1 ),
                         clamp( destination_delta.y(), -1, 1 ),

@@ -48,7 +48,13 @@
       },
       { "id": "drag_followup" },
       { "id": "scratch_grab_required" },
-      { "id": "bite_grab_required" }
+      { "id": "bite_grab_required" },
+      {
+        "type": "spell",
+        "spell_data": { "id": "spell_bull_charge", "min_level": 1 },
+        "monster_message": "The %s charges!",
+        "cooldown": 55
+      }
     ],
     "anger_triggers": [ "HURT", "PLAYER_CLOSE" ],
     "fear_triggers": [ "SOUND" ],
@@ -66,7 +72,8 @@
       "PUSH_MON",
       "STUMBLES",
       "KEENNOSE",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ],
     "armor": { "bash": 8, "cut": 12, "electric": 1 }
   },
@@ -98,8 +105,17 @@
     "dissect": "dissect_mouse_sample_large",
     "families": [ "prof_intro_biology", "prof_physiology" ],
     "anger_triggers": [ "PLAYER_CLOSE", "HURT" ],
+    "special_attacks": [
+      { "id": "low_charge", "cooldown": 12 },
+      {
+        "type": "bite",
+        "attack_upper": false,
+        "cooldown": 5,
+        "damage_max_instance": [ { "damage_type": "stab", "amount": 12, "armor_penetration": 6 } ]
+      }
+    ],
     "fear_triggers": [ "SOUND" ],
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "SWIMS", "WARM" ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "SWIMS", "WARM", "BELLYUP" ],
     "armor": { "cut": 4 }
   },
   {
@@ -131,7 +147,16 @@
     "families": [ "prof_intro_biology", "prof_physiology" ],
     "anger_triggers": [ "PLAYER_CLOSE", "HURT" ],
     "fear_triggers": [ "SOUND" ],
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "SWIMS", "WARM" ]
+    "special_attacks": [
+      { "id": "low_charge", "cooldown": 12 },
+      {
+        "type": "bite",
+        "attack_upper": false,
+        "cooldown": 5,
+        "damage_max_instance": [ { "damage_type": "stab", "amount": 8, "armor_penetration": 2 } ]
+      }
+    ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "SWIMS", "WARM", "BELLYUP" ]
   },
   {
     "id": "mon_coyote_mutant_shark",
@@ -149,7 +174,7 @@
     "material": [ "flesh" ],
     "symbol": "d",
     "color": "brown",
-    "looks_like": "mon_coyote_wolf",
+    "looks_like": "mon_coyote",
     "aggression": 30,
     "morale": 12,
     "melee_skill": 6,
@@ -174,7 +199,7 @@
     "path_settings": { "max_dist": 7 },
     "anger_triggers": [ "FRIEND_ATTACKED", "PLAYER_WEAK" ],
     "fear_triggers": [ "SOUND" ],
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "KEENNOSE", "GROUP_MORALE", "EATS" ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "KEENNOSE", "GROUP_MORALE", "EATS", "BELLYUP" ],
     "armor": { "bash": 1 }
   },
   {
@@ -220,7 +245,8 @@
       "KEENNOSE",
       "BADVENOM",
       "GROUP_MORALE",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ],
     "armor": { "bash": 1 }
   },
@@ -259,6 +285,7 @@
     "grab_strength": 55,
     "special_attacks": [
       [ "EAT_FOOD", 60 ],
+      [ "EAT_CARRION", 60 ],
       {
         "type": "bite",
         "cooldown": 5,
@@ -278,7 +305,7 @@
       { "id": "bite_grab_required" }
     ],
     "anger_triggers": [ "STALK", "FRIEND_ATTACKED", "FRIEND_DIED", "PLAYER_WEAK", "PLAYER_CLOSE" ],
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "KEENNOSE", "EATS" ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "KEENNOSE", "EATS", "BELLYUP" ],
     "armor": { "bash": 8, "cut": 10, "electric": 1 }
   },
   {
@@ -316,7 +343,7 @@
     "biosignature": { "biosig_item": "feces_manure", "biosig_timer": 12 },
     "baby_flags": [ "SPRING", "SUMMER" ],
     "special_attacks": [ [ "EAT_CROP", 60 ], [ "GRAZE", 60 ] ],
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "EATS" ]
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "EATS", "BELLYUP" ]
   },
   {
     "id": "mon_deer_mutant_spider_fawn",
@@ -349,7 +376,7 @@
     "path_settings": { "max_dist": 10 },
     "fear_triggers": [ "SOUND", "PLAYER_CLOSE" ],
     "upgrades": { "age_grow": 330, "into": "mon_deer_mutant_spider" },
-    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "STUMBLES" ]
+    "flags": [ "SEES", "HEARS", "SMELLS", "ANIMAL", "PATH_AVOID_DANGER", "WARM", "STUMBLES", "BELLYUP" ]
   },
   {
     "id": "mon_dog_mutant_mongrel",
@@ -408,7 +435,8 @@
       "SMELLS",
       "SWARMS",
       "WARM",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ]
   },
   {
@@ -469,7 +497,8 @@
       "SWARMS",
       "WARM",
       "CLIMBS",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ],
     "armor": { "bash": 1, "cut": 1 }
   },
@@ -538,6 +567,7 @@
     "biosignature": { "biosig_item": "feces_dog", "biosig_timer": 6 },
     "anger_triggers": [ "HURT", "FRIEND_ATTACKED", "FRIEND_DIED" ],
     "special_attacks": [
+      { "id": "low_charge", "cooldown": 16 },
       {
         "type": "bite",
         "attack_upper": false,
@@ -565,7 +595,8 @@
       "SMELLS",
       "SWARMS",
       "WARM",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ]
   },
   {
@@ -659,7 +690,8 @@
       "SWARMS",
       "CAN_DIG",
       "WARM",
-      "EATS"
+      "EATS",
+      "BELLYUP"
     ],
     "armor": { "bash": 1, "cut": 1 }
   },
@@ -709,5 +741,68 @@
     "harvest": "raccoon_with_skull_mutant",
     "families": [ "prof_intro_biology", "prof_physiology" ],
     "extend": { "flags": [ "NO_BREED", "CAN_OPEN_DOORS" ] }
+  },
+  {
+    "id": "mon_horse_destrier",
+    "type": "MONSTER",
+    "name": { "str": "destrier" },
+    "description": "From a distance, this freak of nature could almost be taken for a draft horse but for its tufted ears and the set of its eyes, mounted at the front of its face beneath the cunning brow of a predator.  Its hooves are splayed out to form three-toed claws that grip rock and soil alike as it prowls the fields, and from time to time an overlong forked tongue slips out of its fanged maw to taste the air.",
+    "default_faction": "herbivore_domestic",
+    "bodytype": "horse",
+    "categories": [ "WILDLIFE" ],
+    "species": [ "MAMMAL" ],
+    "volume": "480000 ml",
+    "weight": "530 kg",
+    "hp": 360,
+    "speed": 240,
+    "attack_cost": 200,
+    "material": [ "flesh" ],
+    "symbol": "H",
+    "color": "brown",
+    "morale": 60,
+    "aggression": 5,
+    "aggro_character": false,
+    "melee_skill": 7,
+    "melee_dice": 3,
+    "melee_dice_sides": 6,
+    "melee_damage": [ { "damage_type": "cut", "amount": 8 } ],
+    "dodge": 4,
+    "stomach_size": 11000,
+    "path_settings": { "max_dist": 10, "avoid_dangerous_fields": true, "avoid_sharp": true },
+    "anger_triggers": [ "FRIEND_ATTACKED", "HURT", "PLAYER_WEAK", "PLAYER_CLOSE" ],
+    "harvest": "mutant_mammal_leather",
+    "dissect": "dissect_cattle_sample_large",
+    "families": [ "prof_intro_biology", "prof_physiology" ],
+    "baby_flags": [ "SPRING", "SUMMER", "AUTUMN" ],
+    "biosignature": { "biosig_item": "feces_manure", "biosig_timer": 2 },
+    "vision_night": 4,
+    "special_attacks": [
+      { "id": "smash", "throw_strength": 58, "cooldown": 13 },
+      { "id": "scratch", "cooldown": 10 },
+      { "type": "bite", "cooldown": 30, "infection_chance": 50 },
+      [ "EAT_CARRION", 60 ]
+    ],
+    "zombify_into": "mon_zombie_horse",
+    "petfood": {
+      "food": [ "PREDATOR_FUN" ],
+      "feed": "The %s devours the meat.  It growls low at you, but no longer seems quite as unfriendly."
+    },
+    "mountable_weight_ratio": 0.35,
+    "flags": [
+      "SEES",
+      "HEARS",
+      "SMELLS",
+      "ANIMAL",
+      "PET_WONT_FOLLOW",
+      "PET_MOUNTABLE",
+      "PATH_AVOID_DANGER",
+      "WARM",
+      "EATS",
+      "CORNERED_FIGHTER",
+      "COMBAT_MOUNT",
+      "NO_BREED",
+      "BELLYUP"
+    ],
+    "armor": { "bash": 5, "cut": 6, "bullet": 8, "electric": 1 }
   }
 ]

@@ -49,12 +49,11 @@
     "use_action": {
       "type": "manualnoise",
       "moves": 100,
-      "noise": 110,
+      "noise": 120,
       "noise_message": "HOOOOONK!",
       "noise_id": "misc",
       "noise_variant": "airhorn",
-      "use_message": "You honk your airhorn.",
-      "//": "Use of %s not currently supported."
+      "use_message": "You honk your airhorn."
     },
     "melee_damage": { "bash": 3 }
   },
@@ -278,7 +277,7 @@
     "color": "green",
     "qualities": [ [ "HOSE", 1 ] ],
     "to_hit": { "grip": "solid", "length": "long", "surface": "any", "balance": "uneven" },
-    "flags": [ "ALWAYS_TWOHAND" ],
+    "flags": [ "ALWAYS_TWOHAND", "ALLOWS_BODY_BLOCKING" ],
     "weapon_category": [ "WHIPS" ],
     "melee_damage": { "bash": 4 }
   },
@@ -295,13 +294,13 @@
     "symbol": "?",
     "material": [ "steel" ],
     "techniques": [ "DEF_DISARM", "SWEEP" ],
-    "flags": [ "DURABLE_MELEE", "BELT_CLIP", "ALLOWS_BODY_BLOCK" ],
+    "flags": [ "DURABLE_MELEE", "BELT_CLIP" ],
     "volume": "750 ml",
     "to_hit": { "grip": "solid", "length": "hand", "surface": "point", "balance": "neutral" },
     "price": "20 USD",
     "price_postapoc": "2 USD 50 cent",
     "qualities": [ [ "HAMMER", 1 ], [ "COOK", 1 ] ],
-    "weapon_category": [ "HOOKING_WEAPONS" ],
+    "weapon_category": [ "HOOKING_WEAPONRY" ],
     "melee_damage": { "bash": 3, "stab": 6 }
   },
   {
@@ -706,7 +705,7 @@
     "id": "stepladder",
     "type": "ITEM",
     "subtypes": [ "TOOL" ],
-    "name": { "str": "wooden stepladder (folded)" },
+    "name": { "str": "wooden ladder (folded)" },
     "description": "A single-story wooden A-frame ladder, collapsed for transport or storage.  Activate it to set it up.",
     "weight": "20000 g",
     "volume": "50 L",
@@ -784,6 +783,35 @@
     "flags": [ "NO_UNLOAD", "NO_RELOAD", "BELT_CLIP" ],
     "use_action": [ "MACE" ],
     "tool_ammo": "teargas_spray"
+  },
+  {
+    "id": "bug_spray_can",
+    "type": "ITEM",
+    "subtypes": [ "TOOL" ],
+    "name": { "str": "bug spray" },
+    "description": "An aerosol canister of pesticides that promises to kill ants, roaches, and spiders in seconds.",
+    "weight": "650 g",
+    "volume": "750 ml",
+    "longest_side": "23 cm",
+    "price": "12 USD",
+    "price_postapoc": "50 cent",
+    "to_hit": -2,
+    "material": [ "steel" ],
+    "symbol": ";",
+    "color": "red",
+    "pocket_data": [
+      {
+        "pocket_type": "MAGAZINE",
+        "airtight": true,
+        "watertight": true,
+        "rigid": true,
+        "ammo_restriction": { "bug_spray": 5 }
+      }
+    ],
+    "charges_per_use": 1,
+    "flags": [ "NO_UNLOAD", "NO_RELOAD", "BELT_CLIP" ],
+    "use_action": [ "BUGSPRAY" ],
+    "tool_ammo": "bug_spray"
   },
   {
     "id": "c4_payload",
@@ -1067,7 +1095,7 @@
     "id": "aluminum_stepladder",
     "type": "ITEM",
     "subtypes": [ "TOOL" ],
-    "name": { "str": "aluminum stepladder (folded)" },
+    "name": { "str": "aluminum ladder (folded)" },
     "description": "A single-story aluminum A-frame ladder, collapsed for transport or storage.  Activate it to set it up.",
     "looks_like": "stepladder",
     "weight": "15750 g",
@@ -1119,7 +1147,7 @@
       "practice": 2,
       "done_message": "You carefully place the teeth on the ground, ready to be walked on by something passing by."
     },
-    "flags": [ "HURT_WHEN_WIELDED", "TRADER_AVOID", "SINGLE_USE", "FRAGILE_MELEE", "ALLOWS_BODY_BLOCK" ],
+    "flags": [ "HURT_WHEN_WIELDED", "TRADER_AVOID", "SINGLE_USE", "FRAGILE_MELEE" ],
     "to_hit": { "grip": "none", "length": "hand", "surface": "line", "balance": "neutral" },
     "melee_damage": { "cut": 12 },
     "weapon_category": [ "SHIVS" ]

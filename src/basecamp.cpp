@@ -241,7 +241,8 @@ std::string basecamp::om_upgrade_description( const std::string &bldg, const map
         skills = &bld_reqs.skills;
     } else {
         reqs = &making.simple_requirements();
-        base_time = making.batch_duration( get_player_character() );
+        base_time = making.batch_duration( get_player_character(),
+                                           crafting_cost_context::for_recipe( get_player_character(), making ) );
         skills = &making.required_skills;
     }
 
@@ -976,6 +977,13 @@ basecamp_action_components::basecamp_action_components(
 
 bool basecamp_action_components::choose_components()
 {
+    // Basecamp crafting selects and consumes tools whole-recipe; the per-step
+    // tool model is not wired through this path, so step recipes are excluded
+    // here rather than risk mis-metering their tools.
+    if( making_.has_steps() ) {
+        debugmsg( "step recipe %s cannot be crafted at a basecamp yet", making_.ident().str() );
+        return false;
+    }
     const auto filter = is_crafting_component;
     avatar &player_character = get_avatar();
     const requirement_data *req;

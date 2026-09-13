@@ -117,7 +117,6 @@ static const itype_id itype_battery( "battery" );
 static const itype_id itype_generic_folded_vehicle( "generic_folded_vehicle" );
 static const itype_id itype_plut_cell( "plut_cell" );
 static const itype_id itype_plut_slurry_dense( "plut_slurry_dense" );
-static const itype_id itype_seed_buckwheat( "seed_buckwheat" );
 static const itype_id itype_wall_wiring( "wall_wiring" );
 static const itype_id itype_water( "water" );
 static const itype_id itype_water_clean( "water_clean" );
@@ -343,8 +342,6 @@ void vehicle::init_state( map &placed_on, int init_veh_fuel, int init_veh_status
     bool destroyTank = false;
     bool destroyEngine = false;
     bool destroyTires = false;
-    bool blood_covered = false;
-    bool blood_inside = false;
     bool has_no_key = false;
     bool destroyAlarm = false;
 
@@ -466,14 +463,6 @@ void vehicle::init_state( map &placed_on, int init_veh_fuel, int init_veh_status
             }
         }
 
-        if( one_in( 10 ) ) {
-            blood_covered = true;
-        }
-
-        if( one_in( 8 ) ) {
-            blood_inside = true;
-        }
-
         for( const vpart_reference &vp : get_parts_including_carried( "FRIDGE" ) ) {
             vp.part().enabled = true;
         }
@@ -487,7 +476,6 @@ void vehicle::init_state( map &placed_on, int init_veh_fuel, int init_veh_status
         }
     }
 
-    std::optional<point_rel_ms> blood_inside_pos;
     for( const vpart_reference &vp : get_all_parts() ) {
         const size_t p = vp.part_index();
         vehicle_part &pt = vp.part();
@@ -562,35 +550,6 @@ void vehicle::init_state( map &placed_on, int init_veh_fuel, int init_veh_status
             if( vp.has_feature( "SOLAR_PANEL" ) && one_in( 4 ) && init_veh_status != 2 ) {
                 set_hp( pt, 0, false );
             }
-
-            /* Bloodsplatter the front-end parts. Assume anything with x > 0 is
-            * the "front" of the vehicle (since the driver's seat is at (0, 0).
-            * We'll be generous with the blood, since some may disappear before
-            * the player gets a chance to see the vehicle. */
-            if( blood_covered && vp.mount_pos().x() > 0 ) {
-                if( one_in( 3 ) ) {
-                    //Loads of blood. (200 = completely red vehicle part)
-                    pt.blood = rng( 200, 600 );
-                } else {
-                    //Some blood
-                    pt.blood = rng( 50, 200 );
-                }
-            }
-
-            if( blood_inside ) {
-                // blood is splattered around (blood_inside_pos),
-                // coordinates relative to mount point; the center is always a seat
-                if( blood_inside_pos ) {
-                    const int distSq = std::pow( blood_inside_pos->x() - vp.mount_pos().x(), 2 ) +
-                                       std::pow( blood_inside_pos->y() - vp.mount_pos().y(), 2 );
-                    if( distSq <= 1 ) {
-                        pt.blood = rng( 200, 400 ) - distSq * 100;
-                    }
-                } else if( vp.has_feature( "SEAT" ) ) {
-                    // Set the center of the bloody mess inside
-                    blood_inside_pos.emplace( vp.mount_pos() );
-                }
-            }
         }
         //sets the vehicle to locked, if there is no key and an alarm part exists
         if( vp.has_feature( "SECURITY" ) && has_no_key && pt.is_available() ) {
@@ -614,7 +573,7 @@ void vehicle::init_state( map &placed_on, int init_veh_fuel, int init_veh_status
 
     // Additional 50% chance for heavy damage to disabled vehicles
     if( veh_status == 1 && one_in( 2 ) ) {
-        smash( placed_on, 0.5 );
+        damage_all_parts( 0.5 );
     }
 
     for( const int p : engines ) {
@@ -906,11 +865,11 @@ units::angle vehicle::get_angle_from_targ( const tripoint_abs_ms &targ ) const
  * (i.e., any spot with multiple frames) will be completely destroyed, as that
  * was the collision point.
  */
-void vehicle::smash( map &m, float hp_percent_loss_min, float hp_percent_loss_max,
-                     float percent_of_parts_to_affect, point_rel_ms damage_origin, float damage_size )
+void vehicle::damage_all_parts( float hp_percent_loss_min, float hp_percent_loss_max,
+                                float percent_of_parts_to_affect, point_rel_ms damage_origin,
+                                float damage_size )
 {
     for( vehicle_part &part : parts ) {
-        //Skip any parts already mashed up or removed.
         if( part.is_broken() || part.removed ) {
             continue;
         }
@@ -925,7 +884,6 @@ void vehicle::smash( map &m, float hp_percent_loss_min, float hp_percent_loss_ma
         }
 
         if( structures_found > 1 ) {
-            //Destroy everything in the square
             for( int idx : parts_in_square ) {
                 vehicle_part &vp = parts[idx];
                 vp.ammo_unset();
@@ -940,19 +898,29 @@ void vehicle::smash( map &m, float hp_percent_loss_min, float hp_percent_loss_ma
             double dist = damage_size == 0.0f ? 1.0f :
                           clamp( 1.0f - trig_dist( damage_origin, part.precalc[0].xy() ) /
                                  damage_size, 0.0f, 1.0f );
-            //Everywhere else, drop by 10-120% of max HP (anything over 100 = broken)
+            // Drop by 10-120% of max HP (anything over 100 = broken)
             const float roll = rng_float( hp_percent_loss_min * dist, hp_percent_loss_max * dist );
             if( mod_hp( part, -part.info().durability * roll ) ) {
                 part.ammo_unset();
             }
         }
     }
+}
+
+void vehicle::smash( map &m, float hp_percent_loss_min, float hp_percent_loss_max,
+                     float percent_of_parts_to_affect, point_rel_ms damage_origin, float damage_size )
+{
+    damage_all_parts( hp_percent_loss_min, hp_percent_loss_max,
+                      percent_of_parts_to_affect, damage_origin, damage_size );
 
     std::unique_ptr<RemovePartHandler> handler_ptr;
-    // clear out any duplicated locations
     for( int p = static_cast<int>( parts.size() ) - 1; p >= 0; p-- ) {
         vehicle_part &part = parts[p];
         if( part.removed ) {
+            continue;
+        }
+        // OOB parts belong to a neighboring map; leave them alone
+        if( !m.inbounds( bub_part_pos( m, part ) ) ) {
             continue;
         }
         std::vector<int> parts_here = parts_at_relative( part.mount, true );
@@ -968,12 +936,7 @@ void vehicle::smash( map &m, float hp_percent_loss_min, float hp_percent_loss_ma
 
             if( vpi1.id == vpi2.id ||
                 ( !vpi1.location.empty() && vpi1.location == vpi2.location ) ) {
-                // Deferred creation of the handler to here so it is only created when actually needed.
                 if( !handler_ptr ) {
-                    // This is a heuristic: we just assume the default handler is good enough when called
-                    // on the main game map. And assume that we run from some mapgen code if called on
-                    // another instance.
-                    // TODO: Make this capable of distinguishing between mapgen and non bubble active maps.
                     if( g && &reality_bubble() == &m ) {
                         handler_ptr = std::make_unique<DefaultRemovePartHandler>();
                     } else {
@@ -4444,25 +4407,6 @@ int vehicle::safe_velocity( map &here, const bool fueled ) const
     }
 }
 
-bool vehicle::do_environmental_effects( map &here ) const
-{
-    bool needed = false;
-    // check for smoking parts
-    for( const vpart_reference &vp : get_all_parts() ) {
-        /* Only lower blood level if:
-         * - The part is outside.
-         * - The weather is any effect that would cause the player to be wet. */
-        if( vp.part().blood > 0 && here.is_outside( vp.pos_bub( here ) ) ) {
-            needed = true;
-            if( get_weather().weather_id->rains &&
-                get_weather().weather_id->precip != precip_class::very_light ) {
-                vp.part().blood--;
-            }
-        }
-    }
-    return needed;
-}
-
 void vehicle::spew_field( map &here, double joules, int part, field_type_id type,
                           int intensity ) const
 {
@@ -5162,7 +5106,7 @@ bool vehicle::handle_potential_theft( Character const &you, bool check_only, boo
         Character const *const elem = cr.as_character();
         return elem != nullptr && you.getID() != elem->getID() && is_owned_by( *elem ) &&
                rl_dist( elem->pos_bub( here ), you.pos_bub( here ) ) < MAX_VIEW_DISTANCE &&
-               elem->sees( here, you.pos_bub( here ) );
+               elem->sees( here, you );
     } );
     if( !has_owner() || ( witnesses.empty() && ( has_old_owner() || you.is_npc() ) ) ) {
         if( !has_owner() ||
@@ -6224,25 +6168,6 @@ void vehicle::idle( map &here, bool on_map )
         engine_on = false;
     }
 
-    // FIXME/HACK: Always checks buckwheat seeds!
-    // Returned string intentionally discarded!
-    // TODO: move it to planter function that tries to plant, and maybe cache it there
-    // (warm_enough_to_plant() is very expensive)
-    if( !planters.empty() && calendar::once_every( 10_minutes ) ) {
-        ret_val<void>can_plant = warm_enough_to_plant( player_character.pos_bub(), itype_seed_buckwheat );
-        if( !can_plant.success() ) {
-            for( int i : planters ) {
-                vehicle_part &vp = parts[ i ];
-                if( vp.enabled ) {
-                    add_msg_if_player_sees( pos_bub( here ),
-                                            _( "The %s's planter turns off due to unsuitable planting conditions." ),
-                                            name );
-                    vp.enabled = false;
-                }
-            }
-        }
-    }
-
     linked_item_epower_this_turn = 0_W;
     recharge_epower_this_turn = 0_W;
     smart_controller_handle_turn( here );
@@ -6667,10 +6592,6 @@ void vehicle::gain_moves( map &here )
         get_connected_vehicles( here, vehs );
     }
 
-    if( check_environmental_effects ) {
-        check_environmental_effects = do_environmental_effects( here );
-    }
-
     // turrets which are enabled will try to reload and then automatically fire
     // Turrets which are disabled but have targets set are a special case
     for( vehicle_part *e : turrets() ) {
@@ -6961,7 +6882,6 @@ void vehicle::refresh()
 
     // NB: using the _old_ pivot point, don't recalc here, we only do that when moving!
     precalc_mounts( 0, pivot_rotation[0], pivot_anchor[0] );
-    check_environmental_effects = true;
     insides_dirty = true;
     zones_dirty = true;
     coeff_air_dirty = true;
@@ -8118,6 +8038,7 @@ time_duration vehicle::unfolding_time() const
 
 item vehicle::get_folded_item( map &here ) const
 {
+    // FIXME: This generic folded vehicle has no pockets. Should we fold into bespoke items sometimes, or...?
     item folded( itype_generic_folded_vehicle, calendar::turn );
     const std::vector<std::reference_wrapper<const vehicle_part>> &parts = real_parts();
     try {
@@ -8412,8 +8333,6 @@ void vehicle::update_time( map &here, const time_point &update_to )
     time_duration elapsed = update_to - last_update;
     last_update = update_to;
 
-    // Weather stuff, only for z-levels >= 0
-    // TODO: Have it wash cars from blood?
     if( funnels.empty() && solar_panels.empty() && wind_turbines.empty() && water_wheels.empty() ) {
         return;
     }

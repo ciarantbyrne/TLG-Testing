@@ -232,7 +232,7 @@
     "flags": [ "ECHOLOCATION_DETECTABLE" ],
     "vehicle_data": {
       "damage": 300,
-      "sound_volume": 8,
+      "sound_volume": 16,
       "sound": "SNAP!",
       "sound_type": "trap",
       "sound_variant": "bear_trap",
@@ -257,7 +257,7 @@
     "flags": [ "SONAR_DETECTABLE" ],
     "vehicle_data": {
       "damage": 300,
-      "sound_volume": 8,
+      "sound_volume": 16,
       "sound": "SNAP!",
       "sound_type": "trap",
       "sound_variant": "bear_trap",
@@ -343,7 +343,7 @@
     "vehicle_data": {
       "chance": 30,
       "damage": 300,
-      "sound_volume": 1,
+      "sound_volume": 10,
       "sound": "Clank!",
       "sound_type": "fire_gun",
       "sound_variant": "crossbow",
@@ -394,7 +394,7 @@
     "vehicle_data": {
       "chance": 70,
       "damage": 300,
-      "sound_volume": 60,
+      "sound_volume": 160,
       "sound": "Bang!",
       "sound_type": "fire_gun",
       "sound_variant": "shotgun_d",
@@ -420,7 +420,7 @@
     "vehicle_data": {
       "chance": 70,
       "damage": 300,
-      "sound_volume": 60,
+      "sound_volume": 160,
       "sound": "Bang!",
       "sound_type": "fire_gun",
       "sound_variant": "shotgun_s",
@@ -447,7 +447,7 @@
       "do_explosion": true,
       "damage": 1000,
       "shrapnel": 8,
-      "sound_volume": 10,
+      "sound_volume": 90,
       "sound": "Boom!",
       "sound_type": "explosion",
       "sound_variant": "default"
@@ -472,7 +472,7 @@
       "do_explosion": true,
       "damage": 1000,
       "shrapnel": 8,
-      "sound_volume": 10,
+      "sound_volume": 90,
       "sound": "Boom!",
       "sound_type": "explosion",
       "sound_variant": "default"
@@ -544,7 +544,7 @@
     "memorial_male": { "ctxt": "memorial_male", "str": "Fell in a pit." },
     "memorial_female": { "ctxt": "memorial_female", "str": "Fell in a pit." },
     "flags": [ "ECHOLOCATION_DETECTABLE", "PIT", "SONAR_DETECTABLE" ],
-    "symbol": "0",
+    "symbol": " ",
     "visibility": -1,
     "avoidance": 99,
     "difficulty": 99,
@@ -564,7 +564,8 @@
     "avoidance": 12,
     "difficulty": 99,
     "action": "thin_ice",
-    "trigger_message_u": "The ice cracks beneath you!"
+    "trigger_message_u": "The ice cracks beneath you!",
+    "vehicle_data": { "chance": 80, "damage": 30, "remove_trap": true }
   },
   {
     "type": "trap",
@@ -574,7 +575,7 @@
     "memorial_male": { "ctxt": "memorial_male", "str": "Fell into a spiked pit." },
     "memorial_female": { "ctxt": "memorial_female", "str": "Fell into a spiked pit." },
     "flags": [ "ECHOLOCATION_DETECTABLE", "PIT", "SONAR_DETECTABLE" ],
-    "symbol": "0",
+    "symbol": " ",
     "visibility": -1,
     "avoidance": 99,
     "difficulty": 99,

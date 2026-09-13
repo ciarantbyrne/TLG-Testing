@@ -86,7 +86,10 @@
 #include "weather.h"
 
 static const bionic_id bio_voice( "bio_voice" );
+
+static const efftype_id effect_amphetamine_eff( "amphetamine_eff" );
 static const efftype_id effect_bouldering( "bouldering" );
+static const efftype_id effect_cocaine( "cocaine" );
 static const efftype_id effect_controlled( "controlled" );
 static const efftype_id effect_drunk( "drunk" );
 static const efftype_id effect_high( "high" );
@@ -94,12 +97,8 @@ static const efftype_id effect_infection( "infection" );
 static const efftype_id effect_mending( "mending" );
 static const efftype_id effect_npc_flee_player( "npc_flee_player" );
 static const efftype_id effect_npc_suspend( "npc_suspend" );
-static const efftype_id effect_pkill1_acetaminophen( "pkill1_acetaminophen" );
-static const efftype_id effect_pkill1_generic( "pkill1_generic" );
-static const efftype_id effect_pkill1_nsaid( "pkill1_nsaid" );
-static const efftype_id effect_pkill2( "pkill2" );
-static const efftype_id effect_pkill3( "pkill3" );
-static const efftype_id effect_pkill_l( "pkill_l" );
+static const efftype_id effect_opioid_eff( "opioid_eff" );
+static const efftype_id effect_took_analgesic( "took_analgesic" );
 static const efftype_id effect_ridden( "ridden" );
 static const efftype_id effect_riding( "riding" );
 static const efftype_id effect_sleep( "sleep" );
@@ -1588,33 +1587,41 @@ void npc::stow_item( item &it )
             add_msg_if_npc( m_info, _( "<npcname> puts away the %s." ), ret->tname() );
         }
         mod_moves( -item_handling_cost( it ) );
-    } else { // No room for weapon, so we drop it
+    } else { // No room for weapon, so we drop it.
         if( avatar_sees ) {
             add_msg_if_npc( m_info, _( "<npcname> drops the %s." ), it.tname() );
         }
-        here.add_item_or_charges( pos_bub( here ), remove_item( it ) );
+        if( !is_hallucination() ) {
+            // We're a hallucination, so get rid of the item without actually placing anything on the ground.
+            remove_item( it );
+        } else {
+            here.add_item_or_charges( pos_bub( here ), remove_item( it ) );
+        }
     }
 }
 
 bool npc::wield( item &it )
 {
-    // dont unwield if you already wield the item
     if( is_wielding( it ) ) {
         return true;
     }
-    // instead of unwield(), call stow_item, allowing to wear it and check it is not inside wielded itm
-    if( has_wield_conflicts( it ) && !get_wielded_item()->has_item( it ) ) {
-        stow_item( *get_wielded_item() );
+    item *const held_item = get_wielded_item().get_item();
+    const bool stow =
+        has_wield_conflicts( it ) && held_item && held_item->has_item( it );
+    if( stow && held_item ) {
+        stow_item( *held_item );
     }
     if( !Character::wield( it ) ) {
         return false;
     }
-    if( get_wielded_item() ) {
-        // add_msg_if_player_sees does no internal npc name replacement
-        add_msg_if_player_sees( *this, m_info, replace_with_npc_name( _( "<npcname> wields a %s." ) ),
-                                get_wielded_item()->tname() );
+    item *const new_item = get_wielded_item().get_item();
+    if( new_item ) {
+        add_msg_if_player_sees(
+            *this, m_info,
+            replace_with_npc_name( _( "<npcname> wields a %s." ) ),
+            new_item->tname()
+        );
     }
-
 
     invalidate_range_cache();
     return true;
@@ -1636,9 +1643,9 @@ bool npc::wield( item_location loc, bool remove_old )
 }
 
 void npc::drop( const drop_locations &what, const tripoint_bub_ms &target,
-                bool stash )
+                bool stash, bool peeking )
 {
-    Character::drop( what, target, stash );
+    Character::drop( what, target, stash, peeking );
     // TODO: Remove the hack. Its here because npcs didn't process activities, but they do now
     // so is this necessary?
     activity.do_turn( *this );
@@ -1762,12 +1769,20 @@ npc_opinion npc::get_opinion_values( const Character &you ) const
     npc_values.fear += u_ugly / 2;
     npc_values.trust -= u_ugly / 3;
 
-    if( you.get_stim() > 20 ) {
-        npc_values.fear++;
-    }
 
+    // Weed and booze make you less frightening.  Stimulants makes you scarier.
+    // TODO: Jaded characters shouldn't care.
+    if( you.has_effect( effect_high ) ) {
+        npc_values.fear -= you.get_effect_int( effect_high ) - 1;
+    }
     if( you.has_effect( effect_drunk ) ) {
-        npc_values.fear -= 2;
+        npc_values.fear -= you.get_effect_int( effect_drunk ) - 1;
+    }
+    if( you.has_effect( effect_amphetamine_eff ) ) {
+        npc_values.fear += you.get_effect_int( effect_amphetamine_eff ) - 1;
+    }
+    if( you.has_effect( effect_cocaine ) ) {
+        npc_values.fear += you.get_effect_int( effect_cocaine ) - 1;
     }
 
     // TRUST
@@ -1794,17 +1809,23 @@ npc_opinion npc::get_opinion_values( const Character &you ) const
     }
 
     // TODO: More effects
+
+    // Being visibly high makes you less trustworthy.
+    // TODO: Jaded or very innocent characters should care less.
     if( you.has_effect( effect_high ) ) {
-        npc_values.trust -= 1;
+        npc_values.trust -= you.get_effect_int( effect_high ) - 1;
     }
     if( you.has_effect( effect_drunk ) ) {
-        npc_values.trust -= 2;
+        npc_values.trust -= you.get_effect_int( effect_drunk ) - 1;
     }
-    if( you.get_stim() > 20 || you.get_stim() < -20 ) {
-        npc_values.trust -= 1;
+    if( you.has_effect( effect_opioid_eff ) ) {
+        npc_values.trust -= you.get_effect_int( effect_opioid_eff ) - 1;
     }
-    if( you.get_painkiller() > 30 ) {
-        npc_values.trust -= 1;
+    if( you.has_effect( effect_amphetamine_eff ) ) {
+        npc_values.trust -= you.get_effect_int( effect_amphetamine_eff ) - 1;
+    }
+    if( you.has_effect( effect_cocaine ) ) {
+        npc_values.trust -= you.get_effect_int( effect_cocaine ) - 1;
     }
 
     if( op_of_u.trust > 0 ) {
@@ -2074,7 +2095,7 @@ int npc::indoor_voice() const
     const int distance_to_player = rl_dist( pos_abs(), player.pos_abs() );
     if( is_following() || is_ally( player ) ) {
         wanted_volume = distance_to_player;
-    } else if( is_enemy() && sees( here, player.pos_bub( here ) ) ) {
+    } else if( is_enemy() && sees( here, player ) ) {
         // Battle cry! Bandits have no concept of indoor voice, even when not threatened.
         wanted_volume = max_volume;
     }
@@ -2522,9 +2543,7 @@ bool npc::has_painkiller()
 
 bool npc::took_painkiller() const
 {
-    return has_effect( effect_pkill1_generic )  || has_effect( effect_pkill1_acetaminophen ) ||
-           has_effect( effect_pkill1_nsaid ) || has_effect( effect_pkill2 ) ||
-           has_effect( effect_pkill3 ) || has_effect( effect_pkill_l );
+    return has_effect( effect_took_analgesic );
 }
 
 int npc::get_faction_ver() const
@@ -3144,6 +3163,7 @@ void npc::die( map *here, Creature *nkiller )
         const tripoint_range<tripoint_bub_ms> &surrounding = here.points_in_radius( pos_bub(), 1, 0 );
         Creature *grabber = nullptr;
         for( const effect &grab : get_effects_with_flag( json_flag_GRAB ) ) {
+            const efftype_id grab_id = grab.get_id();
             // Is our grabber around?
             for( const tripoint_bub_ms loc : surrounding ) {
                 Creature *someone = creatures.creature_at( loc );
@@ -3154,14 +3174,14 @@ void npc::die( map *here, Creature *nkiller )
                 }
             }
             if( grabber == nullptr ) {
-                remove_effect( grab.get_id() );
+                remove_effect( grab_id );
                 add_msg_debug( debugmode::DF_MATTACK, "Orphan grab found and removed from dead NPC" );
                 continue;
             }
             if( grabber && !grabber->is_monster() ) {
                 grabber->as_character()->release_grapple();
             }
-            remove_effect( grab.get_id() );
+            remove_effect( grab_id );
         }
     }
     release_grapple();
@@ -3546,11 +3566,11 @@ void npc::process_turn()
 
     // NPCs shouldn't be using stamina, but if they have, set it back to max
     // If the stamina is higher than the max (Languorous), set it back to max
+    // FIXME: NPCs should really be using stamina!
     if( calendar::once_every( 1_minutes ) && get_stamina() != get_stamina_max() ) {
         set_stamina( get_stamina_max() );
     }
 
-    // TODO: Probably ought to get rid of this if needs are disabled.
     if( is_player_ally() && calendar::once_every( 1_hours ) &&
         get_hunger() < 200 && get_thirst() < 100 && op_of_u.trust < 5 ) {
         // Friends who are well fed will like you more
@@ -3561,7 +3581,7 @@ void npc::process_turn()
         int op_penalty = std::max( 0, op_of_u.anger ) +
                          std::max( 0, -op_of_u.value ) +
                          std::max( 0, op_of_u.fear );
-        // Being barely hungry and thirsty, not in pain and not wounded means good care
+        // Being barely hungry and thirsty, not in pain and not wounded means good care.
         int state_penalty = get_hunger() + get_thirst() + ( 100 - hp_percentage() ) + get_pain();
         if( x_in_y( trust_chance, 240 + 10 * op_penalty + state_penalty ) ) {
             op_of_u.trust++;
@@ -3712,6 +3732,7 @@ mfaction_id npc::get_monster_faction() const
         return monfaction_player.id();
     }
 
+    // TODO: This is unused, re-implement it for post-thresh insects once that's added.
     if( has_trait( trait_BEE ) ) {
         return monfaction_bee.id();
     }

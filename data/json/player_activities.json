@@ -263,6 +263,17 @@
     "auto_needs": true
   },
   {
+    "id": "ACT_CRAFT_WAIT",
+    "type": "activity_type",
+    "activity_level": "NO_EXERCISE",
+    "verb": "waiting for craft step",
+    "rooted": true,
+    "based_on": "time",
+    "can_resume": false,
+    "refuel_fires": true,
+    "auto_needs": true
+  },
+  {
     "id": "ACT_DISASSEMBLE",
     "type": "activity_type",
     "activity_level": "MODERATE_EXERCISE",
@@ -358,16 +369,17 @@
   {
     "id": "ACT_TRAIN",
     "type": "activity_type",
-    "activity_level": "ACTIVE_EXERCISE",
+    "activity_level": "BRISK_EXERCISE",
     "verb": "training",
-    "based_on": "speed"
+    "based_on": "time",
+    "can_resume": false
   },
   {
     "id": "ACT_TRAIN_TEACHER",
     "type": "activity_type",
-    "activity_level": "ACTIVE_EXERCISE",
+    "activity_level": "BRISK_EXERCISE",
     "verb": "teaching",
-    "based_on": "speed",
+    "based_on": "time",
     "can_resume": false
   },
   {
@@ -408,7 +420,7 @@
   {
     "id": "ACT_PICKAXE",
     "type": "activity_type",
-    "activity_level": "EXTRA_EXERCISE",
+    "activity_level": "EXPLOSIVE_EXERCISE",
     "verb": "mining",
     "based_on": "speed"
   },
@@ -502,7 +514,7 @@
   {
     "id": "ACT_MOVE_LOOT",
     "type": "activity_type",
-    "activity_level": "MODERATE_EXERCISE",
+    "activity_level": "BRISK_EXERCISE",
     "verb": "sorting out the loot",
     "based_on": "neither"
   },
@@ -744,7 +756,7 @@
   {
     "id": "ACT_WASH",
     "type": "activity_type",
-    "activity_level": "MODERATE_EXERCISE",
+    "activity_level": "ACTIVE_EXERCISE",
     "verb": "washing",
     "rooted": true,
     "based_on": "speed"

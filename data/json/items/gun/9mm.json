@@ -173,6 +173,17 @@
     "barrel_length": "146 mm",
     "price": "30000 USD",
     "price_postapoc": "140 USD",
+    "valid_mod_locations": [
+      [ "barrel", 1 ],
+      [ "brass catcher", 1 ],
+      [ "mechanism", 2 ],
+      [ "rail mount", 1 ],
+      [ "sights mount", 1 ],
+      [ "sling", 1 ],
+      [ "stock accessory", 1 ],
+      [ "stock", 1 ],
+      [ "underbarrel mount", 1 ]
+    ],
     "built_in_mods": [ "mp5sd_suppressor" ]
   },
   {
@@ -238,7 +249,7 @@
     "copy-from": "hk_mp5k",
     "looks_like": "hk_briefcase",
     "type": "ITEM",
-    "subtypes": [ "GUN", "ARMOR" ],
+    "subtypes": [ "GUN" ],
     "name": { "str": "H&K operational briefcase SMG" },
     "description": "A hard-sided briefcase with a trigger in the handle and a concealed hole in the side.  To fire the internally mounted MP5K-PDW, one braces the briefcase at the waist, ensures the hole is pointed at the enemy, and squeezes the trigger.  Precision and handling are severely hampered by the shape of the briefcase, but if you need to 'hand over the goods' or look low profile while bodyguarding, this is your gun.  When the briefcase is open, the MP5 may be reloaded or dismounted.",
     "weight": "3800 g",
@@ -248,19 +259,7 @@
     "price_postapoc": "50 USD",
     "dispersion": 520,
     "sight_dispersion": 520,
-    "sided": true,
-    "armor": [
-      {
-        "material": [
-          { "type": "steel", "covered_by_mat": 100, "thickness": 2.0 },
-          { "type": "plastic", "covered_by_mat": 100, "thickness": 2.0 }
-        ],
-        "encumbrance": 30,
-        "coverage": 10,
-        "covers": [ "arm_l", "arm_r", "hand_l", "hand_r" ]
-      }
-    ],
-    "flags": [ "OVERSIZE", "RELOAD_EJECT", "BELTED", "RESTRICT_HANDS", "NO_TURRET" ],
+    "flags": [ "RELOAD_EJECT", "NO_TURRET" ],
     "valid_mod_locations": [  ],
     "pocket_data": [
       {
@@ -360,7 +359,7 @@
     "min_cycle_recoil": 450,
     "modes": [ [ "DEFAULT", "semi-auto", 1 ] ],
     "valid_mod_locations": [ [ "barrel", 1 ], [ "mechanism", 2 ], [ "rail mount", 1 ], [ "sights mount", 1 ], [ "stock mount", 1 ] ],
-    "flags": [ "RELOAD_ONE", "ALLOWS_BODY_BLOCK" ],
+    "flags": [ "RELOAD_ONE" ],
     "pocket_data": [
       {
         "pocket_type": "MAGAZINE",
@@ -637,7 +636,6 @@
     "subtypes": [ "GUN" ],
     "name": { "str": "Luty SMG" },
     "description": "A Luty pattern makeshift smoothbore SMG crudely constructed out of various steel parts using advanced powered hand tools; likely one of the most complex guns that is feasible to make outside of a machine shop, but still very unreliable.  This one is chambered for 9x19mm cartridges and accepts STEN-compatible magazines.",
-    "//": "Crafting recipe must make use of angle grinder, bench grinder, set square and vise, which don't yet exist in game.",
     "weight": "3520 g",
     "volume": "1110 ml",
     "longest_side": "538 mm",

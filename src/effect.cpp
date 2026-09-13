@@ -128,10 +128,10 @@ bool string_id<effect_type>::is_valid() const
 
 void weed_msg( Character &p )
 {
-    const time_duration howhigh = p.get_effect_dur( effect_weed_high );
+    const int howhigh = p.get_effect_int( effect_weed_high );
     ///\EFFECT_INT changes messages when smoking weed
     int smarts = p.get_int();
-    if( howhigh > 12_minutes && one_in( 7 ) ) {
+    if( howhigh > 3 && one_in( 10 ) ) {
         int msg = rng( 0, 5 );
         switch( msg ) {
             case 0:
@@ -189,7 +189,7 @@ void weed_msg( Character &p )
             default:
                 return;
         }
-    } else if( howhigh > 10_minutes && one_in( 5 ) ) {
+    } else if( howhigh > 2 && one_in( 8 ) ) {
         int msg = rng( 0, 5 );
         switch( msg ) {
             case 0:
@@ -240,7 +240,7 @@ void weed_msg( Character &p )
             default:
                 return;
         }
-    } else if( howhigh > 5_minutes && one_in( 3 ) ) {
+    } else if( howhigh > 1 && one_in( 6 ) ) {
         int msg = rng( 0, 5 );
         switch( msg ) {
             case 0:
@@ -386,18 +386,6 @@ void effect_type::load_mod_data( const JsonObject &j )
         {"pkill_chance",      mod_action::CHANCE_TOP},
         {"pkill_chance_bot",  mod_action::CHANCE_BOT},
         {"pkill_tick",        mod_action::TICK},
-    } );
-
-    // Then stim
-    extract_effect( to_extract, "STIM", {
-        {"stim_amount",      mod_action::AMOUNT},
-        {"stim_min",         mod_action::MIN},
-        {"stim_max",         mod_action::MAX},
-        {"stim_min_val",     mod_action::MIN_VAL},
-        {"stim_max_val",     mod_action::MAX_VAL},
-        {"stim_chance",      mod_action::CHANCE_TOP},
-        {"stim_chance_bot",  mod_action::CHANCE_BOT},
-        {"stim_tick",        mod_action::TICK},
     } );
 
     // Then focus

@@ -92,6 +92,7 @@ static const ammo_effect_str_id ammo_effect_NO_DAMAGE_SCALING( "NO_DAMAGE_SCALIN
 static const ammo_effect_str_id ammo_effect_PARALYZEPOISON( "PARALYZEPOISON" );
 static const ammo_effect_str_id ammo_effect_ROBOT_DAZZLE( "ROBOT_DAZZLE" );
 static const ammo_effect_str_id ammo_effect_TANGLE( "TANGLE" );
+static const ammo_effect_str_id ammo_effect_TRIP( "TRIP" );
 
 static const anatomy_id anatomy_human_anatomy( "human_anatomy" );
 
@@ -100,12 +101,11 @@ static const damage_type_id damage_bash( "bash" );
 static const damage_type_id damage_electric( "electric" );
 static const damage_type_id damage_heat( "heat" );
 
-static const efftype_id effect_all_fours( "all_fours" );
+static const efftype_id effect_airborne( "airborne" );
 static const efftype_id effect_blind( "blind" );
 static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_foamcrete_slow( "foamcrete_slow" );
 static const efftype_id effect_invisibility( "invisibility" );
-static const efftype_id effect_knockdown( "knockdown" );
 static const efftype_id effect_lying_down( "lying_down" );
 static const efftype_id effect_monster_dodged( "monster_dodged" );
 static const efftype_id effect_no_sight( "no_sight" );
@@ -282,6 +282,23 @@ bool Creature::can_move_to_vehicle_tile( const tripoint_abs_ms &loc, bool &cramp
 
     vehicle &veh = vp_there->vehicle();
 
+    int vehicle_speed = vp_there->vehicle().velocity;
+
+    // You simply cannot purposefully enter a vehicle when it is going extremely fast, unless you can fly.
+    if( get_speed() * 35 < vehicle_speed ) {
+        if( !here.veh_at( pos_bub() ) ) {
+            if( mon ) {
+                if( !mon->flies() && !mon->has_effect( effect_airborne ) ) {
+                    return false;
+                }
+            } else {
+                if( !has_effect( effect_airborne ) ) {
+                    return false;
+                }
+            }
+        }
+    }
+
     std::vector<vehicle_part *> cargo_parts;
     cargo_parts = veh.get_parts_at( loc, "CARGO", part_status_flag::any );
 
@@ -399,7 +416,9 @@ void Creature::reset()
 
 void Creature::bleed( map &here ) const
 {
-    here.add_splatter( bloodType(), pos_bub( here ) );
+    if( !is_hallucination() ) {
+        here.add_splatter( bloodType(), pos_bub( here ) );
+    }
 }
 
 void Creature::reset_bonuses()
@@ -472,7 +491,6 @@ bool Creature::is_likely_underwater( const map &here ) const
                here.has_flag( ter_furn_flag::TFLAG_SWIM_UNDER, pos_bub( here ) ) ) );
 }
 
-// Detects whether a target is sapient or not (or barely sapient, since ferals count)
 bool Creature::has_mind() const
 {
     return false;
@@ -493,7 +511,7 @@ bool Creature::is_ranged_attacker() const
             }
         }
     }
-    //TODO Potentially add check for this as npc wielding ranged weapon
+    //TODO: Potentially add check for this as Character wielding ranged weapon.
 
     return false;
 }
@@ -641,11 +659,10 @@ bool Creature::sees( const map &here, const Creature &critter ) const
         return false;
     }
 
-    if( has_water_camouflage && target_range > this->spot_check() ) {
-        if( is_underwater ||
-            here.has_flag( ter_furn_flag::TFLAG_DEEP_WATER, critter.pos_bub( here ) ) ||
-            ( here.has_flag( ter_furn_flag::TFLAG_SHALLOW_WATER, critter.pos_bub( here ) ) &&
-              critter.get_size() < creature_size::medium ) ) {
+    if( is_underwater || here.has_flag( ter_furn_flag::TFLAG_DEEP_WATER, critter.pos_bub( here ) ) ||
+        ( here.has_flag( ter_furn_flag::TFLAG_SHALLOW_WATER, critter.pos_bub( here ) ) &&
+          critter.get_size() < creature_size::medium ) ) {
+        if( has_water_camouflage && target_range > this->spot_check() ) {
             return false;
         }
     }
@@ -708,13 +725,12 @@ int Creature::eye_level() const
     }
 }
 
-bool Creature::sees( const map &here, const tripoint_bub_ms &t, bool is_avatar,
+bool Creature::sees( const map &here, const tripoint_bub_ms &t, bool is_character,
                      int range_mod ) const
 {
     if( std::abs( posz() - t.z() ) > fov_3d_z_range ) {
         return false;
     }
-
     const tripoint_bub_ms pos = pos_bub( here );
 
     // Check for adjacent high-concealment tiles that would block vision.
@@ -755,18 +771,19 @@ bool Creature::sees( const map &here, const tripoint_bub_ms &t, bool is_avatar,
         if( range_mod > 0 ) {
             range = std::min( range, range_mod );
         }
-        if( is_avatar ) {
-            // Special case monster -> player visibility, forcing it to be symmetric with player vision.
-            const float player_visibility_factor = get_player_character().visibility() / 100.0f;
-            int adj_range = std::floor( range * player_visibility_factor );
-            return adj_range >= wanted_range &&
-                   here.get_cache_ref( posz() ).seen_cache[pos.x()][pos.y()] > LIGHT_TRANSPARENCY_SOLID;
+        if( is_character ) {
+            // Get character visibility from things like mutations.
+            Character *ch = get_creature_tracker().creature_at<Character>( t );
+            if( ch != nullptr ) {
+                const float character_visibility_factor = ch->visibility() / 100.0f;
+                int adj_range = std::floor( range * character_visibility_factor );
+                return adj_range >= wanted_range && here.sees( pos, t, range );
+            }
         } else {
             return here.sees( pos, t, range );
         }
-    } else {
-        return false;
     }
+    return false;
 }
 
 // Helper function to check if potential area of effect of a weapon overlaps vehicle
@@ -960,48 +977,55 @@ bool Creature::is_adjacent( const Creature *target, const bool allow_z_levels ) 
         return false;
     }
 
-    if( rl_dist( pos_bub(), target->pos_bub() ) != 1 ) {
+    const int dz = std::abs( posz() - target->posz() );
+
+    // Too far apart vertically.
+    if( dz > 1 ) {
         return false;
     }
 
-    // Diagonally offset targets are not adjacent.
-    if( posz() != target->posz() && pos_bub().xy() != target->pos_bub().xy() ) {
-        return false;
+    const point_rel_ms delta = pos_bub().xy() - target->pos_bub().xy();
+    const int dx = std::abs( delta.x() );
+    const int dy = std::abs( delta.y() );
+
+    if( dz == 0 ) {
+        // Same Z level:
+        // adjacent if within the surrounding 8 tiles.
+        if( dx > 1 || dy > 1 || ( dx == 0 && dy == 0 ) ) {
+            return false;
+        }
+    } else {
+        // Different Z levels:
+        // adjacent only if directly above/below.
+        if( !allow_z_levels || dx != 0 || dy != 0 ) {
+            return false;
+        }
     }
 
-    if( !can_squeeze_to( target->pos_bub() ) ) {
-        return false;
-    }
-
-    // Explicitly check for Z difference > 1
-    if( std::abs( posz() - target->posz() ) > 1 ) {
-
+    if( !vehicle_not_blocking( target->pos_bub() ) ) {
         return false;
     }
 
     map &here = get_map();
-    if( posz() == target->posz() ) {
-        return
-            /* either target or attacker are underwater and separated by vehicle tiles */
-            !( underwater != target->underwater &&
-               here.veh_at( pos_bub() ) && here.veh_at( target->pos_bub() ) );
+
+    if( dz == 0 ) {
+        return !( underwater != target->underwater &&
+                  here.veh_at( pos_bub() ) &&
+                  here.veh_at( target->pos_bub() ) );
     }
 
-    if( !allow_z_levels ) {
-        return false;
-    }
-
-    // The square above must have no floor.
-    // The square below must have no ceiling (i.e. no floor on the tile above it).
     const bool target_above = target->posz() > posz();
     const tripoint_bub_ms up = target_above ? target->pos_bub() : pos_bub();
     const tripoint_bub_ms down = target_above ? pos_bub() : target->pos_bub();
-    const tripoint_bub_ms above{ down.xy(), up.z()};
-    return ( !here.has_floor( up ) || here.ter( up )->has_flag( ter_furn_flag::TFLAG_GOES_DOWN ) ) &&
-           ( !here.has_floor( above ) || here.ter( above )->has_flag( ter_furn_flag::TFLAG_GOES_DOWN ) );
+    const tripoint_bub_ms above{ down.xy(), up.z() };
+
+    return ( !here.has_floor( up ) ||
+             here.ter( up )->has_flag( ter_furn_flag::TFLAG_GOES_DOWN ) ) &&
+           ( !here.has_floor( above ) ||
+             here.ter( above )->has_flag( ter_furn_flag::TFLAG_GOES_DOWN ) );
 }
 
-bool Creature::can_squeeze_to( const tripoint_bub_ms &p ) const
+bool Creature::vehicle_not_blocking( const tripoint_bub_ms &p ) const
 {
     map &here = get_map();
     return !here.obstructed_by_vehicle_rotation( pos_bub(), p );
@@ -1094,32 +1118,46 @@ double Creature::accuracy_projectile_attack( const int &speed, const double &mis
 void projectile::apply_effects_damage( Creature &target, Creature *source,
                                        const dealt_damage_instance &dealt_dam, bool critical ) const
 {
-    const map &here = get_map();
+    map &here = get_map();
 
     int dam = dealt_dam.total_damage();
     // Apply ammo effects to target.
     if( proj_effects.count( ammo_effect_TANGLE ) ) {
-        // if its a tameable animal, its a good way to catch them if they are running away, like them ranchers do!
-        // we assume immediate success, then certain monster types immediately break free in monster.cpp move_effects()
-        if( target.is_monster() ) {
-            const item &drop_item = get_drop();
-            if( !drop_item.is_null() ) {
-                target.add_effect( effect_source( source ), effect_tied, 1_turns, true );
-                target.as_monster()->tied_item = cata::make_value<item>( drop_item );
-            } else {
-                add_msg_debug( debugmode::DF_CREATURE,
-                               "projectile with TANGLE effect, but no drop item specified" );
+        const item &drop_item = get_drop();
+        // Break free in monster.cpp move_effects()
+        if( !drop_item.is_null() ) {
+            bool success = false;
+            if( target.enum_size() > 1 && target.enum_size() < 5 && !one_in( 6 ) ) {
+                if( target.is_monster() && !target.is_immune_effect( effect_downed ) ) {
+                    target.add_effect( effect_source( source ), effect_tied, 1_turns, true );
+                    target.as_monster()->tied_item = cata::make_value<item>( drop_item );
+                    success = true;
+                } else if( ( target.is_npc() || target.is_avatar() ) &&
+                           !target.is_immune_effect( effect_downed ) ) {
+                    target.add_effect( effect_source( source ), effect_downed, 1_turns );
+                    target.add_effect( effect_source( source ), effect_stunned, rng( 1_turns, 8_turns ) );
+                    success = true;
+                }
             }
-        } else if( ( target.is_npc() || target.is_avatar() ) &&
-                   !target.is_immune_effect( effect_downed ) ) {
-            // no tied up effect for people yet, just down them and stun them, its close enough to the desired effect.
-            // we can assume a person knows how to untangle their legs eventually and not panic like an animal.
-            target.add_effect( effect_source( source ), effect_downed, 1_turns );
-            // stunned to simulate staggering around and stumbling trying to get the entangled thing off of them.
-            target.add_effect( effect_source( source ), effect_stunned, rng( 3_turns, 8_turns ) );
+            if( !success ) {
+                here.add_item_or_charges( target.pos_bub(), drop_item );
+            }
         }
     }
-
+    if( proj_effects.count( ammo_effect_TRIP ) ) {
+        const item &drop_item = get_drop();
+        if( !drop_item.is_null() ) {
+            if( !one_in( 4 ) && target.enum_size() > 1 && target.enum_size() < 5 ) {
+                if( target.is_monster() && !target.is_immune_effect( effect_downed ) ) {
+                    target.add_effect( effect_source( source ), effect_downed, 1_turns, true );
+                } else if( ( target.is_npc() || target.is_avatar() ) &&
+                           !target.is_immune_effect( effect_downed ) ) {
+                    target.add_effect( effect_source( source ), effect_downed, 1_turns );
+                }
+            }
+            here.add_item_or_charges( target.pos_bub(), drop_item );
+        }
+    }
     Character &player_character = get_player_character();
     int amount = dam > 2 ? dam / 2 : one_in( 2 );
     if( proj_effects.count( ammo_effect_INCENDIARY ) ) {
@@ -1335,7 +1373,6 @@ void Creature::messaging_projectile_attack( const Creature *source,
         const projectile_attack_results &hit_selection, const int total_damage ) const
 {
     const map &here = get_map();
-
     const tripoint_bub_ms pos = pos_bub( here );
     const tripoint_bub_ms source_pos = source->pos_bub( here );
     const viewer &player_view = get_player_view();
@@ -1359,14 +1396,14 @@ void Creature::messaging_projectile_attack( const Creature *source,
                          disp_name(), hit_selection.wp_hit );
             }
         } else if( is_avatar() ) {
-            //monster hits player ranged
+            // Monster hits the player with a ranged attack.
             //~ Hit message. 1$s is bodypart name in accusative. 2$d is damage value.
             add_msg_if_player( m_bad, _( "You were hit in the %1$s for %2$d damage." ),
                                body_part_name_accusative( hit_selection.bp_hit ),
                                total_damage );
         } else if( source != nullptr ) {
             if( source->is_avatar() ) {
-                //player hits monster ranged
+                // Player hits monster with a ranged attack.
                 SCT.add( pos.xy().raw(),
                          direction_from( point::zero, point( pos.x() - source_pos.x(), pos.y() - source_pos.y() ) ),
                          get_hp_bar( total_damage, get_hp_max(), true ).first,
@@ -1376,29 +1413,29 @@ void Creature::messaging_projectile_attack( const Creature *source,
                     SCT.add( pos.xy().raw(),
                              direction_from( point::zero, point( pos.x() - source_pos.x(), pos.y() - source_pos.y() ) ),
                              get_hp_bar( get_hp(), get_hp_max(), true ).first, m_good,
-                             //~ "hit points", used in scrolling combat text
+                             //~ "hit points", used in scrolling combat text.
                              _( "HP" ), m_neutral, "hp" );
                 } else {
                     SCT.removeCreatureHP();
                 }
-                // Move it here to show crit msg only when you actually hurt the target
+                // Move it here to show crit msg only when you actually hurt the target.
                 add_msg( m_good, hit_selection.message );
                 if( hit_selection.wp_hit.empty() ) {
-                    //~ %1$s: creature name, %2$d: damage value
+                    //~ %1$s: creature name, %2$d: damage value.
                     add_msg( m_good, _( "You hit %1$s for %2$d damage." ),
                              disp_name(), total_damage );
                 } else {
-                    //~ %1$s: creature name, %2$s: weakpoint hit, %3$d: damage value
+                    //~ %1$s: creature name, %2$s: weakpoint hit, %3$d: damage value.
                     add_msg( m_good, _( "You hit %1$s in %2$s for %3$d damage." ),
                              disp_name(), hit_selection.wp_hit, total_damage );
                 }
             } else if( source != this ) {
                 if( hit_selection.wp_hit.empty() ) {
-                    //~ 1$ - shooter, 2$ - target
+                    //~ 1$ - shooter, 2$ - target.
                     add_msg( _( "%1$s shoots %2$s." ),
                              source->disp_name(), disp_name() );
                 } else {
-                    //~ 1$ - shooter, 2$ - target, 3$ - weakpoint
+                    //~ 1$ - shooter, 2$ - target, 3$ - weakpoint.
                     add_msg( _( "%1$s shoots %2$s in %3$s." ),
                              source->disp_name(), disp_name(), hit_selection.wp_hit );
                 }
@@ -1411,8 +1448,8 @@ void Creature::print_proj_avoid_msg( Creature *source, viewer &player_view ) con
 {
     const map &here = get_map();
 
-    // "Avoid" rather than "dodge", because it includes removing self from the line of fire
-    //  rather than just Matrix-style bullet dodging
+    // "Avoid" rather than "dodge", because it includes removing self from the line of fire.
+    //  rather than just Matrix-style bullet dodging.
     if( source != nullptr && player_view.sees( here, *source ) ) {
         add_msg_player_or_npc(
             m_warning,
@@ -1441,7 +1478,7 @@ void Creature::deal_projectile_attack( map *here, Creature *source, dealt_projec
 {
     const bool magic = attack.proj.proj_effects.count( ammo_effect_MAGIC ) > 0;
     if( missed_by >= 1.0 && !magic ) {
-        // Total miss
+        // Total miss.
         return;
     }
     // If carrying a rider, there is a chance the hits may hit rider instead.
@@ -1501,8 +1538,8 @@ void Creature::deal_projectile_attack( map *here, Creature *source, dealt_projec
             magic, missed_by, wp_attack_copy );
     wp_attack_copy.is_crit = hit_selection.is_crit;
 
-    // copy it, since we're mutating.
-    // use shot_impact after point-blank
+    // Copy it, since we're mutating.
+    // Use shot_impact after point-blank.
     damage_instance impact = proj.multishot ? proj.shot_impact : proj.impact;
     if( hit_selection.damage_mult > 0.0f && proj_effects.count( ammo_effect_NO_DAMAGE_SCALING ) ) {
         hit_selection.damage_mult = 1.0f;
@@ -1550,8 +1587,7 @@ dealt_damage_instance Creature::deal_damage( Creature *source, bodypart_id bp,
     int total_damage = 0;
     int total_base_damage = 0;
     int total_pain = 0;
-    damage_instance d = dam; // copy, since we will mutate in absorb_hit
-
+    damage_instance d = dam; // Copy, since we will mutate in absorb_hit.
     dealt_damage_instance dealt_dams;
     weakpoint_attack attack_copy = attack;
     if( attack.accuracy == -1.0 ) {
@@ -1561,8 +1597,7 @@ dealt_damage_instance Creature::deal_damage( Creature *source, bodypart_id bp,
     }
     const weakpoint *wkpt = absorb_hit( attack_copy, bp, d, wp );
     dealt_dams.wp_hit = wkpt == nullptr ? "" : wkpt->get_name();
-
-    // Add up all the damage units dealt
+    // Add up all the damage units dealt.
     for( const damage_unit &it : d.damage_units ) {
         int cur_damage = 0;
         deal_damage_handle_type( effect_source( source ), it, bp, cur_damage, total_pain );
@@ -1572,9 +1607,8 @@ dealt_damage_instance Creature::deal_damage( Creature *source, bodypart_id bp,
             total_damage += cur_damage;
         }
     }
-    // get eocs for all damage effects
+    // Get eocs for all damage effects.
     d.ondamage_effects( source, this, dam, bp.id() );
-
     if( total_base_damage < total_damage ) {
         // Only deal more HP than remains if damage not including crit multipliers is higher.
         total_damage = clamp( get_hp( bp ), total_base_damage, total_damage );
@@ -1582,25 +1616,21 @@ dealt_damage_instance Creature::deal_damage( Creature *source, bodypart_id bp,
     if( !bp->has_flag( json_flag_BIONIC_LIMB ) ) {
         mod_pain( total_pain );
     }
-
     apply_damage( source, bp, total_damage );
-
     if( wkpt != nullptr ) {
         wkpt->apply_effects( *this, total_damage, attack );
     }
-
     return dealt_dams;
 }
+
 void Creature::deal_damage_handle_type( const effect_source &source, const damage_unit &du,
                                         bodypart_id bp, int &damage, int &pain )
 {
     const map &here = get_map();
-
     // Handles ACIDPROOF, electric immunity etc.
     if( is_immune_damage( du.type ) ) {
         return;
     }
-
     // Apply damage multiplier from skill, critical hits or grazes after all other modifications.
     const int adjusted_damage = du.amount * du.damage_multiplier * du.unconditional_damage_mult;
     if( adjusted_damage <= 0 ) {
@@ -1614,10 +1644,9 @@ void Creature::deal_damage_handle_type( const effect_source &source, const damag
         // Bashing damage is less painful
         div = 5.0f;
     } else if( du.type == damage_heat ) {
-        // heat damage sets us on fire sometimes
+        // Heat damage sets us on fire sometimes.
         if( rng( 0, 100 ) < adjusted_damage ) {
             add_effect( source, effect_onfire, rng( 1_turns, 3_turns ), bp );
-
             Character &player_character = get_player_character();
             if( player_character.has_trait( trait_PYROMANIA ) &&
                 !player_character.has_morale( morale_pyromania_startfire ) &&
@@ -1629,7 +1658,7 @@ void Creature::deal_damage_handle_type( const effect_source &source, const damag
             }
         }
     } else if( du.type == damage_electric ) {
-        // Electrical damage adds a major speed/dex debuff
+        // Electrical damage adds a major speed/dex debuff.
         double multiplier = 1.0;
         if( monster *mon = as_monster() ) {
             multiplier = mon->type->status_chance_multiplier;
@@ -1639,7 +1668,6 @@ void Creature::deal_damage_handle_type( const effect_source &source, const damag
             const int duration = std::max( adjusted_damage / 10.0 * multiplier, 2.0 );
             add_effect( source, effect_zapped, 1_turns * duration );
         }
-
         if( Character *ch = as_character() ) {
             const double pain_mult = ch->calculate_by_enchantment( 1.0, enchant_vals::mod::EXTRA_ELEC_PAIN );
             div /= pain_mult;
@@ -1652,11 +1680,11 @@ void Creature::deal_damage_handle_type( const effect_source &source, const damag
         // Acid damage and acid burns are more painful
         div = 3.0f;
     }
-
     on_damage_of_type( source, adjusted_damage, du.type, bp );
-
     damage += adjusted_damage;
-    pain += roll_remainder( adjusted_damage / div );
+    const int final_pain = static_cast<int>( std::round( roll_remainder( adjusted_damage / div ) *
+                           get_part_pain_multiplier( bp ) ) );
+    pain += final_pain;
 }
 
 void Creature::heal_bp( bodypart_id /* bp */, int /* dam */ )
@@ -1950,8 +1978,13 @@ void Creature::add_effect( const effect_source &source, const efftype_id &eff_id
     if( !force && is_immune_effect( eff_id ) ) {
         return;
     }
-    if( eff_id == effect_knockdown && ( has_effect( effect_ridden ) ||
-                                        has_effect( effect_riding ) ) ) {
+    Character *guy = this->as_character();
+    if( guy ) {
+        // Update the eye_level_cache in case we step on or off something that raises our eye_level.
+        guy->invalidate_tile_eye_level_cache();
+    }
+    if( eff_id == effect_downed && ( has_effect( effect_ridden ) ||
+                                     has_effect( effect_riding ) ) ) {
         monster *mons = dynamic_cast<monster *>( this );
         if( mons && mons->mounted_player ) {
             mons->mounted_player->forced_dismount();
@@ -2026,8 +2059,8 @@ void Creature::add_effect( const effect_source &source, const efftype_id &eff_id
         effect e( effect_source( source ), &type, duration, bp.id(), permanent, intensity, calendar::turn );
 
         ( *effects )[eff_id][bp] = e;
-        if( Character *ch = as_character() ) {
-            get_event_bus().send<event_type::character_gains_effect>( ch->getID(), bp.id(), eff_id );
+        if( guy ) {
+            get_event_bus().send<event_type::character_gains_effect>( guy->getID(), bp.id(), eff_id );
             if( is_avatar() ) {
                 eff_id->add_apply_msg( e.get_intensity() );
             }
@@ -2141,16 +2174,20 @@ bool Creature::remove_effect( const efftype_id &eff_id, const bodypart_id &bp )
         //Effect doesn't exist, so do nothing
         return false;
     }
-    const effect_type &type = eff_id.obj();
 
-    if( Character *ch = as_character() ) {
+    const effect_type &type = eff_id.obj();
+    Character *guy = this->as_character();
+    if( guy ) {
+        // Update the eye_level_cache in case we step on or off something that raises our eye_level.
+        guy->invalidate_tile_eye_level_cache();
         if( is_avatar() ) {
             if( !type.get_remove_message().empty() ) {
                 add_msg( type.lose_game_message_type( get_effect( eff_id, bp.id() ).get_intensity() ),
                          type.get_remove_message() );
             }
         }
-        get_event_bus().send<event_type::character_loses_effect>( ch->getID(), bp.id(), eff_id );
+        get_event_bus().send<event_type::character_loses_effect>( guy->getID(), bp.id(), eff_id );
+        guy->recalculate_painkiller();
     }
 
     // bp_null means remove all of a given effect id
@@ -2694,7 +2731,7 @@ bodypart_id Creature::get_part_id( const bodypart_id &id,
         for( const std::pair<const bodypart_str_id, bodypart> &bp : body ) {
             for( const std::pair<const body_part_type::type, float> &mp : bp.first->limbtypes ) {
                 // if the secondary limb type matches and is better than the current
-                if( mp.first == id->primary_limb_type() && mp.second > best.second ) {
+                if( mp.second > best.second ) {
                     // give an inflated bonus if the part sides match
                     float bonus = id->part_side == bp.first->part_side ? 1.0f : 0.0f;
                     best = { bp.first, mp.second + bonus };
@@ -2747,6 +2784,11 @@ int Creature::get_part_drench_capacity( const bodypart_id &id ) const
 int Creature::get_part_wetness( const bodypart_id &id ) const
 {
     return get_part_helper( *this, id, &bodypart::get_wetness );
+}
+
+float Creature::get_part_pain_multiplier( const bodypart_id &id ) const
+{
+    return get_part_helper( *this, id, &bodypart::get_pain_multiplier );
 }
 
 units::temperature Creature::get_part_temp_cur( const bodypart_id &id ) const
@@ -3079,7 +3121,7 @@ std::vector<bodypart_id> Creature::get_all_body_parts( get_body_part_flags flags
         sort_body_parts( all_bps, this );
     }
 
-    return  all_bps;
+    return all_bps;
 }
 
 std::vector<bodypart_id> Creature::get_random_body_parts( const std::vector<bodypart_id> &bp_list,

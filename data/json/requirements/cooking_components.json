@@ -548,7 +548,7 @@
     "components": [
       [
         [ "meat_cooked", 1 ],
-        [ "meat_fatty_cooked", 1 ],
+        [ "porkbelly_cooked", 1 ],
         [ "meat_scrap_cooked", 10 ],
         [ "mutant_meat_cooked", 1 ],
         [ "mutant_meat_scrap_cooked", 10 ],
@@ -557,7 +557,6 @@
         [ "meat_pickled", 1 ],
         [ "meat_fried", 1 ],
         [ "meat_smoked", 1 ],
-        [ "meat_salted", 1 ],
         [ "dry_meat", 1 ],
         [ "rehydrated_meat", 1 ],
         [ "jerky", 1 ],
@@ -599,7 +598,6 @@
         [ "can_tuna", 1 ],
         [ "can_sardine", 1 ],
         [ "can_clams", 1 ],
-        [ "salted_fish", 1 ],
         [ "fish_canned", 1 ],
         [ "fish_pickled", 1 ],
         [ "lobster_canned", 1 ]
@@ -707,13 +705,14 @@
       ],
       [
         [ "fish", 2 ],
+        [ "fish_freshwater", 2 ],
         [ "dry_fish", 2 ],
         [ "fish_smoked", 2 ],
         [ "fish_pickled", 2 ],
-        [ "salted_fish", 2 ],
         [ "fish_canned", 2 ],
         [ "can_salmon", 2 ],
         [ "fish_scrap", 20 ],
+        [ "fish_scrap_freshwater", 20 ],
         [ "can_tuna", 2 ]
       ]
     ]
@@ -786,7 +785,6 @@
         [ "jerky", 1 ],
         [ "meat_smoked", 1 ],
         [ "earthworm_dried", 10 ],
-        [ "meat_salted", 1 ],
         [ "meat_fried", 1 ],
         [ "fish", 1 ],
         [ "fish_smoked", 1 ],

@@ -358,7 +358,7 @@ void vehicle::build_electronics_menu( map &here, veh_menu &menu )
     add_toggle( pgettext( "electronics menu option", "planter" ),
                 "TOGGLE_PLANTER", "PLANTER" );
     add_toggle( pgettext( "electronics menu option", "rockwheel" ),
-                "TOGGLE_PLOW", "ROCKWHEEL" );
+                "TOGGLE_ROCKWHEEL", "ROCKWHEEL" );
     add_toggle( pgettext( "electronics menu option", "roadheader" ),
                 "TOGGLE_PLOW", "ROADHEAD" );
     add_toggle( pgettext( "electronics menu option", "scoop" ),
@@ -657,7 +657,8 @@ bool vehicle::start_engine( map &here, vehicle_part &vp )
             if( vpi.has_flag( "MUSCLE_ARMS" ) && !player_character.has_two_arms_lifting() ) {
                 add_msg( _( "You cannot use %s with a broken arm." ), vp.name() );
                 return false;
-            } else if( vpi.has_flag( "MUSCLE_LEGS" ) && ( player_character.get_working_leg_count() < 2 ) ) {
+            } else if( vpi.has_flag( "MUSCLE_LEGS" ) &&
+                       ( player_character.get_working_leg_count( false ) < 2 ) ) {
                 add_msg( _( "You cannot use %s without at least two legs." ), vp.name() );
                 return false;
             }
@@ -669,7 +670,7 @@ bool vehicle::start_engine( map &here, vehicle_part &vp )
     }
 
     if( has_part( player_character.pos_abs(), "NEED_LEG" ) &&
-        player_character.get_working_leg_count() < 1 &&
+        player_character.get_working_leg_count( false ) < 1 &&
         !has_part( player_character.pos_abs(), "IGNORE_LEG_REQUIREMENT" ) ) {
         add_msg( _( "You need at least one leg to control the %s." ), vp.name() );
         return false;
@@ -1100,7 +1101,14 @@ void vehicle::operate_planter( map &here )
                     //then don't put the item there.
                     break;
                 } else if( t == ter_t_dirtmound ) {
-                    here.set( loc, ter_t_dirt, furn_f_plant_seed );
+                    ret_val<void>can_plant = warm_enough_to_plant( loc, i->typeId() );
+                    if( can_plant.success() ) {
+                        // Plant the seed once it gets dropped.
+                        here.set( loc, ter_t_dirt, furn_f_plant_seed );
+                    } else {
+                        // Leave the seed on the ground.
+                        add_msg_if_player_sees( loc, can_plant.c_str() );
+                    }
                 } else if( !here.has_flag( ter_furn_flag::TFLAG_PLOWABLE, loc ) ) {
                     //If it isn't plowable terrain, then it will most likely be damaged.
                     damage( here, planter_id, rng( 1, 10 ), damage_bash, false );

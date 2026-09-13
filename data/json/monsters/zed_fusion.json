@@ -21,6 +21,7 @@
     "scents_tracked": [ "sc_human", "sc_fetid" ],
     "melee_dice": 9,
     "melee_dice_sides": 5,
+    "dodge": 2,
     "melee_damage": [ { "damage_type": "cut", "amount": 5 } ],
     "families": [ "prof_intro_biology", "prof_physiology", "prof_wp_zombie", "prof_wp_syn_armored" ],
     "bleed_rate": 0,
@@ -31,13 +32,7 @@
       { "id": "slam", "min_mul": 2, "max_mul": 3, "cooldown": 5 },
       { "id": "grab_drag", "cooldown": 15 },
       { "id": "drag_followup" },
-      [ "SHRIEK_ALERT", 50 ],
-      {
-        "type": "spell",
-        "spell_data": { "id": "hive_raptor_spawn", "hit_self": true },
-        "cooldown": 30,
-        "monster_message": "A handful of flesh wriggles loose from the mass and takes flight!"
-      }
+      [ "SHRIEK_ALERT", 50 ]
     ],
     "death_function": {
       "message": "The creature grows sluggish before freezing in place for a moment.  Suddenly its flesh turns black and recedes to coat the central figure, which reaches out towards you before collapsing into a pinprick of shimmering air.  Torn uniforms and other gear tumble to the ground.",
@@ -95,7 +90,11 @@
     "harvest": "exempt",
     "grab_strength": 100,
     "special_attacks": [ [ "FLESH_TENDRIL", 1 ], { "id": "grab" }, { "id": "ranged_pull", "grab_data": { "pull_weight_ratio": 100 } } ],
-    "death_function": { "message": "The %s explodes!", "effect": { "id": "death_gas", "hit_self": true }, "corpse_type": "NO_CORPSE" },
+    "death_function": {
+      "message": "The %s explodes!",
+      "effect": { "id": "death_gas", "hit_self": true, "min_level": 4 },
+      "corpse_type": "NO_CORPSE"
+    },
     "death_drops": { "subtype": "collection", "groups": [ "explode_gasbag", "explode_innards", "explode_innards" ] },
     "flags": [ "SEES", "HEARS", "SMELLS", "IMMOBILE", "WARM", "POISON", "IMMOBILE", "NO_BREATHE", "FILTHY" ],
     "armor": { "bash": 10, "cut": 20, "bullet": 16, "electric": 5 }

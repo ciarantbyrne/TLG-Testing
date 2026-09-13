@@ -72,10 +72,22 @@ int recipe::get_skill_cap() const
     }
 }
 
-time_duration recipe::batch_duration( const Character &guy, int batch, float multiplier,
+crafting_cost_context crafting_cost_context::for_recipe( const Character &guy,
+        const recipe &rec )
+{
+    return { guy.book_bonuses_nearby(), compute_tool_speeds( rec, guy ) };
+}
+
+crafting_cost_context crafting_cost_context::for_proficiencies( const Character &guy )
+{
+    return { guy.book_bonuses_nearby(), {} };
+}
+
+time_duration recipe::batch_duration( const Character &guy, const crafting_cost_context &ctx,
+                                      int batch, float multiplier,
                                       size_t assistants ) const
 {
-    return time_duration::from_turns( batch_time( guy, batch, multiplier, assistants ) / 100 );
+    return time_duration::from_turns( batch_time( guy, batch, multiplier, assistants, ctx ) / 100 );
 }
 
 static bool helpers_have_proficiencies( const Character &guy, const proficiency_id &prof )
@@ -88,28 +100,33 @@ static bool helpers_have_proficiencies( const Character &guy, const proficiency_
     return false;
 }
 
-time_duration recipe::time_to_craft( const Character &guy, recipe_time_flag flags ) const
+time_duration recipe::time_to_craft( const Character &guy, const crafting_cost_context &ctx,
+                                     recipe_time_flag flags ) const
 {
-    return time_duration::from_moves( time_to_craft_moves( guy, flags ) );
+    return time_duration::from_moves( time_to_craft_moves( guy, ctx, flags ) );
 }
 
-int64_t recipe::time_to_craft_moves( const Character &guy, recipe_time_flag flags ) const
+int64_t recipe::time_to_craft_moves( const Character &guy, const crafting_cost_context &ctx,
+                                     recipe_time_flag flags ) const
 {
+    if( flags == recipe_time_flag::ignore_proficiencies ) {
+        if( has_steps() ) {
+            double total = 0.0;
+            for( const recipe_step &s : steps_ ) {
+                total += s.time;
+            }
+            return static_cast<int64_t>( total );
+        }
+        return time;
+    }
     if( has_steps() ) {
         double total = 0.0;
         for( const recipe_step &s : steps_ ) {
-            if( flags == recipe_time_flag::ignore_proficiencies ) {
-                total += s.time;
-            } else {
-                total += s.time * proficiency_time_maluses_for_step( guy, s );
-            }
+            total += s.time * proficiency_time_maluses_for_step( guy, s, ctx.books );
         }
         return static_cast<int64_t>( total );
     }
-    if( flags == recipe_time_flag::ignore_proficiencies ) {
-        return time;
-    }
-    return time * proficiency_time_maluses( guy );
+    return time * proficiency_time_maluses( guy, ctx.books );
 }
 
 double batch_savings::apply( double time, int batch_size ) const
@@ -137,7 +154,7 @@ double batch_savings::apply( double time, int batch_size ) const
 }
 
 int64_t recipe::batch_time( const Character &guy, int batch, float multiplier,
-                            size_t assistants, const std::vector<float> *tool_speeds ) const
+                            size_t assistants, const crafting_cost_context &ctx ) const
 {
     // 1.0f is full speed
     // 0.33f is 1/3 speed
@@ -146,21 +163,22 @@ int64_t recipe::batch_time( const Character &guy, int batch, float multiplier,
         multiplier = 1.0f;
     }
 
+    const std::vector<float> &ts = ctx.tool_speeds;
     double total_time;
 
     if( has_steps() ) {
         total_time = 0.0;
         for( size_t i = 0; i < steps_.size(); ++i ) {
             const recipe_step &s = steps_[i];
-            double step_time = s.time * proficiency_time_maluses_for_step( guy, s );
-            if( tool_speeds && i < tool_speeds->size() ) {
-                step_time *= ( *tool_speeds )[i];
+            double step_time = s.time * proficiency_time_maluses_for_step( guy, s, ctx.books );
+            if( i < ts.size() ) {
+                step_time *= ts[i];
             }
             step_time /= multiplier;
             total_time += s.batch_info.apply( step_time, batch );
         }
     } else {
-        const double local_time = static_cast<double>( time_to_craft_moves( guy ) ) / multiplier;
+        const double local_time = static_cast<double>( time_to_craft_moves( guy, ctx ) ) / multiplier;
         total_time = batch_info.apply( local_time, batch );
     }
 
@@ -173,19 +191,19 @@ int64_t recipe::batch_time( const Character &guy, int batch, float multiplier,
     // Single-item floor: total can't be less than crafting one unit.
     // For step recipes with tool speed, the floor must also be speed-aware.
     double single_time;
-    if( has_steps() && tool_speeds ) {
+    if( has_steps() && !ts.empty() ) {
         single_time = 0.0;
         for( size_t i = 0; i < steps_.size(); ++i ) {
             const recipe_step &s = steps_[i];
-            double st = s.time * proficiency_time_maluses_for_step( guy, s );
-            if( i < tool_speeds->size() ) {
-                st *= ( *tool_speeds )[i];
+            double st = s.time * proficiency_time_maluses_for_step( guy, s, ctx.books );
+            if( i < ts.size() ) {
+                st *= ts[i];
             }
             st /= multiplier;
             single_time += s.batch_info.apply( st, 1 );
         }
     } else {
-        single_time = static_cast<double>( time_to_craft_moves( guy ) ) / multiplier;
+        single_time = static_cast<double>( time_to_craft_moves( guy, ctx ) ) / multiplier;
     }
     if( total_time < single_time ) {
         total_time = single_time;
@@ -629,6 +647,37 @@ void recipe_step::load( const JsonObject &jo, const std::string &recipe_name, in
                                       + std::to_string( step_index ) );
     requirement_data::load_requirement( jo, step_req_id, false, false );
     reqs_internal.emplace_back( step_req_id, 1 );
+
+    if( jo.has_member( "attention" ) ) {
+        const std::string s = jo.get_string( "attention" );
+        if( s == "none" ) {
+            attention = step_attention::none;
+        } else if( s == "unattended" ) {
+            attention = step_attention::unattended;
+        } else if( s == "supervised" ) {
+            jo.throw_error( "supervised attention not yet supported" );
+        } else {
+            jo.throw_error( "invalid value for \"attention\": " + s );
+        }
+    }
+
+    if( jo.has_member( "max_time" ) ) {
+        time_duration d;
+        mandatory( jo, false, "max_time", d );
+        if( d <= time_duration::from_moves( time ) ) {
+            jo.throw_error( "max_time must exceed step time" );
+        }
+        max_time = d;
+    }
+    if( jo.has_member( "grace_period" ) ) {
+        if( !max_time.has_value() ) {
+            jo.throw_error( "grace_period requires max_time" );
+        }
+        time_duration d;
+        mandatory( jo, false, "grace_period", d );
+        grace_period = d;
+    }
+    optional( jo, false, "unattend_message", unattend_message );
 }
 
 static cata::value_ptr<parameterized_build_reqs> calculate_all_blueprint_reqs(
@@ -752,6 +801,10 @@ void recipe::finalize()
         // Step recipes: merge root components + per-step tools/qualities
         add_requirements( reqs_internal );  // root components
         reqs_internal.clear();
+
+        // Snapshot the root-only requirements so root tools stay attributable
+        // after per-step requirements merge into requirements_ below.
+        root_requirements_ = requirements_;
 
         for( recipe_step &step : steps_ ) {
             // Resolve each step's inline requirements
@@ -1318,14 +1371,15 @@ static float get_aided_proficiency_level( const Character &crafter, const profic
     return max_prof;
 }
 
-static float proficiency_time_malus( const Character &crafter, const recipe_proficiency &prof )
+static float proficiency_time_malus( const Character &crafter, const recipe_proficiency &prof,
+                                     const book_proficiency_bonuses &books )
 {
     if( !crafter.has_proficiency( prof.id )
         && !helpers_have_proficiencies( crafter, prof.id )
         && prof.time_multiplier > 1.0f
       ) {
         double malus = prof.time_multiplier - 1.0;
-        malus *= 1.0 - crafter.crafting_inventory().get_book_proficiency_bonuses().time_factor( prof.id );
+        malus *= 1.0 - books.time_factor( prof.id );
         double pl = get_aided_proficiency_level( crafter, prof.id );
         // Sigmoid function that mitigates 100% of the time malus as pl approaches 1.0
         // but has little effect at pl < 0.5. See #49198
@@ -1335,37 +1389,45 @@ static float proficiency_time_malus( const Character &crafter, const recipe_prof
     return 1.0f;
 }
 
-float recipe::proficiency_time_maluses( const Character &crafter ) const
+float recipe::proficiency_time_maluses( const Character &crafter,
+                                        const book_proficiency_bonuses &books ) const
 {
     if( has_steps() && time > 0 ) {
         // For step recipes, compute as effective ratio from per-step aggregation
-        return static_cast<float>( time_to_craft_moves( crafter ) ) / static_cast<float>( time );
+        crafting_cost_context ctx{ books, {} };
+        return static_cast<float>( time_to_craft_moves( crafter, ctx ) ) /
+               static_cast<float>( time );
     }
     float total_malus = 1.0f;
     for( const recipe_proficiency &prof : get_proficiencies() ) {
-        total_malus *= proficiency_time_malus( crafter, prof );
+        total_malus *= proficiency_time_malus( crafter, prof, books );
     }
     return total_malus;
 }
 
 float recipe::proficiency_time_maluses_for_step(
-    const Character &crafter, const recipe_step &step )
+    const Character &crafter, const recipe_step &step,
+    const book_proficiency_bonuses &books )
 {
     float total_malus = 1.0f;
     for( const recipe_proficiency &prof : step.proficiencies ) {
-        total_malus *= proficiency_time_malus( crafter, prof );
+        total_malus *= proficiency_time_malus( crafter, prof, books );
     }
     return total_malus;
 }
 
 double recipe::step_budget_moves( const Character &guy, size_t step_idx, int batch,
-                                  const std::vector<float> *tool_speeds ) const
+                                  const crafting_cost_context &ctx,
+                                  recipe_time_flag flags ) const
 {
     cata_assert( step_idx < steps_.size() );
     const recipe_step &s = steps_[step_idx];
-    double t = s.time * proficiency_time_maluses_for_step( guy, s );
-    if( tool_speeds && step_idx < tool_speeds->size() ) {
-        t *= ( *tool_speeds )[step_idx];
+    double t = s.time;
+    if( ( flags & recipe_time_flag::ignore_proficiencies ) != recipe_time_flag::ignore_proficiencies ) {
+        t *= proficiency_time_maluses_for_step( guy, s, ctx.books );
+    }
+    if( step_idx < ctx.tool_speeds.size() ) {
+        t *= ctx.tool_speeds[step_idx];
     }
     return s.batch_info.apply( t, batch );
 }
@@ -1470,14 +1532,15 @@ float recipe::max_proficiency_time_maluses( const Character & ) const
     return total_malus;
 }
 
-static float proficiency_skill_malus( const Character &crafter, const recipe_proficiency &prof )
+static float proficiency_skill_malus( const Character &crafter, const recipe_proficiency &prof,
+                                      const book_proficiency_bonuses &books )
 {
     if( !crafter.has_proficiency( prof.id )
         && !helpers_have_proficiencies( crafter, prof.id )
         && prof.skill_penalty > 0.f
       ) {
         double malus =  prof.skill_penalty;
-        malus *= 1.0 - crafter.crafting_inventory().get_book_proficiency_bonuses().fail_factor( prof.id );
+        malus *= 1.0 - books.fail_factor( prof.id );
         double pl = get_aided_proficiency_level( crafter, prof.id );
         // The failure malus is not completely eliminated until the proficiency is mastered.
         // Most of the mitigation happens at higher pl. See #49198
@@ -1487,11 +1550,12 @@ static float proficiency_skill_malus( const Character &crafter, const recipe_pro
     return 0.0f;
 }
 
-float recipe::proficiency_skill_maluses( const Character &crafter ) const
+float recipe::proficiency_skill_maluses( const Character &crafter,
+        const book_proficiency_bonuses &books ) const
 {
     float total_malus = 0.f;
     for( const recipe_proficiency &prof : get_proficiencies() ) {
-        total_malus += proficiency_skill_malus( crafter, prof );
+        total_malus += proficiency_skill_malus( crafter, prof, books );
     }
     return total_malus;
 }
@@ -1512,14 +1576,13 @@ std::string recipe::missing_proficiencies_string( const Character *crafter ) con
     }
     std::vector<prof_penalty> missing_profs;
 
-    const book_proficiency_bonuses book_bonuses =
-        crafter->crafting_inventory().get_book_proficiency_bonuses();
+    const book_proficiency_bonuses book_bonuses = crafter->book_bonuses_nearby();
     for( const recipe_proficiency &prof : get_proficiencies() ) {
         if( !prof.required ) {
             if( !( crafter->has_proficiency( prof.id ) || helpers_have_proficiencies( *crafter, prof.id ) ) ) {
                 prof_penalty pen = { prof.id,
-                                     proficiency_time_malus( *crafter, prof ),
-                                     proficiency_skill_malus( *crafter, prof )
+                                     proficiency_time_malus( *crafter, prof, book_bonuses ),
+                                     proficiency_skill_malus( *crafter, prof, book_bonuses )
                                    };
                 pen.mitigated = book_bonuses.time_factor( pen.id ) != 0.0f ||
                                 book_bonuses.fail_factor( pen.id ) != 0.0f;
@@ -1739,6 +1802,29 @@ std::function<bool( const item & )> recipe::get_component_filter(
 bool recipe::npc_can_craft( std::string & ) const
 {
     return true;
+}
+
+bool recipe::has_attention_steps() const
+{
+    for( const recipe_step &s : steps_ ) {
+        if( s.attention != step_attention::none ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool recipe::has_remaining_attention_steps( int from_step ) const
+{
+    if( from_step < 0 ) {
+        from_step = 0;
+    }
+    for( int i = from_step; i < static_cast<int>( steps_.size() ); ++i ) {
+        if( steps_[i].attention != step_attention::none ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool recipe::is_practice() const

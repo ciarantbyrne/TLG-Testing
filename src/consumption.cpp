@@ -191,7 +191,6 @@ static const trait_id trait_THRESH_PLANT( "THRESH_PLANT" );
 static const trait_id trait_THRESH_RABBIT( "THRESH_RABBIT" );
 static const trait_id trait_THRESH_RAT( "THRESH_RAT" );
 static const trait_id trait_THRESH_URSINE( "THRESH_URSINE" );
-static const trait_id trait_UNDINE_SLEEP_WATER( "UNDINE_SLEEP_WATER" );
 static const trait_id trait_VEGAN( "VEGAN" );
 static const trait_id trait_VEGETARIAN( "VEGETARIAN" );
 static const trait_id trait_WATERSLEEP( "WATERSLEEP" );
@@ -489,19 +488,19 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
     // As float to avoid rounding too many times
     float fun = comest.get_comestible_fun();
     // Food doesn't taste as good when you're sick
-    if( ( has_effect( effect_common_cold ) || has_effect( effect_flu ) ) && fun > 0 ) {
-        fun /= 3;
+    if( ( has_effect( effect_common_cold ) || has_effect( effect_flu ) ) && fun > 0.f ) {
+        fun /= 3.f;
     }
     // Rotten food should be pretty disgusting
     const float relative_rot = comest.get_relative_rot();
     if( relative_rot > 1.0f && !has_trait( trait_SAPROPHAGE ) && !has_trait( trait_SAPROVORE ) ) {
-        const float rottedness = clamp( 2 * relative_rot - 2.0f, 0.1f, 1.0f );
+        const float rottedness = clamp( 2.f * relative_rot - 2.0f, 0.1f, 1.0f );
         // Three effects:
         // penalty for rot goes from -2 to -20
         // bonus for tasty food drops from 90% to 0%
         // disgusting food unfun increases from 110% to 200%
-        fun -= rottedness * 10;
-        if( fun > 0 ) {
+        fun -= rottedness * 10.f;
+        if( fun > 0.f ) {
             fun *= ( 1.0f - rottedness );
         } else {
             fun *= ( 1.0f + rottedness );
@@ -516,34 +515,35 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
                 fun -= comest.get_comestible()->monotony_penalty;
                 // This effect can't drop fun below 0, unless the food has the right flag.
                 // 0 is the lowest we'll go, no need to keep looping.
-                if( fun <= 0 && !comest.has_flag( flag_NEGATIVE_MONOTONY_OK ) ) {
-                    fun = 0;
+                if( fun <= 0.f && !comest.has_flag( flag_NEGATIVE_MONOTONY_OK ) ) {
+                    fun = 0.f;
                     break;
                 }
             }
         }
     }
 
-    float fun_max = fun < 0 ? fun * 6.0f : fun * 3.0f;
+    float fun_max = fun < 0.f ? fun * 6.0f : fun * 3.0f;
     if( comest.has_flag( flag_EATEN_COLD ) && comest.has_flag( flag_COLD ) ) {
-        if( fun > 0 ) {
-            fun *= 2;
+        if( fun > 0.f ) {
+            fun *= 2.f;
         } else {
-            fun = 1;
-            fun_max = 5;
+            fun = 1.f;
+            fun_max = 5.f;
         }
     }
 
     if( comest.has_flag( flag_MELTS ) && !comest.has_flag( flag_FROZEN ) ) {
         if( fun > 0 ) {
-            fun *= 0.5;
+            fun *= 0.5f;
         } else {
             // Melted freezable food tastes 25% worse than frozen freezable food.
             // Frozen freezable food... say that 5 times fast
-            fun *= 1.25;
+            fun *= 1.25f;
         }
     }
 
+    // Foods designed for specific animals are tasty to those sorts of mutants, and (usually) gross to humans, so invert and half.
     if( ( comest.has_flag( flag_LUPINE ) && has_trait( trait_THRESH_LUPINE ) ) ||
         ( comest.has_flag( flag_CATTLE ) && has_trait( trait_THRESH_CATTLE ) ) ||
         ( comest.has_flag( flag_RABBIT ) && has_trait( trait_THRESH_RABBIT ) ) ||
@@ -551,12 +551,9 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
         ( comest.has_flag( flag_RAT ) && has_trait( trait_THRESH_RAT ) ) ||
         ( comest.has_flag( flag_BIRD ) && has_trait( trait_THRESH_BIRD ) ) ||
         ( comest.has_flag( flag_FELINE ) && has_trait( trait_THRESH_FELINE ) ) ) {
-        if( fun < 0 ) {
+        if( fun < 0.f ) {
             fun = -fun;
-            fun /= 2;
-        }
-        if( fun == 0 ) {
-            fun = 2;
+            fun /= 2.f;
         }
     }
 
@@ -564,32 +561,41 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
     // This is automatically handled by raw blood having negative fun
     if( comest.has_flag( flag_HEMOVORE_FUN ) ) {
         if( has_flag( json_flag_BLOODFEEDER ) ) {
-            if( fun <= 0 ) {
-                fun += 25;
+            if( fun <= 0.f ) {
+                fun += 25.f;
             } else {
-                fun *= 1.2;
+                fun *= 1.2f;
             }
         } else if( has_flag( json_flag_HEMOVORE ) ) {
-            if( fun <= 0 ) {
-                fun += 13;
+            if( fun <= 0.f ) {
+                fun += 13.f;
             } else {
                 fun *= 1.1;
             }
         }
-        fun_max = 25;
+        fun_max = 25.f;
+    }
+
+    // Non junk food is less enjoyable to sweet tooth/snackaholic characters.
+    if( !comest.has_flag( flag_ALLERGEN_JUNK ) ) {
+        if( has_trait( trait_PROJUNK ) || has_trait( trait_PROJUNK2 ) ) {
+            if( fun > 0.f ) {
+                fun *= 0.75f;
+            }
+        }
     }
 
     // This cherry soda's just not the same...
     if( has_flag( json_flag_BLOODFEEDER ) && !comest.has_flag( flag_HEMOVORE_FUN ) && fun > 0 ) {
-        fun *= 0.5;
+        fun *= 0.5f;
     }
 
     if( has_trait( trait_GOURMAND ) ) {
         if( fun < -1.f ) {
             fun_max = fun;
             fun *= 0.75f;
-        } else if( fun > 0 ) {
-            fun_max *= 3;
+        } else if( fun > 0.f ) {
+            fun_max *= 3.f;
             fun = fun * 3 / 2;
         }
     }
@@ -597,7 +603,7 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
     if( fun < 0 && has_active_bionic( bio_taste_blocker ) &&
         get_power_level() > units::from_kilojoule( static_cast<std::int64_t>( std::abs(
                     comest.get_comestible_fun() ) ) ) ) {
-        fun = 0;
+        fun = 0.f;
     }
 
     // Zombie meat doesn't taste good, but it's tolerable for those who can eat it.
@@ -608,7 +614,7 @@ std::pair<int, int> Character::fun_for( const item &comest, bool ignore_already_
         }
     }
 
-    return { static_cast< int >( fun ), static_cast< int >( fun_max ) };
+    return { static_cast< int >( std::round( fun ) ), static_cast< int >( std::round( fun_max ) ) };
 }
 
 time_duration Character::vitamin_rate( const vitamin_id &vit ) const
@@ -676,11 +682,8 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
     // (Okay, technically it returns a pair<iterator, bool>, the iterator is what we want)
     auto it = vitamin_levels.emplace( vit, 0 ).first;
     const vitamin &v = *it->first;
-
     if( qty > 0 ) {
         it->second = std::min( it->second + qty, v.max() );
-        update_vitamins( vit );
-
         // update the daily trackers too while here
         // prevent overflow
         constexpr int daily_vitamins_max = std::numeric_limits<int>::max();
@@ -689,7 +692,6 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
         } else {
             daily_vitamins[vit].second = daily_vitamins_max;
         }
-
     } else if( qty < 0 ) {
         it->second = std::max( it->second + qty, v.min() );
         update_vitamins( vit );
@@ -699,7 +701,8 @@ int Character::vitamin_mod( const vitamin_id &vit, int qty )
             }
         }
     }
-
+    // We must always call update_vitamins() because effects must be both applied and removed.
+    update_vitamins( vit );
     return it->second;
 }
 
@@ -828,11 +831,6 @@ ret_val<edible_rating> Character::can_eat( const item &food ) const
         return ret_val<edible_rating>::make_failure( _( "That doesn't look edible in its current form." ) );
     }
 
-    if( food.has_own_flag( flag_DIRTY ) ) {
-        return ret_val<edible_rating>::make_failure(
-                   _( "This is full of dirt after being on the ground." ) );
-    }
-
     const bool eat_verb  = food.has_flag( flag_USE_EAT_VERB );
     const bool edible    = eat_verb ||  comest->comesttype == comesttype_FOOD;
     const bool drinkable = !eat_verb && comest->comesttype == comesttype_DRINK;
@@ -840,8 +838,8 @@ ret_val<edible_rating> Character::can_eat( const item &food ) const
     // TODO: This condition occurs way too often. Unify it.
     // update Sep. 26 2018: this apparently still occurs way too often. yay!
     if( is_underwater() &&
-        ( ( !has_trait( trait_WATERSLEEP ) && !has_trait( trait_UNDINE_SLEEP_WATER ) ) ||
-          ( ( has_trait( trait_WATERSLEEP ) || has_trait( trait_UNDINE_SLEEP_WATER ) ) && drinkable ) ) ) {
+        ( !has_trait( trait_WATERSLEEP ) ||
+          ( ( has_trait( trait_WATERSLEEP ) ) && drinkable ) ) ) {
         return ret_val<edible_rating>::make_failure( _( "You can't do that while underwater." ) );
     }
 
@@ -899,7 +897,8 @@ ret_val<edible_rating> Character::can_eat( const item &food ) const
     }
 
     // Here's why PROBOSCIS is such a negative trait.
-    if( has_trait( trait_PROBOSCIS ) && !( drinkable || food.is_medication() ) ) {
+    if( has_trait( trait_PROBOSCIS ) && !drinkable && ( !food.is_medication() ||
+            food.has_flag( flag_CHEW ) ) ) {
         return ret_val<edible_rating>::make_failure( INEDIBLE_MUTATION, _( "Ugh, you can't drink that!" ) );
     }
 
@@ -1291,30 +1290,6 @@ void Character::modify_health( const islot_comestible &comest )
     mod_daily_health( effective_health, effective_health >= 0 ? health_cap : -health_cap );
 }
 
-void Character::modify_stimulation( const islot_comestible &comest )
-{
-    if( comest.stim == 0 ) {
-        return;
-    }
-    const int current_stim = get_stim();
-    if( ( std::abs( comest.stim ) * 3 ) > std::abs( current_stim ) ) {
-        mod_stim( comest.stim );
-    } else {
-        comest.stim > 0 ? mod_stim( std::max( comest.stim / 2, 1 ) ) : mod_stim( std::min( comest.stim / 2,
-                -1 ) );
-    }
-    if( has_trait( trait_STIMBOOST ) && ( current_stim > 30 ) &&
-        ( comest.addictions.count( STATIC( addiction_id( "caffeine" ) ) ) ||
-          comest.addictions.count( STATIC( addiction_id( "amphetamine" ) ) ) ||
-          comest.addictions.count( STATIC( addiction_id( "cocaine" ) ) ) ||
-          comest.addictions.count( STATIC( addiction_id( "crack" ) ) ) ) ) {
-        int hallu_duration = ( current_stim - comest.stim < 30 ) ? current_stim - 30 : comest.stim;
-        add_effect( effect_visuals, hallu_duration * 30_minutes );
-        add_msg_if_player( m_bad, SNIPPET.random_from_category( "comest_stimulant" ).value_or(
-                               translation() ).translated() );
-    }
-}
-
 void Character::modify_fatigue( const islot_comestible &comest )
 {
     mod_fatigue( -comest.fatigue_mod );
@@ -1467,15 +1442,16 @@ void Character::modify_morale( item &food, const int nutr )
         if( food.has_flag( flag_ALLERGEN_JUNK ) ) {
             if( has_trait( trait_PROJUNK ) ) {
                 add_msg_if_player( m_good, _( "Mmm, junk food." ) );
-                add_morale( morale_sweettooth, 5, 25, 2_hours, 1_hours, true );
+                add_morale( morale_sweettooth, 5, 15, 2_hours, 30_minutes, true );
             }
             if( has_trait( trait_PROJUNK2 ) ) {
                 if( !one_in( 100 ) ) {
-                    add_msg_if_player( m_good, _( "When life's got you down, there's always sugar." ) );
+                    //~ Translators: This is a quote from the 1973 animated film Charlotte's Web, where a rat is singing about eating trash off the ground. Do what you will with that information.
+                    add_msg_if_player( m_good, _( "A veritable smorgasbord!" ) );
                 } else {
                     add_msg_if_player( m_good, _( "Snack attack!" ) );
                 }
-                add_morale( morale_sweettooth, 10, 30, 2_hours, 1_hours, true );
+                add_morale( morale_sweettooth, 5, 30, 2_hours, 30_minutes, true );
             }
             // Carnivores CAN eat junk food, but they won't like it much.
             // Pizza-scraping happens in consume_effects.
@@ -1507,16 +1483,19 @@ void Character::modify_morale( item &food, const int nutr )
         if( has_trait( trait_PICKYEATER ) ) {
             nausea_chance += 5;
         }
-        if( get_str_base() > 10 ) {
-            nausea_chance -= ( std::min( get_str(), get_str_base() ) / 2 );
+        int strength_adjusted = enchantment_cache->modify_value( enchant_vals::mod::STRENGTH_NATURAL,
+                                get_str_base() );
+        // Nausea chance is not reduced at strength 9.
+        // Nausea chance reduction ranges from 1 to 10 for strength 10 through 19.
+        nausea_chance -= std::clamp( std::min( get_str(), strength_adjusted ) - 9, 0, 10 );
+        if( nausea_chance > 0 && x_in_y( std::min( 100, nausea_chance ), 100 ) ) {
+            const double nausea_severity = nausea_chance * rng_float( 1.25, 0.5 );
+            // 15 minutes is the max duration, and the effect's intensity automatically scales with duration.
+            // Max duration is reached when nausea_severity is 1/0.15=6.667.
+            add_effect( effect_nausea, std::min( 100.0, nausea_severity ) * 0.15 * 15_minutes );
+            add_msg_player_or_npc( _( "You're not sure you're going to be able to keep that down." ),
+                                   _( "<npcname> looks about ready to puke." ) );
         }
-    }
-    if( nausea_chance > 0 && x_in_y( std::min( 100, nausea_chance ), 100 ) ) {
-        nausea_chance = static_cast<int>( nausea_chance * rng_float( 1.25, 0.5 ) );
-        // 15 minutes is the max duration, and the effect's intensity automatically scales with duration.
-        add_effect( effect_nausea, ( 1 / ( std::min( 100, nausea_chance ) * .15 ) ) * 15_minutes );
-        add_msg_player_or_npc( _( "You're not sure you're going to be able to keep that down." ),
-                               _( "<npcname> looks about ready to puke." ) );
     }
 }
 
@@ -1647,7 +1626,6 @@ bool Character::consume_effects( item &food )
     if( !skip_health ) {
         modify_health( comest );
     }
-    modify_stimulation( comest );
     modify_fatigue( comest );
     modify_addiction( comest );
     modify_morale( food, nutr );
@@ -1755,11 +1733,13 @@ bool Character::can_estimate_rot() const
 
 bool Character::can_consume_as_is( const item &it ) const
 {
-    if( it.is_comestible() ) {
-        return !it.has_flag( flag_FROZEN ) || it.has_flag( flag_EDIBLE_FROZEN ) ||
-               it.has_flag( flag_MELTS );
+    if( !it.is_comestible() ) {
+        return false;
     }
-    return false;
+
+    return ( !it.has_flag( flag_NO_INGEST ) || it.get_comestible()->comesttype == "MED" ||
+             it.has_flag( flag_CHEW ) ) &&
+           ( !it.has_flag( flag_FROZEN ) || it.has_flag( flag_EDIBLE_FROZEN ) || it.has_flag( flag_MELTS ) );
 }
 
 bool Character::can_consume_rot() const
@@ -1910,7 +1890,6 @@ static bool consume_med( item &target, Character &you )
         const islot_comestible &comest = *target.get_comestible();
         // Assume that parenteral meds don't spoil, so don't apply rot
         you.modify_health( comest );
-        you.modify_stimulation( comest );
         you.modify_fatigue( comest );
         you.modify_addiction( comest );
         you.modify_morale( target );
@@ -1940,7 +1919,7 @@ trinary Character::consume( item &target, bool force )
         add_msg_if_player( m_info, _( "You do not have that item." ) );
         return trinary::NONE;
     }
-    if( ( !has_trait( trait_WATERSLEEP ) && !has_trait( trait_UNDINE_SLEEP_WATER ) ) &&
+    if( ( !has_trait( trait_WATERSLEEP ) ) &&
         cant_do_underwater() ) {
         return trinary::NONE;
     }

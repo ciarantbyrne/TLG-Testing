@@ -31,7 +31,8 @@
         [ "knife_swissarmy", -1 ],
         [ "punch_dagger", -1 ],
         [ "knuckle_katar", -1 ],
-        [ "balisong", -1 ]
+        [ "balisong", -1 ],
+        [ "sai", -1 ]
       ]
     ]
   },
@@ -75,7 +76,9 @@
         [ "glaive", -1 ],
         [ "battleaxe", -1 ],
         [ "lucerne_hammer", -1 ],
-        [ "warhammer", -1 ]
+        [ "warhammer", -1 ],
+        [ "jitte", -1 ],
+        [ "sai", -1 ]
       ]
     ]
   },
@@ -176,7 +179,7 @@
       [
         [ "cavalry_sabre", -1 ],
         [ "jian", -1 ],
-        [ "scimitar", -1 ],
+        [ "talwar", -1 ],
         [ "arming_sword", -1 ],
         [ "wakizashi", -1 ],
         [ "broadsword", -1 ],
@@ -196,7 +199,6 @@
         [ "broadsword", -1 ],
         [ "cavalry_sabre", -1 ],
         [ "jian", -1 ],
-        [ "scimitar", -1 ],
         [ "arming_sword", -1 ],
         [ "dao", -1 ],
         [ "wakizashi", -1 ],
@@ -287,7 +289,16 @@
     "id": "real_batons",
     "type": "requirement",
     "//": "Any one-handed weapon designed primarily to bash or smash things.  Reserved for quality items.",
-    "tools": [ [ [ "blackjack", -1 ], [ "shocktonfa_off", -1 ], [ "baton-extended", -1 ], [ "tonfa", -1 ], [ "tonfa_wood", -1 ] ] ]
+    "tools": [
+      [
+        [ "blackjack", -1 ],
+        [ "shocktonfa_off", -1 ],
+        [ "baton-extended", -1 ],
+        [ "tonfa", -1 ],
+        [ "tonfa_wood", -1 ],
+        [ "jitte", -1 ]
+      ]
+    ]
   },
   {
     "id": "basic_flails",
@@ -358,7 +369,7 @@
     ]
   },
   {
-    "id": "basic_quarterstaves",
+    "id": "basic_staffs",
     "type": "requirement",
     "//": "Any basic thing you can use like a quarterstaff.",
     "tools": [
@@ -373,7 +384,7 @@
     ]
   },
   {
-    "id": "real_quarterstaves",
+    "id": "real_staffs",
     "type": "requirement",
     "//": "Any real, pole-like weapons designed for bashing and smashing.  Reserved for quality items.",
     "tools": [ [ [ "i_staff", -1 ], [ "q_staff", -1 ], [ "bo", -1 ], [ "shock_staff", -1 ] ] ]

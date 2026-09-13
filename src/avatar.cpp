@@ -92,7 +92,6 @@ static const bionic_id bio_sleep_shutdown( "bio_sleep_shutdown" );
 
 static const efftype_id effect_alarm_clock( "alarm_clock" );
 static const efftype_id effect_boomered( "boomered" );
-static const efftype_id effect_depressants( "depressants" );
 static const efftype_id effect_happy( "happy" );
 static const efftype_id effect_irradiated( "irradiated" );
 static const efftype_id effect_narcosis( "narcosis" );
@@ -103,8 +102,6 @@ static const efftype_id effect_sad( "sad" );
 static const efftype_id effect_sleep( "sleep" );
 static const efftype_id effect_sleep_deprived( "sleep_deprived" );
 static const efftype_id effect_slept_through_alarm( "slept_through_alarm" );
-static const efftype_id effect_stim( "stim" );
-static const efftype_id effect_stim_overdose( "stim_overdose" );
 static const efftype_id effect_stunned( "stunned" );
 
 static const faction_id faction_your_followers( "your_followers" );
@@ -140,7 +137,6 @@ static const trait_id trait_INSECT_ARMS_OK( "INSECT_ARMS_OK" );
 static const trait_id trait_PROF_DICEMASTER( "PROF_DICEMASTER" );
 static const trait_id trait_SHELL2( "SHELL2" );
 static const trait_id trait_SHELL3( "SHELL3" );
-static const trait_id trait_STIMBOOST( "STIMBOOST" );
 static const trait_id trait_THICK_SCALES( "THICK_SCALES" );
 static const trait_id trait_WHISKERS( "WHISKERS" );
 static const trait_id trait_WHISKERS_RAT( "WHISKERS_RAT" );
@@ -779,7 +775,7 @@ void avatar::identify( const item &item )
     if( reading->intel != 0 ) {
         add_msg( m_info, _( "Requires intelligence of %d to easily read." ), reading->intel );
     }
-    //It feels wrong to use a pointer to *this, but I can't find any other player pointers in this method.
+
     if( book_fun_for( book, *this ) != 0 ) {
         add_msg( m_info, _( "Reading this book affects your morale by %d." ), book_fun_for( book, *this ) );
     }
@@ -959,7 +955,6 @@ mfaction_id avatar::get_monster_faction() const
 
 void avatar::reset_stats()
 {
-    const int current_stim = get_stim();
 
     // Trait / mutation buffs
     if( has_trait( trait_THICK_SCALES ) ) {
@@ -1033,15 +1028,6 @@ void avatar::reset_stats()
     set_fake_effect_dur( effect_happy, 1_turns * morale );
     set_fake_effect_dur( effect_sad, 1_turns * -morale );
 
-    // Stimulants
-    // FIXME: are you fucking kidding me
-    set_fake_effect_dur( effect_stim, 1_turns * current_stim );
-    set_fake_effect_dur( effect_depressants, 1_turns * -current_stim );
-    if( has_trait( trait_STIMBOOST ) ) {
-        set_fake_effect_dur( effect_stim_overdose, 1_turns * ( current_stim - 60 ) );
-    } else {
-        set_fake_effect_dur( effect_stim_overdose, 1_turns * ( current_stim - 30 ) );
-    }
     // Starvation
     const float bmi = get_bmi_fat();
     if( bmi < character_weight_category::normal ) {
@@ -1099,7 +1085,7 @@ void avatar::reset_stats()
     }
 
     Character::reset_stats();
-
+    invalidate_tile_eye_level_cache();
     recalc_sight_limits();
 
 }
@@ -1316,8 +1302,8 @@ void avatar::set_movement_mode( const move_mode_id &new_mode )
         move_mode = new_mode;
         // Enchantments based on move modes can stack inappropriately without a recalc here
         recalculate_enchantment_cache();
-        // crouching affects visibility
-        //TODO: Replace with dirtying vision_transparency_cache
+        // This potentially changes our eye level, so invalidate and dirty the relevant caches.
+        invalidate_tile_eye_level_cache();
         here.set_transparency_cache_dirty( pos_bub() );
         here.set_seen_cache_dirty( posz() );
         recoil = MAX_RECOIL;

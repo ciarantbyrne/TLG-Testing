@@ -70,9 +70,11 @@ static const damage_type_id damage_acid( "acid" );
 static const damage_type_id damage_bash( "bash" );
 static const damage_type_id damage_electric( "electric" );
 static const damage_type_id damage_heat( "heat" );
+static const damage_type_id damage_pure( "pure" );
 
 static const efftype_id effect_badpoison( "badpoison" );
 static const efftype_id effect_blind( "blind" );
+static const efftype_id effect_fungalpoison( "fungalpoison" );
 static const efftype_id effect_fungus( "fungus" );
 static const efftype_id effect_onfire( "onfire" );
 static const efftype_id effect_poison( "poison" );
@@ -99,6 +101,7 @@ static const species_id species_FERAL( "FERAL" );
 static const species_id species_FUNGUS( "FUNGUS" );
 static const species_id species_INSECT( "INSECT" );
 static const species_id species_INSECT_FLYING( "INSECT_FLYING" );
+static const species_id species_MIGO( "MIGO" );
 static const species_id species_ROBOT( "ROBOT" );
 static const species_id species_ROBOT_FLYING( "ROBOT_FLYING" );
 static const species_id species_SPIDER( "SPIDER" );
@@ -111,6 +114,7 @@ static const trait_id trait_ACIDPROOF( "ACIDPROOF" );
 static const trait_id trait_COMPOUND_EYES( "COMPOUND_EYES" );
 static const trait_id trait_EYESTALKS_RIGID( "EYESTALKS_RIGID" );
 static const trait_id trait_GASTROPOD_FOOT( "GASTROPOD_FOOT" );
+static const trait_id trait_POISRESIST( "POISRESIST" );
 static const trait_id trait_M_IMMUNE( "M_IMMUNE" );
 static const trait_id trait_M_SKIN2( "M_SKIN2" );
 static const trait_id trait_M_SKIN3( "M_SKIN3" );
@@ -583,18 +587,18 @@ void field_processor_spread_gas( const tripoint_bub_ms &p, field_entry &cur, fie
                         pd.sblk, pd.om_ter );
 }
 
-static void field_processor_fd_fungal_haze( const tripoint_bub_ms &p, field_entry &cur,
-        field_proc_data &/*pd*/ )
+static void field_processor_fd_spores( const tripoint_bub_ms &p, field_entry &cur,
+                                       field_proc_data &/*pd*/ )
 {
-    // if( cur_fd_type_id == fd_fungal_haze ) {
-    if( one_in( 10 - 2 * cur.get_field_intensity() ) ) {
-        // Haze'd terrain
+    // if( cur_fd_type_id == fd_spores ) {
+    // There's already RNG in the function we call here, so a simple interval works fine here.
+    if( calendar::once_every( 1_seconds * ( 30 - 5 * cur.get_field_intensity() ) ) ) {
+        // The haze fungalizes terrain.
         fungal_effects().spread_fungus( p );
     }
 }
 
 // Process npc complaints moved to player_in_field
-
 static void field_processor_extra_radiation( const tripoint_bub_ms &p, field_entry &cur,
         field_proc_data &pd )
 {
@@ -1337,9 +1341,12 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                 continue;
             }
 
-            field_entry *nearwebfld = dst.find_field( fd_web );
+            field_entry *nearflammablefld = dst.find_field( fd_web );
+            if( nearflammablefld == nullptr ) {
+                nearflammablefld = dst.find_field( fd_fuel );
+            }
             int spread_chance = std::max( 0, 25 * ( cur.get_field_intensity() - 1 ) );
-            if( nearwebfld ) {
+            if( nearflammablefld ) {
                 spread_chance = 50 + spread_chance / 2;
             }
 
@@ -1356,7 +1363,7 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                                       one_in( 2 ) ) ) ||
                     ( power >= 3 && ( ter_furn_has_flag( dster, dsfrn, ter_furn_flag::TFLAG_FLAMMABLE_HARD ) &&
                                       one_in( 5 ) ) ) ||
-                    nearwebfld ||
+                    nearflammablefld ||
                     ( one_in( 5 ) && dst.get_item_count() > 0 &&
                       here.flammable_items_at( p + eight_horizontal_neighbors[i] ) )
                 ) ) {
@@ -1366,8 +1373,8 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                     // Consume a bit of our fuel
                     cur.set_field_age( cur.get_field_age() + 1_minutes );
                 }
-                if( nearwebfld ) {
-                    nearwebfld->set_field_intensity( 0 );
+                if( nearflammablefld ) {
+                    nearflammablefld->set_field_intensity( 0 );
                 }
             }
         }
@@ -1397,9 +1404,12 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                 continue;
             }
 
-            field_entry *nearwebfld = dst.find_field( fd_web );
+            field_entry *nearflammablefld = dst.find_field( fd_web );
+            if( nearflammablefld == nullptr ) {
+                nearflammablefld = dst.find_field( fd_fuel );
+            }
             int spread_chance = 25 * ( cur.get_field_intensity() - 1 );
-            if( nearwebfld ) {
+            if( nearflammablefld ) {
                 spread_chance = 50 + spread_chance / 2;
             }
 
@@ -1416,7 +1426,7 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                                       one_in( 2 ) ) ) ||
                     ( power >= 3 && ( ter_furn_has_flag( dster, dsfrn, ter_furn_flag::TFLAG_FLAMMABLE_HARD ) &&
                                       one_in( 5 ) ) ) ||
-                    nearwebfld ||
+                    nearflammablefld ||
                     ( one_in( 5 ) && dst.get_item_count() > 0 &&
                       here.flammable_items_at( p + eight_horizontal_neighbors[i] ) )
                 ) ) {
@@ -1426,8 +1436,8 @@ void field_processor_fd_fire( const tripoint_bub_ms &p, field_entry &cur, field_
                     // Consume a bit of our fuel
                     cur.set_field_age( cur.get_field_age() + 1_minutes );
                 }
-                if( nearwebfld ) {
-                    nearwebfld->set_field_intensity( 0 );
+                if( nearflammablefld ) {
+                    nearflammablefld->set_field_intensity( 0 );
                 }
             }
         }
@@ -1643,26 +1653,37 @@ void map::player_in_field( Character &you )
                 you.add_env_effect( effect_blind, bodypart_id( "eyes" ), 1, cur.get_field_intensity() * 2_seconds );
             }
         }
-        if( ft == fd_fungal_haze ) {
-            if( !you.has_trait( trait_M_IMMUNE ) && ( !inside || one_in( 4 ) ) ) {
-                you.add_env_effect( effect_fungus, bodypart_id( "mouth" ), 4, 10_minutes, true );
-                you.add_env_effect( effect_fungus, bodypart_id( "eyes" ), 4, 10_minutes, true );
+
+        if( ft == fd_toxic_gas ) {
+            int required_resist = 6;
+            const int intensity = cur.get_field_intensity();
+            if( ( intensity > 2 ) && !you.in_vehicle ) {
+                required_resist = 15;
+            }
+            if( you.get_env_resist( bodypart_id( "mouth" ) ) < rng( 1, required_resist ) &&
+                ( ( !you.has_trait( trait_POISRESIST ) && one_in( 8 - intensity ) ) ||
+                  ( you.has_trait( trait_POISRESIST ) && one_in( 13 - intensity ) ) ) ) {
+                if( one_in( 20 ) ) {
+                    you.add_msg_if_player( _( "The gas burns horribly as you breathe it in!" ) );
+                }
+                you.cough( true, true );
+                you.deal_damage( nullptr, bodypart_id( "torso" ), damage_instance( damage_pure, rng( 1,
+                                 intensity ) ) );
             }
         }
-
+        // Old code used by fd_nuke_gas. Get rid of this once it's gone.
         if( cur.get_intensity_level().extra_radiation_min > 0 ) {
             const field_intensity_level &int_level = cur.get_intensity_level();
-            // Get irradiated by the nuclear fallout.
             const float rads = rng( int_level.extra_radiation_min + 1,
                                     int_level.extra_radiation_max * ( int_level.extra_radiation_max + 1 ) );
             const bool rad_proof = !you.irradiate( rads );
-            // TODO: Reduce damage for rad resistant?
             if( int_level.extra_radiation_min > 0 && !rad_proof ) {
                 you.add_msg_if_player( m_bad, int_level.radiation_hurt_message.translated() );
                 you.hurtall( rng( int_level.radiation_hurt_damage_min, int_level.radiation_hurt_damage_max ),
                              nullptr );
             }
         }
+        // What even uses this?
         if( ft == fd_flame_burst ) {
             // A burst of flame? Only hits the legs and torso.
             if( !inside ) {
@@ -1954,9 +1975,12 @@ void map::monster_in_field( monster &z )
         if( cur_field_type == fd_smoke ) {
             if( !z.has_flag( mon_flag_NO_BREATHE ) ) {
                 if( cur.get_field_intensity() == 3 ) {
+                    if( one_in( 15 ) && !z.made_of( material_vegetable ) ) {
+                        dam += 1;
+                    }
                     z.mod_moves( -to_moves<int>( 1_seconds ) * rng_float( 0.1, 0.2 ) );
                 }
-                // Plants suffer from smoke even worse
+                // Plants are slowed down more by smoke.
                 if( z.made_of( material_vegetable ) ) {
                     z.mod_moves( -to_moves<int>( 1_seconds ) * rng_float( 0.01, cur.get_field_intensity() * 0.12 ) );
                 }
@@ -2006,13 +2030,7 @@ void map::monster_in_field( monster &z )
             }
 
         }
-        if( cur_field_type == fd_toxic_gas ) {
-            if( !z.has_flag( mon_flag_NO_BREATHE ) ) {
-                dam += cur.get_field_intensity();
-                z.mod_moves( -cur.get_field_intensity() );
-            }
 
-        }
         if( cur_field_type == fd_nuke_gas ) {
             if( !z.has_flag( mon_flag_NO_BREATHE ) ) {
                 if( cur.get_field_intensity() == 3 ) {
@@ -2075,10 +2093,10 @@ void map::monster_in_field( monster &z )
             if( z.made_of_any( Creature::cmat_flameres ) ) {
                 dam += -15;
             }
-
-            if( cur.get_field_intensity() == 1 ) {
+            const int intensity = cur.get_field_intensity();
+            if( intensity == 1 ) {
                 dam += rng( 0, 3 );
-            } else if( cur.get_field_intensity() == 2 ) {
+            } else if( intensity == 2 ) {
                 dam += rng( 1, 9 );
                 if( !z.in_species( species_ZOMBIE ) && !z.in_species( species_ROBOT ) &&
                     !z.in_species( species_ROBOT_FLYING ) ) {
@@ -2087,7 +2105,7 @@ void map::monster_in_field( monster &z )
                 if( !z.made_of( phase_id::LIQUID ) && !z.made_of_any( Creature::cmat_flameres ) && one_in( 4 ) ) {
                     z.add_effect( effect_onfire, rng( 1_turns, 6_turns ) );
                 }
-            } else if( cur.get_field_intensity() == 3 ) {
+            } else {
                 dam += rng( 1, 15 );
                 if( !z.in_species( species_ZOMBIE ) && !z.in_species( species_ROBOT ) &&
                     !z.in_species( species_ROBOT_FLYING ) ) {
@@ -2098,28 +2116,53 @@ void map::monster_in_field( monster &z )
                 }
             }
         }
-        if( cur_field_type == fd_fungal_haze ) {
-            if( !z.type->in_species( species_FUNGUS ) &&
-                !z.type->has_flag( mon_flag_NO_BREATHE ) &&
-                !z.make_fungus() ) {
-                // Don't insta-kill jabberwocks, that's silly
+        if( cur_field_type == fd_toxic_gas ) {
+            if( !z.has_flag( mon_flag_NO_BREATHE ) && !z.type->in_species( species_FUNGUS ) &&
+                !z.type->in_species( species_MIGO ) && !z.made_of( material_vegetable ) ) {
                 const int intensity = cur.get_field_intensity();
-                z.mod_moves( -rng( 10 - size_factor * intensity, 30 - size_factor * intensity ) );
-                dam += rng( 0, 10 - size_factor * intensity );
+                if( one_in( 5 - intensity ) ) {
+                    dam += rng( 1, ( 10 - size_factor ) * intensity );
+                    if( z.type->has_fear_trigger( mon_trigger::HURT ) ) {
+                        z.morale -= ( 2 * intensity );
+                    }
+                    if( z.type->has_anger_trigger( mon_trigger::HURT ) ) {
+                        z.anger += ( 2 * intensity );
+                    }
+                }
+            }
+        }
+        if( cur_field_type == fd_spores ) {
+            if( !z.type->in_species( species_FUNGUS ) ) {
+                const int intensity = cur.get_field_intensity();
+                if( one_in( 12 - intensity ) ) {
+                    // Mi-go aren't especially vulnerable to the mycus, but they do recognize it as a threat.
+                    if( !z.make_fungus() || z.type->in_species( species_MIGO ) ) {
+                        // Apply fungalpoison effect (stands in for fungal infection for monsters) if the
+                        // target is something the fungus can eat but not fungalize.
+                        z.add_effect( effect_stunned, intensity * 1_seconds );
+                        z.add_effect( effect_fungalpoison, intensity * 10_seconds );
+                        if( z.type->has_fear_trigger( mon_trigger::HURT ) ) {
+                            z.morale -= ( 2 * intensity );
+                        }
+                        if( z.type->has_anger_trigger( mon_trigger::HURT ) ) {
+                            z.anger += ( 2 * intensity );
+                        }
+                    }
+                }
             }
         }
         if( cur_field_type == fd_fungicidal_gas ) {
             if( z.type->in_species( species_FUNGUS ) ) {
                 const int intensity = cur.get_field_intensity();
-                z.mod_moves( -rng( 10 - size_factor * intensity, 30 - size_factor * intensity ) );
-                dam += rng( 1, 8 - size_factor * intensity );
+                z.mod_moves( -rng( ( 10 - size_factor ) * intensity, ( 30 - size_factor ) * intensity ) );
+                dam += rng( 1, ( 10 - size_factor ) * intensity );
             }
         }
         if( cur_field_type == fd_insecticidal_gas ) {
             if( z.made_of( material_iflesh ) && !z.has_flag( mon_flag_INSECTICIDEPROOF ) ) {
                 const int intensity = cur.get_field_intensity();
-                z.mod_moves( -rng( 10 - size_factor * intensity, 30 - size_factor * intensity ) );
-                dam += rng( 1, 8 - size_factor * intensity );
+                z.mod_moves( -rng( ( 10 - size_factor ) * intensity, ( 30 - size_factor ) * intensity ) );
+                dam += rng( 1, ( 10 - size_factor ) * intensity );
             }
         }
     }
@@ -2304,8 +2347,8 @@ std::vector<FieldProcessorPtr> map_field_processing::processors_for_type( const 
     if( ft.id == fd_fire ) {
         processors.push_back( &field_processor_fd_fire );
     }
-    if( ft.id == fd_fungal_haze ) {
-        processors.push_back( &field_processor_fd_fungal_haze );
+    if( ft.id == fd_spores ) {
+        processors.push_back( &field_processor_fd_spores );
     }
     if( ft.id == fd_fire_vent ) {
         processors.push_back( &field_processor_fd_fire_vent );

@@ -34,6 +34,8 @@
 #include "city.h"
 #include "color.h"
 #include "coordinates.h"
+#include "crafting.h"
+#include "crafting_enums.h"
 #include "creature.h"
 #include "creature_tracker.h"
 #include "cuboid_rectangle.h"
@@ -47,6 +49,8 @@
 #include "field.h"
 #include "field_type.h"
 #include "flag.h"
+#include "flat_set.h" // IWYU pragma: keep
+#include "flexbuffer_json.h"
 #include "fungal_effects.h"
 #include "game.h"
 #include "game_constants.h"
@@ -89,6 +93,7 @@
 #include "player_activity.h"
 #include "point.h"
 #include "popup.h" // For play_game
+#include "proficiency.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
 #include "requirements.h"
@@ -240,6 +245,10 @@ static const efftype_id effect_webbed( "webbed" );
 static const efftype_id effect_zapped( "zapped" );
 
 static const flag_id json_flag_GRAB_FILTER( "GRAB_FILTER" );
+static const flag_id json_flag_NUMB( "NUMB" );
+static const flag_id json_flag_VERMINOUS( "VERMINOUS" );
+static const flag_id json_flag_WASH_HARD( "WASH_HARD" );
+static const flag_id json_flag_WASH_SOFT( "WASH_SOFT" );
 
 static const furn_str_id furn_f_translocator_buoy( "f_translocator_buoy" );
 
@@ -404,6 +413,7 @@ static const trait_id trait_WAYFARER( "WAYFARER" );
 static const trap_str_id tr_goo( "tr_goo" );
 static const trap_str_id tr_portal( "tr_portal" );
 
+static const vitamin_id vitamin_amphetamine( "amphetamine" );
 static const vitamin_id vitamin_blood( "blood" );
 static const vitamin_id vitamin_human_blood_vitamin( "human_blood_vitamin" );
 static const vitamin_id vitamin_redcells( "redcells" );
@@ -775,7 +785,6 @@ std::optional<int> iuse::antiparasitic( Character *p, item *, const tripoint_bub
 
 std::optional<int> iuse::anticonvulsant( Character *p, item *, const tripoint_bub_ms & )
 {
-    p->add_msg_if_player( _( "You take some anticonvulsant medication." ) );
     /** @EFFECT_STR reduces duration of anticonvulsant medication */
     time_duration duration = 8_hours - p->str_cur * rng( 0_turns, 10_minutes );
     if( p->has_trait( trait_TOLERANCE ) ) {
@@ -978,11 +987,7 @@ std::optional<int> iuse::oxygen_bottle( Character *p, item *it, const tripoint_b
         p->remove_effect( effect_teargas );
     } else if( p->has_effect( effect_asthma ) ) {
         p->remove_effect( effect_asthma );
-    } else if( p->get_stim() < 16 ) {
-        p->mod_stim( 8 );
-        p->mod_painkiller( 2 );
     }
-    p->mod_painkiller( 2 );
     return 1;
 }
 
@@ -1066,13 +1071,6 @@ std::optional<int> iuse::plantblech( Character *p, item *it, const tripoint_bub_
     } else {
         return blech( p, it, pos );
     }
-}
-
-std::optional<int> iuse::chew( Character *p, item *it, const tripoint_bub_ms & )
-{
-    // TODO: Add more effects?
-    p->add_msg_if_player( _( "You chew your %s." ), it->tname() );
-    return 1;
 }
 
 // Helper to handle the logic of removing some random mutations.
@@ -1226,7 +1224,6 @@ static void marloss_common( Character &p, item &it, const trait_id &current_colo
         p.mod_fatigue( 5 );
     } else if( effect <= 6 ) { // Radiation cleanse is below
         p.add_msg_if_player( m_good, _( "You feel better all over." ) );
-        p.mod_painkiller( 30 );
         p.mod_pain( -40 );
         if( effect == 6 ) {
             p.set_rad( 0 );
@@ -1377,7 +1374,6 @@ std::optional<int> iuse::mycus( Character *p, item *, const tripoint_bub_ms & )
         p->add_msg_if_player( m_neutral,
                               _( "It tastes amazing, and you finish it quickly." ) );
         p->add_msg_if_player( m_good, _( "You feel better all over." ) );
-        p->mod_painkiller( 30 );
         p->set_rad( 0 );
         p->healall( 4 ); // Can't make you a whole new person, but not for lack of trying
         p->add_msg_if_player( m_good,
@@ -1444,10 +1440,9 @@ std::optional<int> iuse::mycus( Character *p, item *, const tripoint_bub_ms & )
             p->mod_fatigue( 5 );
             p->add_morale( morale_marloss, 25, 200 ); // still covers up mutation pain
         }
-    } else if( p->has_trait( trait_THRESH_MYCUS ) ) {
-        p->mod_painkiller( 5 );
-        p->mod_stim( 5 );
-    } else { // In case someone gets one without having been adapted first.
+    }
+    if( !p->has_trait( trait_THRESH_MYCUS ) ) {
+        // In case someone gets one without having been adapted first.
         // Marloss is the Mycus' method of co-opting humans.  Mycus fruit is for symbiotes' maintenance and development.
         p->add_msg_if_player(
             _( "This tastes really weird!  You're not sure it's good for you…" ) );
@@ -1486,7 +1481,8 @@ std::optional<int> iuse::petfood( Character *p, item *it, const tripoint_bub_ms 
         const pet_food_data &petfood = mon->type->petfood;
         const std::set<std::string> &itemfood = it->get_comestible()->petfood;
         for( const std::string &food : petfood.food ) {
-            if( itemfood.find( food ) != itemfood.end() ) {
+            if( itemfood.find( food ) != itemfood.end() &&
+                mon->attitude_to( *p ) != Creature::Attitude::HOSTILE ) {
                 can_feed = true;
                 break;
             }
@@ -1539,7 +1535,7 @@ std::optional<int> iuse::petfood( Character *p, item *it, const tripoint_bub_ms 
         if( petfood.feed.empty() ) {
             p->add_msg_if_player( m_good, _( "The %1$s is your pet now!" ), mon->get_name() );
         } else {
-            p->add_msg_if_player( m_good, petfood.feed, mon->get_name() );
+            p->add_msg_if_player( m_good, _( petfood.feed ), mon->get_name() );
         }
 
         mon->friendly = -1;
@@ -1797,7 +1793,7 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             return 0;
         }
 
-        //get the fishables around the trap's spot
+        // Get the fishables around the trap's spot.
         std::unordered_set<tripoint_bub_ms> fishable_locations = g->get_fishable_locations_bub(
                     MAX_VIEW_DISTANCE, pos );
         std::vector<monster *> fishables = g->get_fishable_monsters( fishable_locations );
@@ -1805,31 +1801,23 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             player.practice( skill_survival, rng( 3, 10 ) );
             if( !fishables.empty() ) {
                 monster *chosen_fish = random_entry( fishables );
-                // reduce the abstract fish_population marker of that fish
+                // Reduce the abstract fish_population marker of that fish.
                 chosen_fish->fish_population -= 1;
                 if( chosen_fish->fish_population <= 0 ) {
-                    g->catch_a_monster( chosen_fish, pos, p, 300_hours ); //catch the fish!
+                    g->catch_a_monster( chosen_fish, pos, p ); // Catch the fish!
                 } else {
                     here.add_item_or_charges( pos, item::make_corpse( chosen_fish->type->id,
-                                              calendar::turn + rng( 0_turns,
-                                                      3_hours ) ) );
+                                              calendar::turn ) );
                 }
             } else {
-                //there will always be a chance that the player will get lucky and catch a fish
-                //not existing in the fishables vector. (maybe it was in range, but wandered off)
-                //lets say it is a 5% chance per fish to catch
+                // There will always be a chance that the player will get lucky and catch a fish
+                // not existing in the fishables vector, as fish can always be hiding or whatever.
                 if( one_in( 20 ) ) {
                     const std::vector<mtype_id> fish_group = MonsterGroupManager::GetMonstersFromGroup(
                                 GROUP_FISH, true );
                     const mtype_id &fish_mon = random_entry_ref( fish_group );
-                    //Yes, we can put fishes in the trap like knives in the boot,
-                    //and then get fishes via activation of the item,
-                    //but it's not as comfortable as if you just put fishes in the same tile with the trap.
-                    //Also: corpses and comestibles do not rot in containers like this, but on the ground they will rot.
-                    //we don't know when it was caught so use a random turn
-                    here.add_item_or_charges( pos, item::make_corpse( fish_mon, it->birthday() + rng( 0_turns,
-                                              3_hours ) ) );
-                    break; //this can happen only once
+                    here.add_item_or_charges( pos, item::make_corpse( fish_mon, calendar::turn ) );
+                    break;
                 }
             }
         }
@@ -1925,6 +1913,37 @@ std::optional<int> iuse::mace( Character *p, item *it, const tripoint_bub_ms & )
         critter->as_npc()->on_attacked( *p );
     }
     here.add_field( dest, fd_tear_gas, 2, 3_turns );
+    p->mod_moves( -to_moves<int>( 1_seconds ) );
+    return 1;
+}
+
+std::optional<int> iuse::bugspray( Character *p, item *it, const tripoint_bub_ms & )
+{
+    if( !it->ammo_sufficient( p ) ) {
+        return std::nullopt;
+    }
+    if( !p->is_wielding( *it ) && !p->is_worn( *it ) ) {
+        p->add_msg_if_player( _( "You need to be wielding the %s to use it." ), it->tname() );
+        return std::nullopt;
+    }
+    // If anyone other than the player wants to use one of these,
+    // they're going to need to figure out how to aim it.
+    map &here = get_map();
+    const std::optional<tripoint_bub_ms> dest_ = choose_adjacent( _( "Spray where?" ) );
+    if( !dest_ || dest_ == p->pos_bub( here ) ) {
+        return std::nullopt;
+    }
+    tripoint_bub_ms dest = tripoint_bub_ms( *dest_ );
+    creature_tracker &creatures = get_creature_tracker();
+    Creature *critter = creatures.creature_at( dest );
+    if( critter && !critter->is_monster() && !critter->is_avatar() &&
+        ( !critter->as_npc()->is_enemy() ) ) {
+        if( !query_yn( _( "This will probably make %s angry.  Continue?" ), critter->disp_name() ) ) {
+            return std::nullopt;
+        }
+        critter->as_npc()->on_attacked( *p );
+    }
+    here.add_field( dest, fd_insecticidal_gas, 2, 3_turns );
     p->mod_moves( -to_moves<int>( 1_seconds ) );
     return 1;
 }
@@ -2273,7 +2292,7 @@ std::optional<int> iuse::radio_on( Character *, item *it, const tripoint_bub_ms 
 
 std::optional<int> iuse::noise_emitter_on( Character *, item *, const tripoint_bub_ms &pos )
 {
-    sounds::sound( pos, 30, sounds::sound_t::alarm, _( "KXSHHHHRRCRKLKKK!" ), true, "tool",
+    sounds::sound( pos, 50, sounds::sound_t::alarm, _( "KXSHHHHRRCRKLKKK!" ), true, "tool",
                    "noise_emitter" );
     return 1;
 }
@@ -3104,6 +3123,9 @@ std::optional<int> iuse::molotov_lit( Character *p, item *it, const tripoint_bub
         const time_duration target_duration = 1_minutes;
         const time_duration base_age = ( fd_fire->half_life / 2 ) - target_duration;
         for( const tripoint_bub_ms &pt : here.points_in_radius( pos, 2, 0 ) ) {
+            if( here.clear_path( pos, pt, 2, 1, 100 ) && one_in( 3 ) ) {
+                here.add_field( pt, fd_fuel );
+            }
             if( here.clear_path( pos, pt, 2, 1, 100 ) && one_in( 2 ) ) {
                 here.add_field( pt, fd_fire, rng( 1, 2 ), base_age );
             }
@@ -3977,6 +3999,19 @@ std::optional<int> iuse::vibe( Character *p, item *it, const tripoint_bub_ms & )
         // Also, that would be creepy as fuck, seriously
         return std::nullopt;
     }
+    if( !p->has_trait( trait_PYROMANIA ) && p->has_effect( effect_onfire ) ) {
+        p->add_msg_if_player( m_bad, _( "This is hardly the time!" ) );
+        return std::nullopt;
+    }
+    if( it->has_flag( flag_FILTHY ) && !p->has_flag( json_flag_VERMINOUS ) ) {
+        p->add_msg_if_player( m_bad, _( "Oh HELL NO." ) );
+        return std::nullopt;
+    }
+    if( p->get_morale_level() <= -25 || ( p->get_morale_level() <= 0 &&
+                                          p->has_flag( json_flag_NUMB ) ) ) {
+        p->add_msg_if_player( m_info, _( "You just aren't in the mood." ) );
+        return std::nullopt;
+    }
     if( p->is_mounted() ) {
         p->add_msg_if_player( m_info, _( "You can't do… that while mounted." ) );
         return std::nullopt;
@@ -4621,7 +4656,7 @@ std::optional<int> iuse::spray_can( Character *p, item *it, const tripoint_bub_m
             if( critter->in_species( species_ROBOT ) ) {
                 critter->add_effect( effect_blind, rng( 5_seconds, 10_seconds ) );
             } else {
-                critter->add_effect( effect_blind, rng( 3_seconds, 6_seconds ) );
+                critter->add_effect( effect_blind, rng( 4_seconds, 8_seconds ) );
             }
         }
         viewer &player_view = get_player_view();
@@ -4882,9 +4917,8 @@ std::optional<int> iuse::jet_injector( Character *p, item *it, const tripoint_bu
         p->add_msg_if_player( _( "You inject yourself with the jet injector." ) );
         // Intensity is 2 here because intensity = 1 is the comedown
         p->add_effect( effect_jetinjector, 20_minutes, false, 2 );
-        p->mod_painkiller( 20 );
-        p->mod_stim( 10 );
-        p->healall( 20 );
+        p->healall( 5 );
+        p->vitamin_mod( vitamin_amphetamine, 18 );
     }
 
     if( p->has_effect( effect_jetinjector ) ) {
@@ -4908,12 +4942,11 @@ std::optional<int> iuse::stimpack( Character *p, item *it, const tripoint_bub_ms
         return std::nullopt;
     } else {
         p->add_msg_if_player( _( "You inject yourself with the stimulants." ) );
-        // Intensity is 2 here because intensity = 1 is the comedown
+        // Intensity is 2 here because intensity = 1 is the comedown.
         p->add_effect( effect_stimpack, 25_minutes, false, 2 );
-        p->mod_painkiller( 2 );
-        p->mod_stim( 20 );
         p->mod_fatigue( -100 );
-        p->set_stamina( p->get_stamina_max() );
+        p->mod_stamina( p->get_stamina_max() * 0.20 ); // 20% of max stamina.
+        p->vitamin_mod( vitamin_amphetamine, 10 );
     }
     return 1;
 }
@@ -5058,19 +5091,22 @@ std::optional<int> iuse::toolmod_attach( Character *p, item *it, const tripoint_
     }
 
     auto filter = [&it]( const item & e ) {
-        // don't allow ups or bionic battery mods on a UPS or UPS-powered/bionic-powered tools
+        // Don't allow ups or bionic battery mods on a UPS or UPS-powered/bionic-powered tools.
         if( ( it->has_flag( flag_USE_UPS ) || it->has_flag( flag_USES_BIONIC_POWER ) ) &&
             ( e.has_flag( flag_IS_UPS ) || e.has_flag( flag_USE_UPS ) ||
               e.has_flag( flag_USES_BIONIC_POWER ) ) ) {
             return false;
         }
-
-        // can't mod non-tool, or a tool with existing mods, or a battery currently installed
+        // FIXME: Make internal batteries compatible with toolmods.
+        if( e.can_link_up() && e.link().charge_rate > 0 ) {
+            return false;
+        }
+        // Can't mod non-tool, or a tool with existing mods, or a battery currently installed.
         if( !e.is_tool() || !e.toolmods().empty() || e.magazine_current() ) {
             return false;
         }
 
-        // can't mod integrated tools
+        // Can't mod integrated tools
         if( e.has_flag( flag_INTEGRATED ) ) {
             return false;
         }
@@ -6151,20 +6187,16 @@ static void item_save_monsters( Character &p, item &it, const std::vector<monste
     if( monster_photos.empty() ) {
         monster_photos = ",";
     }
-
     for( monster * const &monster_p : monster_vec ) {
         const std::string mtype = monster_p->type->id.str();
         const std::string name = monster_p->name();
-
-        // position of <monster type string>
+        // Position of <monster type string>
         const size_t mon_str_pos = monster_photos.find( "," + mtype + "," );
-
-        // monster gets recorded by the character, add to known types
+        // Monster gets recorded by the character, add to known types.
         p.set_knows_creature_type( monster_p->type->id );
-
-        if( mon_str_pos == std::string::npos ) { // new monster
+        if( mon_str_pos == std::string::npos ) { // New monster.
             monster_photos += string_format( "%s,%d,", mtype, photo_quality );
-        } else { // replace quality character, if new photo is better
+        } else { // Replace quality character, if new photo is better.
             const size_t quality_num_pos = mon_str_pos + mtype.size() + 2;
             const size_t next_comma = monster_photos.find( ',', quality_num_pos );
             const int old_quality =
@@ -6221,6 +6253,7 @@ void item::write_extended_photos( const std::vector<extended_photo_def> &extende
     JsonOut json( extended_photos_data );
     json.write( extended_photos );
     set_var( var_name, extended_photos_data.str() );
+    set_var( var_name + "_count", static_cast<int>( extended_photos.size() ) );
 }
 
 static bool show_photo_selection( Character &p, item &it, const std::string &var_name )
@@ -6334,7 +6367,6 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
         tripoint_bub_ms aim_point{ *aim_point_ };
         bool incorrect_focus = false;
         tripoint_range<tripoint_bub_ms> aim_bounds = here.points_in_radius( aim_point, 2 );
-
         std::vector<tripoint_bub_ms> trajectory = line_to( p->pos_bub(), aim_point, 0, 0 );
         trajectory.push_back( aim_point );
 
@@ -6360,8 +6392,7 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
             monster *const mon = creatures.creature_at<monster>( trajectory_point, true );
             Character *const guy = creatures.creature_at<Character>( trajectory_point );
             if( mon || guy || trajectory_point == aim_point ) {
-                int dist = rl_dist( p->pos_bub(), trajectory_point );
-
+                int dist = trig_dist( p->pos_bub(), trajectory_point );
                 int camera_bonus = it->has_flag( flag_CAMERA_PRO ) ? 10 : 0;
                 int photo_quality = 20 - rng( dist, dist * 2 ) * 2 + rng( camera_bonus / 2, camera_bonus );
                 if( photo_quality > 5 ) {
@@ -6373,10 +6404,8 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                 if( p->is_blind() ) {
                     photo_quality /= 2;
                 }
-
                 if( mon ) {
                     monster &z = *mon;
-
                     // shoot past small monsters and hallucinations
                     if( trajectory_point != aim_point && ( z.type->size <= creature_size::small ||
                                                            z.is_hallucination() ||
@@ -6390,7 +6419,7 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                     } else if( trajectory_point != aim_point ) { // shoot past mon that will be in photo anyway
                         continue;
                     }
-                    // get a special message if the target is a hallucination
+                    // Get a special message if the target is a hallucination.
                     if( trajectory_point == aim_point && ( z.is_hallucination() ||
                                                            z.type->in_species( species_HALLUCINATION ) ) ) {
                         p->add_msg_if_player( _( "Strange… there's nothing in the center of this picture?" ) );
@@ -6399,10 +6428,10 @@ std::optional<int> iuse::camera( Character *p, item *it, const tripoint_bub_ms &
                     if( trajectory_point == aim_point && guy->is_hallucination() ) {
                         p->add_msg_if_player( _( "Strange… %s isn't visible on the picture?" ), guy->get_name() );
                     } else if( !aim_bounds.is_point_inside( trajectory_point ) ) {
-                        // take a photo of the monster that's in the way
+                        // Take a photo of the monster that's in the way.
                         p->add_msg_if_player( m_warning, _( "%s got in the way of your photo." ), guy->get_name() );
                         incorrect_focus = true;
-                    } else if( trajectory_point != aim_point ) {  // shoot past guy that will be in photo anyway
+                    } else if( trajectory_point != aim_point ) {  // Shoot past guy that will be in photo anyway.
                         continue;
                     }
                 }
@@ -7173,7 +7202,7 @@ std::optional<int> iuse::sextant( Character *p, item *, const tripoint_bub_ms &p
     if( debug_mode ) {
         // Debug mode always shows all sun angles
         const float azimuth = to_degrees( sun_position.first );
-        p->add_msg_if_player( m_neutral, "Sun altitude %.1f°, azimuth %.1f°", altitude, azimuth );
+        p->add_msg_if_player( m_neutral, _( "Sun altitude %.1f°, azimuth %.1f°" ), altitude, azimuth );
     } else if( g->is_sheltered( pos ) ) {
         p->add_msg_if_player( m_neutral, _( "You can't see the Sun from here." ) );
     } else if( altitude > 0 ) {
@@ -7739,48 +7768,8 @@ washing_requirements washing_requirements_for_volume( const units::volume &vol )
 {
     int water = divide_round_up( vol, 125_ml );
     int cleanser = divide_round_up( vol, 1_liter );
-    int time = to_moves<int>( 10_seconds * ( vol / 250_ml ) );
+    int time = to_moves<int>( 20_seconds * ( vol / 250_ml ) );
     return { water, cleanser, time };
-}
-
-std::optional<int> iuse::wash_soft_items( Character *p, item *, const tripoint_bub_ms & )
-{
-    if( p->fine_detail_vision_mod() > 4 ) {
-        p->add_msg_if_player( _( "You can't see to do that!" ) );
-        return std::nullopt;
-    }
-    if( p->cant_do_mounted() ) {
-        return std::nullopt;
-    }
-    // Check that player isn't over volume limit as this might cause it to break... this is a hack.
-    // TODO: find a better solution.
-    if( p->volume_capacity() < p->volume_carried() ) {
-        p->add_msg_if_player( _( "You're carrying too much to clean anything." ) );
-        return std::nullopt;
-    }
-
-    wash_items( p, true, false );
-    return 0;
-}
-
-std::optional<int> iuse::wash_hard_items( Character *p, item *, const tripoint_bub_ms & )
-{
-    if( p->fine_detail_vision_mod() > 4 ) {
-        p->add_msg_if_player( _( "You can't see to do that!" ) );
-        return std::nullopt;
-    }
-    if( p->cant_do_mounted() ) {
-        return std::nullopt;
-    }
-    // Check that player isn't over volume limit as this might cause it to break... this is a hack.
-    // TODO: find a better solution.
-    if( p->volume_capacity() < p->volume_carried() ) {
-        p->add_msg_if_player( _( "You're carrying too much to clean anything." ) );
-        return std::nullopt;
-    }
-
-    wash_items( p, false, true );
-    return 0;
 }
 
 std::optional<int> iuse::wash_all_items( Character *p, item *, const tripoint_bub_ms & )
@@ -7797,18 +7786,17 @@ std::optional<int> iuse::wash_all_items( Character *p, item *, const tripoint_bu
         return std::nullopt;
     }
 
-    wash_items( p, true, true );
+    wash_items( p );
     return 0;
 }
 
-std::optional<int> iuse::wash_items( Character *p, bool soft_items, bool hard_items )
+std::optional<int> iuse::wash_items( Character *p )
 {
     if( p->cant_do_mounted() ) {
         return std::nullopt;
     }
     p->inv->restack( *p );
     const inventory &crafting_inv = p->crafting_inventory();
-
     auto is_liquid = []( const item & it ) {
         return it.made_of( phase_id::LIQUID );
     };
@@ -7816,67 +7804,186 @@ std::optional<int> iuse::wash_items( Character *p, bool soft_items, bool hard_it
                               crafting_inv.charges_of( itype_water, INT_MAX, is_liquid ),
                               crafting_inv.charges_of( itype_water_clean, INT_MAX, is_liquid )
                           );
-    int available_cleanser = std::max( crafting_inv.charges_of( itype_soap ),
-                                       std::max( crafting_inv.charges_of( itype_detergent ),
-                                               crafting_inv.charges_of( itype_liquid_soap, INT_MAX, is_liquid ) ) );
-
-    const inventory_filter_preset preset( [soft_items, hard_items]( const item_location & location ) {
-        return location->has_flag( flag_FILTHY ) && !location->has_flag( flag_NO_CLEAN ) &&
-               ( ( soft_items && location->is_soft() ) || ( hard_items && !location->is_soft() ) );
+    int available_cleanser = std::max(
+                                 crafting_inv.charges_of( itype_soap ),
+                                 std::max(
+                                     crafting_inv.charges_of( itype_detergent ),
+                                     crafting_inv.charges_of(
+                                         itype_liquid_soap, INT_MAX, is_liquid
+                                     )
+                                 )
+                             );
+    bool hard_washing_tool = false;
+    bool soft_washing_tool = false;
+    const std::vector<const item *> wash_soft = crafting_inv.items_with( [&]( const item & it ) {
+        return it.has_flag( json_flag_WASH_SOFT );
     } );
-    auto make_raw_stats = [available_water,
-                           available_cleanser]( const std::vector<std::pair<item_location, int>> &locs
-    ) {
+
+    const std::vector<const item *> wash_hard = crafting_inv.items_with( [&]( const item & it ) {
+        return it.has_flag( json_flag_WASH_HARD );
+    } );
+    if( !wash_soft.empty() ) {
+        soft_washing_tool = true;
+    }
+    if( !wash_hard.empty() ) {
+        hard_washing_tool = true;
+    }
+
+    const inventory_filter_preset preset( []( const item_location & location ) {
+        return location->has_flag( flag_FILTHY ) &&
+               !location->has_flag( flag_NO_CLEAN );
+    } );
+
+    auto make_raw_stats =
+        [available_water, available_cleanser,
+                          soft_washing_tool, hard_washing_tool]
+    ( const std::vector<std::pair<item_location, int>> &locs ) {
+
         units::volume total_volume = 0_ml;
+
+        bool washing_soft = false;
+        bool washing_hard = false;
+
         for( const auto &pair : locs ) {
             total_volume += pair.first->volume( false, true, pair.second );
+
+            if( pair.first->is_soft() ) {
+                washing_soft = true;
+            } else {
+                washing_hard = true;
+            }
         }
-        washing_requirements required = washing_requirements_for_volume( total_volume );
-        const std::string time = colorize( to_string( time_duration::from_moves( required.time ), true ),
-                                           c_light_gray );
+
+        washing_requirements required =
+            washing_requirements_for_volume( total_volume );
+
+        bool penalized = false;
+
+        if( washing_soft && !soft_washing_tool ) {
+            penalized = true;
+        }
+
+        if( washing_hard && !hard_washing_tool ) {
+            penalized = true;
+        }
+
+        if( penalized ) {
+            required.time = required.time * 2.5f;
+            required.water = std::ceil( required.water * 1.5f );
+            required.cleanser = std::ceil( required.cleanser * 1.5f );
+        }
+
+        const std::string time = colorize(
+                                     to_string(
+                                         time_duration::from_moves( required.time ),
+                                         true
+                                     ),
+                                     c_light_gray
+                                 );
+
         auto to_string = []( int val ) -> std::string {
             if( val == INT_MAX )
             {
                 return pgettext( "short for infinity", "inf" );
             }
+
             return string_format( "%3d", val );
         };
-        const std::string water = string_join( display_stat( "", required.water, available_water,
-                                               to_string ), "" );
-        const std::string cleanser = string_join( display_stat( "", required.cleanser, available_cleanser,
-                                     to_string ), "" );
+
+        const std::string water =
+            string_join(
+                display_stat(
+                    "", required.water, available_water, to_string
+                ),
+                ""
+            );
+
+        const std::string cleanser =
+            string_join(
+                display_stat(
+                    "", required.cleanser,
+                    available_cleanser, to_string
+                ),
+                ""
+            );
+
         using stats = inventory_selector::stats;
+
         return stats{{
                 {{ _( "Water" ), water }},
                 {{ _( "Cleanser" ), cleanser }},
                 {{ _( "Estimated time" ), time }}
             }};
     };
-    inventory_multiselector inv_s( *p, preset, _( "ITEMS TO CLEAN" ),
-                                   make_raw_stats, /*allow_select_contained=*/true );
+
+    inventory_multiselector inv_s(
+        *p,
+        preset,
+        _( "ITEMS TO CLEAN" ),
+        make_raw_stats,
+        true
+    );
+
     inv_s.add_character_items( *p );
     inv_s.add_nearby_items( PICKUP_RANGE );
+
     inv_s.set_title( _( "Multiclean" ) );
-    inv_s.set_hint( _( "To clean x items, type a number before selecting." ) );
+    inv_s.set_hint(
+        _( "To clean x items, type a number before selecting." )
+    );
+
     if( inv_s.empty() ) {
-        popup( std::string( _( "You have nothing to clean." ) ), PF_GET_KEY );
+        popup(
+            std::string( _( "You have nothing to clean." ) ),
+            PF_GET_KEY
+        );
         return std::nullopt;
     }
+
     const drop_locations to_clean = inv_s.execute();
+
     if( to_clean.empty() ) {
         return std::nullopt;
     }
-    // Determine if we have enough water and cleanser for all the items.
+
     units::volume total_volume = 0_ml;
-    for( drop_location pair : to_clean ) {
+
+    bool washing_soft = false;
+    bool washing_hard = false;
+
+    for( const drop_location &pair : to_clean ) {
         if( !pair.first ) {
             p->add_msg_if_player( m_info, _( "Nevermind." ) );
             return std::nullopt;
         }
+
         total_volume += pair.first->volume( false, true, pair.second );
+
+        if( pair.first->is_soft() ) {
+            washing_soft = true;
+        } else {
+            washing_hard = true;
+        }
     }
 
-    washing_requirements required = washing_requirements_for_volume( total_volume );
+    washing_requirements required =
+        washing_requirements_for_volume( total_volume );
+
+    bool penalized = false;
+
+    if( washing_soft && !soft_washing_tool ) {
+        penalized = true;
+    }
+
+    if( washing_hard && !hard_washing_tool ) {
+        penalized = true;
+    }
+
+    if( penalized ) {
+        required.time = required.time * 1.5f;
+        required.water = std::ceil( required.water * 1.25f );
+        required.cleanser = std::ceil( required.cleanser * 1.25f );
+    }
 
     if( !crafting_inv.has_charges( itype_water, required.water, is_liquid ) &&
         !crafting_inv.has_charges( itype_water_clean, required.water, is_liquid ) ) {
@@ -7995,10 +8102,25 @@ std::optional<int> iuse::craft( Character *p, item *it, const tripoint_bub_ms & 
         return std::nullopt;
     }
 
+    item_location craft_loc( *p, it );
+    craft_resolve_overdue_passive( *it, calendar::turn, craft_loc );
+    if( !craft_loc || !craft_loc.get_item() ) {
+        return std::nullopt;
+    }
+    it = craft_loc.get_item();
+    const recipe &rec = it->get_making();
+    std::optional<std::vector<attention_plan>> chosen;
+    if( rec.has_remaining_attention_steps( it->get_current_step() ) && p->is_avatar() ) {
+        chosen = show_craft_planning_modal( rec, *p, it->get_making_batch_size(),
+                                            it->get_current_step(),
+                                            it->get_step_plans(), it );
+        if( !chosen ) {
+            return std::nullopt;
+        }
+    }
     if( !p->can_continue_craft( *it ) ) {
         return std::nullopt;
     }
-    const recipe &rec = it->get_making();
     if( !p->has_recipe( &rec ) ) {
         p->add_msg_player_or_npc(
             _( "You don't know the recipe for the %s and can't continue crafting." ),
@@ -8006,10 +8128,14 @@ std::optional<int> iuse::craft( Character *p, item *it, const tripoint_bub_ms & 
             rec.result_name() );
         return 0;
     }
+    if( chosen ) {
+        it->set_step_plans( std::move( *chosen ) );
+        it->set_crafter_id( p->getID() );
+        craft_apply_resume_replan( craft_loc );
+    }
     p->add_msg_player_or_npc(
         pgettext( "in progress craft", "You start working on the %s." ),
         pgettext( "in progress craft", "<npcname> starts working on the %s." ), craft_name );
-    item_location craft_loc = item_location( *p, it );
     p->assign_activity( craft_activity_actor( craft_loc, false ) );
 
     return 0;

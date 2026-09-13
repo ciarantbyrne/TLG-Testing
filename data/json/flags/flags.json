@@ -17,9 +17,15 @@
     "restriction": "Item must be a medium ablative plate"
   },
   {
+    "id": "ABLATIVE_LARGE_XL",
+    "type": "json_flag",
+    "info": "This plate will fit in <info>oversized</info> armor pockets.",
+    "restriction": "Item must be an XL ablative plate"
+  },
+  {
     "id": "ACTIVE_CLOAKING",
     "type": "json_flag",
-    "info": "This gear has <info>cloaking tech</info> that will <good>make you invisible</good> when active, at the cost of <info>power from a UPS</info>."
+    "info": "This gear has <info>cloaking tech</info> that will <good>make you invisible</good> when active."
   },
   {
     "id": "ALLOWS_TAIL",
@@ -27,18 +33,13 @@
   },
   {
     "id": "ALLOWS_TALONS",
-    "//": "Makes footwear compatable with the TOE_TALONS mutation.",
+    "//": "Makes footwear compatable with the RAP_TALONS mutation.",
     "type": "json_flag"
   },
   {
     "id": "ALARMCLOCK",
     "type": "json_flag",
     "info": "This gear has an <info>alarm clock</info> feature."
-  },
-  {
-    "id": "ALLOWS_BODY_BLOCK",
-    "type": "json_flag",
-    "info": "This item <info>won't prevent you from blocking with your body, such as arms or legs</info> when wielded as a weapon."
   },
   {
     "id": "ALLOWS_NATURAL_ATTACKS",
@@ -49,6 +50,10 @@
     "id": "ALLOWS_REMOTE_USE",
     "type": "json_flag",
     "info": "This item can be activated or reloaded from an adjacent tile without picking it up."
+  },
+  {
+    "id": "ALLOWS_BODY_BLOCKING",
+    "type": "json_flag"
   },
   {
     "id": "CAN_USE_IN_DARK",
@@ -972,11 +977,6 @@
     "type": "json_flag"
   },
   {
-    "id": "POWERARMOR_COMPATIBLE",
-    "type": "json_flag",
-    "//": "Allows power armor to be worn with compatible armors like ear plugs and mouthpieces."
-  },
-  {
     "id": "ZERO_WEIGHT",
     "type": "json_flag"
   },
@@ -984,31 +984,6 @@
     "id": "ZOOM",
     "type": "json_flag",
     "info": "This item can be used to <good>better</good> see <info>things far away</info>."
-  },
-  {
-    "id": "furred",
-    "type": "json_flag",
-    "info": "This clothing has a fur lining sewn into it to <good>increase</good> its overall <info>warmth</info>."
-  },
-  {
-    "id": "kevlar_padded",
-    "type": "json_flag",
-    "info": "This gear has Kevlar inserted into strategic locations to <good>increase protection</good> with some <bad>increase to encumbrance</bad>."
-  },
-  {
-    "id": "leather_padded",
-    "type": "json_flag",
-    "info": "This gear has certain parts padded with leather to <good>increase protection</good> with moderate <bad>increase to encumbrance</bad>."
-  },
-  {
-    "id": "steel_padded",
-    "type": "json_flag",
-    "info": "This gear has certain parts padded with steel to <good>increase protection</good> with moderate <bad>increase to encumbrance</bad>."
-  },
-  {
-    "id": "wooled",
-    "type": "json_flag",
-    "info": "This clothing has a wool lining sewn into it to <good>increase</good> its overall <info>warmth</info>."
   },
   {
     "id": "WONT_TRAIN_MARKSMANSHIP",
@@ -1019,7 +994,7 @@
   {
     "id": "NANOFAB_REPAIR",
     "type": "json_flag",
-    "info": "This item has a holographic patch that reflects the light oddly.  It was constructed in a nanofabricator and can be <info>repaired in one</info>."
+    "info": "This item was constructed in a nanofabricator and can be <info>repaired in one</info>."
   },
   {
     "id": "NANOFAB_TEMPLATE",
@@ -1315,6 +1290,7 @@
   },
   {
     "id": "CHALLENGE",
+    "//": "Scenario flag.",
     "type": "json_flag"
   },
   {
@@ -1323,6 +1299,7 @@
   },
   {
     "id": "CITY_START",
+    "//": "Scenario flag.",
     "type": "json_flag"
   },
   {
@@ -1525,7 +1502,7 @@
   {
     "id": "IS_UPS",
     "type": "json_flag",
-    "info": "This item provides power to <info>UPS compatible items</info>.",
+    "info": "This item provides power to <info>items which can use a power bank</info>.",
     "inherit": false
   },
   {
@@ -1602,6 +1579,10 @@
   },
   {
     "id": "MYCUS_OK",
+    "type": "json_flag"
+  },
+  {
+    "id": "MYCUS_IMMUNE",
     "type": "json_flag"
   },
   {
@@ -1850,6 +1831,10 @@
     "type": "json_flag"
   },
   {
+    "id": "TRIP",
+    "type": "json_flag"
+  },
+  {
     "id": "TARDIS",
     "type": "json_flag"
   },
@@ -1920,6 +1905,7 @@
   },
   {
     "id": "USE_UPS",
+    "info": "This item <info>uses a power bank to function</info>.",
     "type": "json_flag"
   },
   {
@@ -1978,7 +1964,7 @@
   },
   {
     "id": "FIRE_TWOHAND",
-    "info": "<bad>You must</bad> have two free hands to fire this item.",
+    "info": "<bad>You must</bad> use two hands to operate this weapon.",
     "type": "json_flag"
   },
   {
@@ -2745,5 +2731,25 @@
     "id": "SNOWWALKING",
     "type": "json_flag",
     "info": "Your movement is not slowed regardless of snow depth."
+  },
+  {
+    "id": "WASH_SOFT",
+    "type": "json_flag",
+    "info": "This item makes it easier to wash soft things like clothing with soap and water."
+  },
+  {
+    "id": "WASH_HARD",
+    "type": "json_flag",
+    "info": "This item makes it easier to wash rigid items using soap and water."
+  },
+  {
+    "id": "CHEW",
+    "type": "json_flag",
+    "//": "This item is gum or chewing tobacco or something else that you consume by chewing it, but it isn't food."
+  },
+  {
+    "id": "GRAPNEL",
+    "type": "json_flag",
+    "//": "Used on the grappling hook item to make it check for ledges above when deployed."
   }
 ]

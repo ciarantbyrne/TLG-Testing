@@ -266,6 +266,14 @@
     "type": "effect_on_condition"
   },
   {
+    "id": "chitin_carapace_molt_timer3",
+    "type": "effect_on_condition"
+  },
+  {
+    "id": "chitin_carapace_molt_timer4",
+    "type": "effect_on_condition"
+  },
+  {
     "type": "mutation",
     "id": "NO_CBM_INSTALLATION",
     "name": { "str": "Oversensitive System" },
@@ -299,6 +307,16 @@
   {
     "type": "effect_on_condition",
     "id": "lose_asphyxiation"
+  },
+  {
+    "type": "mutation",
+    "id": "PALE",
+    "name": { "str": "Pale Skin" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.  It is now Skin tone: pale",
+    "random_at_chargen": false,
+    "valid": false
   },
   {
     "type": "mutation",
@@ -695,7 +713,7 @@
     "vitamins": [ [ "vitC", 0 ], [ "calcium", 0 ], [ "iron", 0 ], [ "meat_allergen", 1 ] ],
     "flags": [  ],
     "use_action": {
-      "target": "raw_cured_fatty_meat",
+      "target": "raw_cured_porkbelly",
       "msg": "You pat off a bit of extra brine from the slice; this piece of meat is now fully cured.",
       "moves": 150,
       "type": "delayed_transform",
@@ -1079,5 +1097,259 @@
       ]
     },
     "origins": [ "ORIGIN_GAME_START" ]
+  },
+  {
+    "type": "effect_type",
+    "id": "stim",
+    "max_intensity": 1,
+    "max_duration": "1 s"
+  },
+  {
+    "type": "effect_type",
+    "id": "depressants",
+    "max_intensity": 1,
+    "max_duration": "1 s"
+  },
+  {
+    "type": "effect_type",
+    "id": "winded_cephalopod_arm_upper",
+    "max_intensity": 1,
+    "max_duration": "1 s"
+  },
+  {
+    "type": "effect_type",
+    "id": "winded_cephalopod_arm_lower",
+    "max_intensity": 1,
+    "max_duration": "1 s"
+  },
+  {
+    "type": "mutation",
+    "id": "PROF_MED",
+    "name": { "str": "MD" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "PROF_AUTODOC",
+    "name": { "str": "Augmentation Associate" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "PROF_POLICE",
+    "name": { "str": "Police Officer" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "PROF_SWAT",
+    "name": { "str": "SWAT Officer" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "PROF_PD_DET",
+    "name": { "str": "Police Detective" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "MARTIAL_ARTS4",
+    "name": { "str": "Venom Mob Protege" },
+    "points": 0,
+    "player_display": false,
+    "description": "Obsoleted trait.",
+    "random_at_chargen": false,
+    "valid": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_extremely_long",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Obsoleted hairstyle.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_super_princess",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_long_feathered.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_modern",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_short_curls.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_curls",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_medium_curls.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_body_length",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_long_wavy.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_detective",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_side_part.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_long_punk",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_side_shave.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_punk_long",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_side_shave.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_mohawk_long",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Never actually existed.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_fro",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_afro.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_short_no_fringe",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_fade.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_short_over_eye",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_short_fringe.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "hair_long_over_eye",
+    "name": { "str": "Hair: obsoleted" },
+    "points": 0,
+    "description": "Replaced with hair_medium_fringe.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "mutation",
+    "id": "CHITIN_MOLTED",
+    "name": { "str": "Epicuticle (molted) (obsolete)" },
+    "points": 0,
+    "description": "There was never a reason for this mutation to molt.",
+    "valid": false,
+    "purifiable": false,
+    "player_display": false
+  },
+  {
+    "type": "proficiency",
+    "id": "prof_quarterstaves_familiar",
+    "category": "prof_combat",
+    "name": { "str": "Quarterstaff Proficiency (Familiar)" },
+    "description": "Obsoleted proficiency.  This has been replaced with staff proficiency and exists here only to prevent error messages.",
+    "default_time_multiplier": 1.5,
+    "default_skill_penalty": 0.2,
+    "can_learn": false
+  },
+  {
+    "type": "proficiency",
+    "id": "prof_quarterstaves_pro",
+    "category": "prof_combat",
+    "name": { "str": "Quarterstaff Proficiency (Pro)" },
+    "description": "Obsoleted proficiency.  This has been replaced with staff proficiency and exists here only to prevent error messages.",
+    "default_time_multiplier": 1.5,
+    "default_skill_penalty": 0.2,
+    "can_learn": false
+  },
+  {
+    "type": "proficiency",
+    "id": "prof_quarterstaves_master",
+    "category": "prof_combat",
+    "name": { "str": "Quarterstaff Proficiency (Master)" },
+    "description": "Obsoleted proficiency.  This has been replaced with staff proficiency and exists here only to prevent error messages.",
+    "default_time_multiplier": 1.5,
+    "default_skill_penalty": 0.2,
+    "can_learn": false
   }
 ]

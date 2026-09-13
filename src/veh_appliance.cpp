@@ -541,11 +541,23 @@ void veh_app_interact::plug( map &here )
     }
 }
 
-void veh_app_interact::hide()
+void veh_app_interact::toggle_hide_wiring( map &here )
 {
     const int part_idx = veh->part_at( veh->coord_translate( a_point ) );
     vehicle_part &vp = veh->part( part_idx );
-    vp.hidden = !vp.hidden;
+    const bool should_hide = !vp.hidden;
+    vp.hidden = should_hide;
+    if( query_yn( should_hide ? _( "Also hide all the wiring on this floor?" ) :
+                  _( "Also unhide all the wiring on this floor?" ) ) ) {
+        for( const tripoint_bub_ms &target : here.points_on_zlevel() ) {
+            if( auto target_vpart_position = here.veh_at( target ) ) {
+                if( auto target_vpart_reference = target_vpart_position.part_with_feature( flag_WIRING, false ) ) {
+                    vehicle_part &target_vp = target_vpart_reference->part();
+                    target_vp.hidden = should_hide;
+                }
+            }
+        }
+    }
 }
 
 void veh_app_interact::populate_app_actions( map &here )
@@ -599,10 +611,10 @@ void veh_app_interact::populate_app_actions( map &here )
 #if defined(TILES)
     // Hide
     if( use_tiles && vp->info().has_flag( flag_WIRING ) ) {
-        app_actions.emplace_back( [this]() {
-            hide();
+        app_actions.emplace_back( [&here, this]() {
+            toggle_hide_wiring( here );
         } );
-        imenu.addentry( -1, true, 0, "Hide/Unhide wiring" );
+        imenu.addentry( -1, true, 0, vp->hidden ? _( "Unhide wiring" ) : _( "Hide wiring" ) );
     }
 #endif
 

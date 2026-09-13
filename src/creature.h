@@ -323,14 +323,14 @@ class Creature : public viewer
         void setpos( map &here, const tripoint_bub_ms &p, bool check_gravity = true );
         void setpos( const tripoint_abs_ms &p, bool check_gravity = true );
 
-        // Convert size to int. TODO: use this everywhere instead of enuming every time.
+        // Convert size to int. Useful when working in classes like avatar so we don't have to jump through hoops.
         int enum_size() const;
         /** Checks if the creature fits into a given tile. Set the boolean argument to true if the creature would barely fit. */
         bool can_move_to_vehicle_tile( const tripoint_abs_ms &loc, bool &cramped ) const;
         /** Helper overload for when the boolean is discardable */
         bool can_move_to_vehicle_tile( const tripoint_abs_ms &loc ) const;
         /** Checks for and excludes vehicle gaps that only exist due to diagonal skew. */
-        bool can_squeeze_to( const tripoint_bub_ms &p ) const;
+        bool vehicle_not_blocking( const tripoint_bub_ms &p ) const;
         /** Moves the creature to the given location and calls the on_move() handler. */
         void move_to( const tripoint_abs_ms &loc );
         virtual int climbing_cost( const tripoint_bub_ms &from, const tripoint_bub_ms &to ) const;
@@ -404,7 +404,8 @@ class Creature : public viewer
          */
         /*@{*/
         bool sees( const map &here, const Creature &critter ) const override;
-        bool sees( const map &here, const tripoint_bub_ms &t, bool is_avatar = false,
+        // is_character means that the thing we are trying to see is a character, not that the viewer is one.
+        bool sees( const map &here, const tripoint_bub_ms &t, bool is_character = false,
                    int range_mod = 0 ) const override;
         /*@}*/
 
@@ -531,7 +532,7 @@ class Creature : public viewer
         // Creatures temporarily detect unseen creatures when bumping into them.
         bool stumble_invis( const Creature &attacker, bool stumblemsg = true );
         // Use stumble_invis's system to try and find creatures throwing stuff at us from hiding.
-        bool react_to_ranged( const Creature &player );
+        bool react_to_ranged( const Creature &attacker );
         // Attack an empty location
         bool attack_air( const tripoint_bub_ms &p );
 
@@ -573,9 +574,6 @@ class Creature : public viewer
 
         // returns true if the creature has an electric field
         virtual bool is_electrical() const = 0;
-
-        // returns true if the creature is a faerie creature
-        virtual bool is_fae() const = 0;
 
         // returns true if the creature is from the nether
         virtual bool is_nether() const = 0;
@@ -890,6 +888,7 @@ class Creature : public viewer
         int get_part_damage_bandaged( const bodypart_id &id ) const;
         int get_part_drench_capacity( const bodypart_id &id ) const;
         int get_part_wetness( const bodypart_id &id ) const;
+        float get_part_pain_multiplier( const bodypart_id &id ) const;
         units::temperature get_part_temp_cur( const bodypart_id &id ) const;
         units::temperature get_part_temp_conv( const bodypart_id &id ) const;
         int get_part_frostbite_timer( const bodypart_id &id )const;

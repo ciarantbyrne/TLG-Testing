@@ -45,33 +45,13 @@
     "extend": { "flags": [ "UNDERSIZE", "PREFIX_XS" ] }
   },
   {
-    "id": "bellyband",
-    "type": "ITEM",
-    "subtypes": [ "ARMOR" ],
-    "name": { "str": "belly band" },
-    "description": "A piece of clothing designed to be worn around the belly, called Haramaki in Japan.  This one is made from wool, comfortable and warm.",
-    "weight": "150 g",
-    "volume": "750 ml",
-    "looks_like": "chestwrap",
-    "price": "7 USD",
-    "price_postapoc": "50 cent",
-    "material": [ "wool" ],
-    "symbol": "[",
-    "color": "blue",
-    "warmth": 10,
-    "material_thickness": 0.2,
-    "flags": [ "SKINTIGHT", "OVERSIZE" ],
-    "armor": [ { "encumbrance": 2, "coverage": 100, "covers": [ "torso" ], "specifically_covers": [ "torso_lower" ] } ]
-  },
-  {
     "id": "bellywrap",
     "type": "ITEM",
     "subtypes": [ "ARMOR" ],
     "name": { "str": "belly wrap" },
-    "description": "Rags wrapped around the belly.  Usually worn in combination with a chestwrap.",
+    "description": "A simple piece of clothing designed to be worn around the midsection, either as a fashion statement or for warmth.",
     "weight": "120 g",
     "volume": "500 ml",
-    "looks_like": "bellyband",
     "price": "7 USD",
     "price_postapoc": "10 cent",
     "material": [ "cotton" ],
@@ -939,28 +919,6 @@
     "armor": [
       { "coverage": 100, "covers": [ "leg_l", "leg_r" ], "specifically_covers": [ "leg_hip_l", "leg_hip_r" ] },
       { "coverage": 65, "covers": [ "leg_l", "leg_r" ], "specifically_covers": [ "leg_upper_l", "leg_upper_r" ] }
-    ]
-  },
-  {
-    "id": "undershirt",
-    "type": "ITEM",
-    "subtypes": [ "ARMOR" ],
-    "name": { "str": "undershirt" },
-    "description": "A simple white undershirt.  Worn beneath your regular clothes, it provides a little extra warmth.",
-    "weight": "100 g",
-    "volume": "250 ml",
-    "price": "10 USD",
-    "price_postapoc": "50 cent",
-    "material": [ "cotton" ],
-    "symbol": "[",
-    "looks_like": "tshirt",
-    "color": "white",
-    "warmth": 5,
-    "material_thickness": 0.1,
-    "flags": [ "VARSIZE", "SKINTIGHT" ],
-    "armor": [
-      { "covers": [ "torso" ], "specifically_covers": [ "torso_lower" ], "coverage": 100 },
-      { "covers": [ "torso" ], "specifically_covers": [ "torso_upper" ], "coverage": 90 }
     ]
   },
   {

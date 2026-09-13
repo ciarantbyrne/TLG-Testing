@@ -202,7 +202,7 @@ static const ter_str_id ter_t_laminated_door_glass_c( "t_laminated_door_glass_c"
 static const ter_str_id ter_t_laminated_glass( "t_laminated_glass" );
 static const ter_str_id ter_t_laminated_glass_lab( "t_laminated_glass_lab" );
 static const ter_str_id ter_t_rock_floor( "t_rock_floor" );
-static const ter_str_id ter_t_sewage( "t_sewage" );
+static const ter_str_id ter_t_sewage_underground( "t_sewage_underground" );
 static const ter_str_id ter_t_stairs_down( "t_stairs_down" );
 static const ter_str_id ter_t_stairs_up( "t_stairs_up" );
 static const ter_str_id ter_t_strconc_floor( "t_strconc_floor" );
@@ -211,7 +211,7 @@ static const ter_str_id ter_t_thconc_floor_olight( "t_thconc_floor_olight" );
 static const ter_str_id ter_t_vat( "t_vat" );
 static const ter_str_id ter_t_wall_burnt( "t_wall_burnt" );
 static const ter_str_id ter_t_water_dp( "t_water_dp" );
-static const ter_str_id ter_t_water_sh( "t_water_sh" );
+static const ter_str_id ter_t_water_sh_underground( "t_water_sh_underground" );
 
 static const trait_id trait_NPC_STATIC_NPC( "NPC_STATIC_NPC" );
 
@@ -2206,6 +2206,7 @@ std::string enum_to_string<jmapgen_flags>( jmapgen_flags v )
             return "ERASE_ITEMS_BEFORE_PLACING_TERRAIN";
         case jmapgen_flags::no_underlying_rotate: return "NO_UNDERLYING_ROTATE";
         case jmapgen_flags::avoid_creatures: return "AVOID_CREATURES";
+        case jmapgen_flags::skip_on_open_air: return "SKIP_ON_OPEN_AIR";
         // *INDENT-ON*
         case jmapgen_flags::last:
             break;
@@ -3166,23 +3167,6 @@ class jmapgen_monster : public jmapgen_piece
         }
 };
 
-static inclusive_rectangle<point> vehicle_bounds( const vehicle_prototype &vp )
-{
-    point min( INT_MAX, INT_MAX );
-    point max( INT_MIN, INT_MIN );
-
-    cata_assert( !vp.parts.empty() );
-
-    for( const vehicle_prototype::part_def &part : vp.parts ) {
-        min.x = std::min( min.x, part.pos.x() );
-        max.x = std::max( max.x, part.pos.x() );
-        min.y = std::min( min.y, part.pos.y() );
-        max.y = std::max( max.y, part.pos.y() );
-    }
-
-    return { min, max };
-}
-
 /**
  * Place a vehicle.
  * "vehicle": id of the vehicle.
@@ -3250,120 +3234,60 @@ class jmapgen_vehicle : public jmapgen_piece_with_has_vehicle_collision
                 return;
             }
 
-            // The rest of this function is devoted to ensuring that this
-            // vehicle placement does not lead to a vehicle overlapping an OMT
-            // boundary, because that causes issues (e.g. if the vehicle is
-            // damaged and tries to drop items during mapgen, they may drop on
-            // points outside the map).
-
-            point min( INT_MAX, INT_MAX );
-            point max( INT_MIN, INT_MIN );
-            vgroup_id min_x_vg;
-            vproto_id min_x_vp;
-            vgroup_id max_x_vg;
-            vproto_id max_x_vp;
-            vgroup_id min_y_vg;
-            vproto_id min_y_vp;
-            vgroup_id max_y_vg;
-            vproto_id max_y_vp;
-            for( const vgroup_id &vg_id : type.all_possible_results( parameters ) ) {
-                for( const vproto_id &vp_id : vg_id->all_possible_results() ) {
-                    inclusive_rectangle<point> bounds = vehicle_bounds( *vp_id );
-                    if( bounds.p_min.x < min.x ) {
-                        min_x_vg = vg_id;
-                        min_x_vp = vp_id;
-                        min.x = bounds.p_min.x;
-                    }
-                    if( bounds.p_max.x > max.x ) {
-                        max_x_vg = vg_id;
-                        max_x_vp = vp_id;
-                        max.x = bounds.p_max.x;
-                    }
-                    if( bounds.p_min.y < min.y ) {
-                        min_y_vg = vg_id;
-                        min_y_vp = vp_id;
-                        min.y = bounds.p_min.y;
-                    }
-                    if( bounds.p_max.y > max.y ) {
-                        max_y_vg = vg_id;
-                        max_y_vp = vp_id;
-                        max.y = bounds.p_max.y;
-                    }
-                }
-            }
-
+            // Mirror vehicle::precalc_mounts to detect parts landing OOB
             for( units::angle rot : rotation ) {
-                int degrees = to_degrees( rot );
-                while( degrees < 0 ) {
-                    degrees += 360;
+                int degrees = ( ( static_cast<int>( to_degrees( rot ) ) % 360 ) + 360 ) % 360;
+                for( const vgroup_id &vg_id : type.all_possible_results( parameters ) ) {
+                    for( const vproto_id &vp_id : vg_id->all_possible_results() ) {
+                        point worst_min( INT_MAX, INT_MAX );
+                        point worst_max( INT_MIN, INT_MIN );
+                        tileray tdir( rot );
+                        for( const vehicle_prototype::part_def &part : vp_id->parts ) {
+                            tdir.clear_advance();
+                            tdir.advance( part.pos.x() );
+                            point d( tdir.dx() + tdir.ortho_dx( part.pos.y() ),
+                                     tdir.dy() + tdir.ortho_dy( part.pos.y() ) );
+                            worst_min.x = std::min( worst_min.x, d.x );
+                            worst_max.x = std::max( worst_max.x, d.x );
+                            worst_min.y = std::min( worst_min.y, d.y );
+                            worst_max.y = std::max( worst_max.y, d.y );
+                        }
+                        point new_min = worst_min + point( x.val, y.val );
+                        point new_max = worst_max + point( x.valmax, y.valmax );
+
+                        cube_direction bad_dir = cube_direction::last;
+                        std::string extreme_coord;
+                        if( new_min.x < 0 ) {
+                            bad_dir = cube_direction::west;
+                            extreme_coord = string_format(
+                                                "x = %d (should be at least 0)", new_min.x );
+                        } else if( new_max.x >= 24 ) {
+                            bad_dir = cube_direction::east;
+                            extreme_coord = string_format(
+                                                "x = %d (should be at most 23)", new_max.x );
+                        } else if( new_min.y < 0 ) {
+                            bad_dir = cube_direction::north;
+                            extreme_coord = string_format(
+                                                "y = %d (should be at least 0)", new_min.y );
+                        } else if( new_max.y >= 24 ) {
+                            bad_dir = cube_direction::south;
+                            extreme_coord = string_format(
+                                                "y = %d (should be at most 23)", new_max.y );
+                        } else {
+                            continue;
+                        }
+                        debugmsg( "In %s, vehicle placement at x:[%d,%d], y:[%d,%d]: "
+                                  "potential placement of vehicle out of bounds.  "
+                                  "At rotation %d the vehicle "
+                                  "[vgroup_id %s; vproto_id %s] extends too far %s, "
+                                  "reaching coordinate %s",
+                                  context, x.val, x.valmax, y.val, y.valmax, degrees,
+                                  vg_id.str(), vp_id.str(),
+                                  io::enum_to_string( bad_dir ), extreme_coord );
+                        // Early exit per (vgroup, vproto) pair to limit spam
+                        return;
+                    }
                 }
-                if( degrees % 90 != 0 ) {
-                    // TODO: support non-rectilinear vehicle placement
-                    continue;
-                }
-                int turns = degrees / 90;
-                point rotated_min = min.rotate( turns );
-                point rotated_max = max.rotate( turns );
-                point new_min( std::min( rotated_min.x, rotated_max.x ),
-                               std::min( rotated_min.y, rotated_max.y ) );
-                point new_max( std::max( rotated_min.x, rotated_max.x ),
-                               std::max( rotated_min.y, rotated_max.y ) );
-
-                new_min += point( x.val, y.val );
-                new_max += point( x.valmax, y.valmax );
-
-                cube_direction bad_rotated_direction = cube_direction::last;
-                std::string extreme_coord;
-
-                if( new_min.x < 0 ) {
-                    bad_rotated_direction = cube_direction::west;
-                    extreme_coord = string_format( "x = %d (should be at least 0)", new_min.x );
-                } else if( new_max.x >= 24 ) {
-                    bad_rotated_direction = cube_direction::east;
-                    extreme_coord = string_format( "x = %d (should be at most 23)", new_max.x );
-                } else if( new_min.y < 0 ) {
-                    extreme_coord = string_format( "y = %d (should be at least 0)", new_min.y );
-                    bad_rotated_direction = cube_direction::north;
-                } else if( new_max.y >= 24 ) {
-                    bad_rotated_direction = cube_direction::south;
-                    extreme_coord = string_format( "y = %d (should be at most 23)", new_max.y );
-                } else {
-                    continue;
-                }
-
-                cube_direction bad_direction = bad_rotated_direction - turns;
-
-                std::string bad_vehicle;
-                auto format_option = []( const vgroup_id & vg, const vproto_id & vp ) {
-                    return string_format(
-                               "[vgroup_id %s; vproto_id %s]", vg.str(), vp.str() );
-                };
-                switch( bad_direction ) {
-                    case cube_direction::north:
-                        bad_vehicle = format_option( min_y_vg, min_y_vp );
-                        break;
-                    case cube_direction::south:
-                        bad_vehicle = format_option( max_y_vg, max_y_vp );
-                        break;
-                    case cube_direction::east:
-                        bad_vehicle = format_option( max_x_vg, max_x_vp );
-                        break;
-                    case cube_direction::west:
-                        bad_vehicle = format_option( min_x_vg, min_x_vp );
-                        break;
-                    default:
-                        cata_fatal( "Invalid bad_direction %d", bad_direction );
-                }
-                debugmsg( "In %s, vehicle placement at x:[%d,%d], y:[%d,%d]: "
-                          "potential placement of vehicle out of bounds.  "
-                          "At rotation %d the vehicle %s extends too far %s, "
-                          "reaching coordinate %s",
-                          context, x.val, x.valmax, y.val, y.valmax, degrees,
-                          bad_vehicle, io::enum_to_string( bad_rotated_direction ),
-                          extreme_coord );
-                // Early exit because we don't want too much error spam
-                // from the same mapgen piece
-                return;
             }
         }
 };
@@ -3493,7 +3417,11 @@ class jmapgen_furniture : public jmapgen_piece_with_has_vehicle_collision
             if( chosen_id.id().is_null() ) {
                 return;
             }
-            if( !dat.m.furn_set( tripoint_bub_ms( x.get(), y.get(), dat.zlevel() + z.get() ), chosen_id ) ) {
+            const tripoint_bub_ms p( x.get(), y.get(), dat.zlevel() + z.get() );
+            if( dat.has_flag( jmapgen_flags::skip_on_open_air ) && dat.m.is_open_air( p ) ) {
+                return;
+            }
+            if( !dat.m.furn_set( p, chosen_id ) ) {
                 debugmsg( "Problem setting furniture in %s", context );
             }
         }
@@ -6512,7 +6440,7 @@ static ret_val<void> apply_mapgen_in_phases(
     }
     cata_assert( setmap_point == setmap_points.end() );
 
-    resolve_regional_terrain_and_furniture( md );
+    resolve_regional_terrain_and_furniture( md, offset.z() );
 
     return ret_val<void>::make_success();
 }
@@ -6905,10 +6833,10 @@ void map::draw_lab( mapgendata &dat )
                     ter_set( point_bub_ms( i, j ), ter_t_thconc_floor );
                     if( ( ( i < lw || i > EAST_EDGE - rw ) && j > SEEY - 3 && j < SEEY + 2 ) ||
                         ( ( j < tw || j > SOUTH_EDGE - bw ) && i > SEEX - 3 && i < SEEX + 2 ) ) {
-                        ter_set( point_bub_ms( i, j ), ter_t_sewage );
+                        ter_set( point_bub_ms( i, j ), ter_t_sewage_underground );
                     }
                     if( ( i == 0 && is_ot_match( "lab", dat.east(), ot_match_type::contains ) ) || i == EAST_EDGE ) {
-                        if( ter( point_bub_ms( i, j ) ) == ter_t_sewage ) {
+                        if( ter( point_bub_ms( i, j ) ) == ter_t_sewage_underground ) {
                             ter_set( point_bub_ms( i, j ), ter_t_bars );
                         } else if( j == SEEY - 1 || j == SEEY ) {
                             ter_set( point_bub_ms( i, j ), ter_t_door_metal_c );
@@ -6917,7 +6845,7 @@ void map::draw_lab( mapgendata &dat )
                         }
                     } else if( ( j == 0 && is_ot_match( "lab", dat.north(), ot_match_type::contains ) ) ||
                                j == SOUTH_EDGE ) {
-                        if( ter( point_bub_ms( i, j ) ) == ter_t_sewage ) {
+                        if( ter( point_bub_ms( i, j ) ) == ter_t_sewage_underground ) {
                             ter_set( point_bub_ms( i, j ), ter_t_bars );
                         } else if( i == SEEX - 1 || i == SEEX ) {
                             ter_set( point_bub_ms( i, j ), ter_t_door_metal_c );
@@ -7335,7 +7263,7 @@ void map::draw_lab( mapgendata &dat )
                         // liquid floors.
                         break;
                     }
-                    const ter_id &fluid_type = one_in( 3 ) ? ter_t_sewage : ter_t_water_sh;
+                    const ter_id &fluid_type = one_in( 3 ) ? ter_t_sewage_underground : ter_t_water_sh_underground;
                     for( int i = 0; i < EAST_EDGE; i++ ) {
                         for( int j = 0; j < SOUTH_EDGE; j++ ) {
                             // We spare some terrain to make it look better visually.
@@ -7363,7 +7291,7 @@ void map::draw_lab( mapgendata &dat )
                         // liquid floors.
                         break;
                     }
-                    const ter_id &fluid_type = one_in( 3 ) ? ter_t_sewage : ter_t_water_sh;
+                    const ter_id &fluid_type = one_in( 3 ) ? ter_t_sewage_underground : ter_t_water_sh_underground;
                     for( int i = 0; i < 2; ++i ) {
                         draw_rough_circle( [this, fluid_type]( const point_bub_ms & p ) {
                             const ter_id &maybe_flood_ter = ter( p );
@@ -9290,7 +9218,7 @@ mapgen_update_func add_mapgen_update_func( const JsonObject &jo, bool &defer )
 }
 
 static const std::string missing_update_operation =
-    "missing update operation (not vehicle/appliance)";
+    translate_marker( "missing update operation (not vehicle/appliance)" );
 
 ret_val<void> run_mapgen_update_func(
     const update_mapgen_id &update_mapgen_id, const tripoint_abs_omt &omt_pos,

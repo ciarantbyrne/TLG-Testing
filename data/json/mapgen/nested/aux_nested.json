@@ -378,6 +378,40 @@
   },
   {
     "type": "mapgen",
+    "nested_mapgen_id": "1x1_solid_earth",
+    "object": { "mapgensize": [ 1, 1 ], "terrain": { " ": "t_soil" }, "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ] }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "1x1_solid_rock",
+    "object": { "mapgensize": [ 1, 1 ], "terrain": { " ": "t_rock" }, "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ] }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "1x1_earth_ramp_down_high",
+    "object": {
+      "mapgensize": [ 1, 1 ],
+      "terrain": { " ": "t_earth_ramp_down_high" },
+      "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ]
+    }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "1x1_earth_ramp_down_low",
+    "object": { "mapgensize": [ 1, 1 ], "terrain": { " ": "t_earth_ramp_down_low" }, "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ] }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "1x1_earth_ramp_up_high",
+    "object": { "mapgensize": [ 1, 1 ], "terrain": { " ": "t_earth_ramp_up_high" }, "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ] }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "1x1_earth_ramp_up_low",
+    "object": { "mapgensize": [ 1, 1 ], "terrain": { " ": "t_earth_ramp_up_low" }, "flags": [ "ERASE_ALL_BEFORE_PLACING_TERRAIN" ] }
+  },
+  {
+    "type": "mapgen",
     "//": "A nested map bash damage.",
     "nested_mapgen_id": "1x1_2z_bash",
     "object": {
@@ -502,6 +536,19 @@
       "mapgensize": [ 1, 1 ],
       "place_vehicles": [ { "vehicle": "rolling_trash_can", "x": 0, "y": 0, "chance": 80, "status": 0 } ]
     }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "luggage_large_1x1",
+    "object": {
+      "mapgensize": [ 1, 1 ],
+      "place_vehicles": [ { "vehicle": "luggage_large", "x": 0, "y": 0, "chance": 80, "status": 0 } ]
+    }
+  },
+  {
+    "type": "mapgen",
+    "nested_mapgen_id": "luggage_1x1",
+    "object": { "mapgensize": [ 1, 1 ], "place_vehicles": [ { "vehicle": "luggage", "x": 0, "y": 0, "chance": 80, "status": 0 } ] }
   },
   {
     "type": "mapgen",

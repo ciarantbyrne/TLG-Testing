@@ -106,7 +106,13 @@
     "volume": "5 ml",
     "weight": "8 g",
     "ammo_type": "gravel",
+    "damage": { "damage_type": "bash", "amount": 1 },
+    "effects": [ "NEVER_MISFIRES", "NON_FOULING", "NOGIB" ],
+    "range": 4,
+    "dispersion": 30,
+    "loudness": 0,
     "count": 1,
+    "recovery_chance": 70,
     "melee_damage": { "bash": 1 }
   },
   {
@@ -1435,6 +1441,7 @@
     "volume": "250 ml",
     "weight": "1 g",
     "flags": [ "DETERGENT" ],
+    "use_action": [ "WASH_ALL_ITEMS" ],
     "ammo_type": "components",
     "container": "box_small",
     "count": 20
@@ -1455,6 +1462,7 @@
     "weight": "1 g",
     "ammo_type": "components",
     "flags": [ "DETERGENT" ],
+    "use_action": [ "WASH_ALL_ITEMS" ],
     "count": 20
   },
   {
@@ -1526,11 +1534,11 @@
     "category": "chems",
     "price": "0 cent",
     "price_postapoc": "0 cent",
-    "name": { "str_sp": "wood ashes" },
+    "name": { "str_sp": "wood ash" },
     "symbol": "=",
     "looks_like": "f_ash",
     "color": "light_gray",
-    "description": "A handful of almost-weightless residue left after the burning of some substance.",
+    "description": "A flakey powder left over after wood has been completely burned.",
     "material": [ "powder_nonflam" ],
     "volume": "164 ml",
     "weight": "1 g",
@@ -1544,11 +1552,11 @@
     "category": "chems",
     "price": "0 cent",
     "price_postapoc": "0 cent",
-    "name": { "str_sp": "corpse ashes" },
+    "name": { "str_sp": "ash" },
     "symbol": "=",
     "looks_like": "f_ash",
     "color": "light_gray",
-    "description": "The burnt remains of a person or animal.",
+    "description": "A flakey powder left over after something has been completely burned.",
     "material": [ "powder_nonflam" ],
     "volume": "104 ml",
     "weight": "1 g",
@@ -1921,8 +1929,7 @@
     "name": { "str": "wasp venom gland" },
     "description": "A fragile, slightly quivering organ for the production and storage of wasp venom.  You could extract some very useful chemicals from it with the right know-how, but only if you hurry.",
     "color": "light_green",
-    "fun": -50,
-    "use_action": [ "POISON" ]
+    "flags": [ "INEDIBLE" ]
   },
   {
     "id": "venom_bee",
@@ -1932,8 +1939,7 @@
     "name": { "str": "bee venom gland" },
     "description": "A fragile, slightly quivering organ for the production and storage of honeybee venom.  You could extract some very useful chemicals from it with the right know-how, but only if you hurry.",
     "color": "yellow",
-    "fun": -50,
-    "use_action": [ "POISON" ]
+    "flags": [ "INEDIBLE" ]
   },
   {
     "id": "venom_paralytic",
@@ -1945,7 +1951,7 @@
     "material": [ "vegetable" ],
     "color": "light_gray",
     "fun": -50,
-    "vitamins": [ [ "vegetable_allergen", 1 ] ]
+    "flags": [ "INEDIBLE" ]
   },
   {
     "id": "triffid_fungicide",
@@ -1956,8 +1962,7 @@
     "description": "A triffid sac filled with what appears to be a triffid-produced antifungal agent.  It will likely already work as an antifungal compound for more offensive applications, but requires further refining before it can be used as a medical drug.",
     "material": [ "vegetable" ],
     "color": "light_blue",
-    "fun": -50,
-    "vitamins": [ [ "vegetable_allergen", 1 ] ]
+    "flags": [ "INEDIBLE" ]
   },
   {
     "id": "conc_venom",
@@ -2103,9 +2108,10 @@
   },
   {
     "type": "ITEM",
-    "subtypes": [ "COMESTIBLE" ],
+    "subtypes": [ "AMMO" ],
     "id": "liquid_soap",
     "name": { "str_sp": "liquid soap" },
+    "ammo_type": "components",
     "category": "chems",
     "weight": "46 g",
     "//": "Density of around 0.92 g/ml",
@@ -2119,8 +2125,8 @@
     "volume": "250 ml",
     "phase": "liquid",
     "flags": [ "DETERGENT" ],
-    "comestible_type": "INVALID",
-    "charges": 5
+    "use_action": [ "WASH_ALL_ITEMS" ],
+    "count": 5
   },
   {
     "id": "pine_resin",

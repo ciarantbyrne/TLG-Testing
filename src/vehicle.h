@@ -508,9 +508,6 @@ struct vehicle_part {
         npc &get_targeting_npc( vehicle &veh );
         /*@}*/
 
-        /** how much blood covers part (in turns). */
-        int blood = 0;
-
         /**
          * if tile provides cover.
          * WARNING: do not read it directly, use vpart_position::is_inside() instead
@@ -847,9 +844,6 @@ class vehicle
         // convert watts over time to battery energy (kJ)
         int power_to_energy_bat( units::power power, const time_duration &d ) const;
 
-        // Do stuff like clean up blood and produce smoke from broken parts. Returns false if nothing needs doing.
-        bool do_environmental_effects( map &here ) const;
-
         // Vehicle fuel indicator (by fuel)
         // TODO: Figure out what coordinate system "point" is in and type it.
         void print_fuel_indicator( map &here, const catacurses::window &w, const point &p,
@@ -982,6 +976,12 @@ class vehicle
                          bool force_status = false );
 
         // damages all parts of a vehicle by a random amount
+        void damage_all_parts( float hp_percent_loss_min = 0.1f, float hp_percent_loss_max = 1.2f,
+                               float percent_of_parts_to_affect = 1.0f,
+                               point_rel_ms damage_origin = point_rel_ms::zero,
+                               float damage_size = 0 );
+
+        // damage_all_parts, plus deduplication of overlapping parts
         void smash( map &m, float hp_percent_loss_min = 0.1f, float hp_percent_loss_max = 1.2f,
                     float percent_of_parts_to_affect = 1.0f, point_rel_ms damage_origin = point_rel_ms::zero,
                     float damage_size = 0 );
@@ -2488,8 +2488,6 @@ class vehicle
         bool precollision_on = true;
         // skidding mode
         bool skidding = false;
-        // has bloody or smoking parts
-        bool check_environmental_effects = false; // NOLINT(cata-serialize)
         // "inside" flags are outdated and need refreshing
         bool insides_dirty = true; // NOLINT(cata-serialize)
         // Is the vehicle hanging in the air and expected to fall down in the next turn?

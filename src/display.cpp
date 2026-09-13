@@ -905,7 +905,7 @@ std::pair<std::string, nc_color> display::vehicle_cruise_text_color( const Chara
     if( veh ) {
         int target = static_cast<int>( convert_velocity( veh->cruise_velocity, VU_VEHICLE ) );
         int current = static_cast<int>( convert_velocity( veh->velocity, VU_VEHICLE ) );
-        const std::string units = get_option<std::string>( "UNIT_SYSTEM" ) == "metric" ? "km/h" : "mph";
+        const std::string units = _( "km/h" );
         vel_text = string_format( "%d < %d %s", target, current, units );
 
         const float strain = veh->strain( here );
@@ -1487,7 +1487,7 @@ std::pair<std::string, nc_color> display::snow_depth_text_color( const Character
 
 std::pair<std::string, nc_color> display::weather_text_color( const Character &u )
 {
-    if( u.posz() < 0 ) {
+    if( u.posz() < 0 && get_map().is_roofed( u.pos_bub() ) ) {
         return std::make_pair( _( "Underground" ), c_light_gray );
     } else {
         weather_manager &weather = get_weather();

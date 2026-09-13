@@ -457,7 +457,6 @@
       "GOODCARDIO",
       "RADIOGENIC",
       "PADDED_FEET",
-      "RAP_TALONS",
       "HOOVES",
       "HEMOVORE",
       "CANINE_EARS",
@@ -501,7 +500,7 @@
     "points": -8,
     "description": "You were deemed an essential employee and required to stay behind during the lab's evacuation.  Find a way to escape or starve to death.",
     "start_name": "Locked Lab",
-    "professions": [ "labtech", "security", "medic" ],
+    "professions": [ "labtech", "security", "surgeon" ],
     "allowed_locs": [ "sloc_lab_random", "sloc_lab_escape_cells", "sloc_lab_finale" ],
     "flags": [ "CHALLENGE", "CITY_START", "LONE_START" ]
   },
@@ -512,7 +511,7 @@
     "points": -6,
     "description": "You were deemed an essential employee and required to stay behind during the facility's evacuation.  You'd better find your lanyard with your badge before the automated defenses notice that you don't have one.",
     "start_name": "Locked Lab",
-    "professions": [ "security", "labtech", "medic" ],
+    "professions": [ "security", "labtech", "surgeon" ],
     "allowed_locs": [ "sloc_lab_concourse_area" ],
     "map_extra": "mx_lab_concourse_area",
     "flags": [ "CHALLENGE", "LONE_START" ]
@@ -571,22 +570,6 @@
   },
   {
     "type": "scenario",
-    "id": "faction_camp_start",
-    "name": "Brave New World",
-    "points": 8,
-    "description": "It's been a year since the apocalypse, and winter is fast approaching.  You and your company have managed to gather up enough supplies to finally settle down somewhere, away from the death and destruction.  Life has been hard for you, but in your heart you still hold a vision of a bright future lying ahead.",
-    "start_name": "Old Evac Shelter",
-    "allowed_locs": [ "sloc_shelter_a", "sloc_shelter_b", "sloc_shelter_c" ],
-    "start_of_cataclysm": { "hour": 0, "day": 41, "season": "spring", "year": 1 },
-    "fall_of_civilization": { "hour": 0, "day": 61, "season": "spring", "year": 1 },
-    "start_of_game": { "hour": 8, "day": 1, "season": "autumn", "year": 2 },
-    "add_professions": true,
-    "professions": [ "sheltered_survivor", "sheltered_militia", "winter_scavenger", "winter_army" ],
-    "eoc": [ "faction_camp_start" ],
-    "flags": [ "CITY_START", "LONE_START" ]
-  },
-  {
-    "type": "scenario",
     "id": "alone",
     "name": "Sheltered",
     "points": -3,
@@ -621,7 +604,7 @@
     "description": "When the Cataclysm happened, you were convicted or working in a prison.  Now the inmates and guards alike have turned into mindless horrors and joined forces… you might need to expedite your escape plans.",
     "allowed_locs": [ "sloc_prison" ],
     "start_name": "Prison",
-    "professions": [ "convict", "convict_assassin", "convict_ratman", "k9_cop", "cop" ],
+    "professions": [ "convict", "convict_ratman", "k9_cop", "cop" ],
     "flags": [ "CITY_START", "LONE_START" ]
   },
   {
@@ -632,7 +615,7 @@
     "description": "You were convicted or working in a high-security prison before the Cataclysm.  Unfortunately, you're still in it, so you need to figure out how to escape.  It's located on a remote island to boot; you'll eventually need to escape that also.",
     "allowed_locs": [ "sloc_prison_alcatraz", "sloc_prison_island" ],
     "start_name": "Island prison",
-    "professions": [ "convict", "convict_assassin", "convict_ratman", "k9_cop", "cop" ],
+    "professions": [ "convict", "convict_ratman", "k9_cop", "cop" ],
     "reveal_locale": false,
     "flags": [ "LONE_START", "CHALLENGE" ]
   },
@@ -673,7 +656,6 @@
       "GOODCARDIO",
       "RADIOGENIC",
       "PADDED_FEET",
-      "RAP_TALONS",
       "HOOVES",
       "LIGHTFUR",
       "CANINE_EARS",
@@ -754,7 +736,6 @@
     "professions": [
       "rifleman",
       "recruit",
-      "specops",
       "national_guard",
       "politician",
       "hitman",
@@ -797,9 +778,8 @@
       "unemployed",
       "recruit",
       "rifleman",
-      "specops",
       "labtech",
-      "medic",
+      "surgeon",
       "mil_auto_rifleman",
       "mili_pilot",
       "mili_medic",
@@ -825,7 +805,6 @@
       "frat",
       "gangster",
       "lost_sub",
-      "lawyer",
       "politician",
       "dancer",
       "cheerleader",
@@ -876,7 +855,6 @@
       "lost_sub",
       "backpacker",
       "heli_pilot",
-      "lawyer",
       "politician",
       "dancer",
       "cheerleader",
@@ -931,7 +909,7 @@
     "description": "When the Cataclysm happened, you were working in a nuclear power plant.  Now you're trapped inside, surrounded by the shambling bodies of what used to be your coworkers.  The reactor's shut down, but you don't know if there's been a radiation leak and you need to get away from here fast before you find out the hard way.",
     "start_name": "Nuclear Power Plant",
     "allowed_locs": [ "nuclear_plant" ],
-    "professions": [ "electrician", "labtech", "medic" ],
+    "professions": [ "electrician", "labtech", "surgeon" ],
     "flags": [ "CHALLENGE", "LONE_START" ]
   },
   {

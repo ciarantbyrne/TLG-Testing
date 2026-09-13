@@ -162,7 +162,8 @@ struct bash_params {
     bool did_bash = false;
     // Was anything destroyed?
     bool success = false;
-    // Did we bash furniture, terrain or vehicle
+    /* Did we bash furniture, terrain or vehicle? Note: I think this might
+       actually be unused now, but we can keep it in case a need arises. */
     bool bashed_solid = false;
     /*
      * Are we bashing this location from above?
@@ -753,6 +754,17 @@ class map
          * may prevent that (e.g. a locked safe).
          */
         bool accessible_items( const tripoint_bub_ms &t ) const;
+
+        /**
+         * Visit every non-liquid item reachable from @p center within @p radius.
+         * Handles tile accessibility, item ownership (if @p ch is non-null),
+         * and vehicle cargo.  The visitor receives each item by const reference
+         * and is never called for liquids.
+         */
+        void for_each_reachable_item( const tripoint_bub_ms &center, int radius,
+                                      const Character *ch,
+                                      const std::function<void( const item & )> &fn );
+
         /**
          * Calculate next search points surrounding the current position.
          * Points closer to the target come first.
@@ -1236,10 +1248,6 @@ class map
         bash_params bash( const tripoint_bub_ms &p, int str, bool silent = false,
                           bool destroy = false, bool bash_floor = false, bool fire = false,
                           const vehicle *bashing_vehicle = nullptr, bool crystalline_only = false );
-
-        // Effects of attacks/items
-        bool hit_with_acid( const tripoint_bub_ms &p );
-        bool hit_with_fire( const tripoint_bub_ms &p );
 
         /**
          * Returns true if there is furniture for which filter returns true in a 1 tile radius of p.
@@ -1924,6 +1932,13 @@ class map
     protected:
         void saven( const tripoint_bub_sm &grid );
         void loadn( const point_bub_sm &grid, bool update_vehicles );
+        /**
+         * Walk all items currently in the bubble (map tiles + vehicle cargo,
+         * recursing into containers) and call rebuild_for_item on each.  Run
+         * after submaps come back into range so item-targeted wakeups re-arm
+         * from authoritative item state.
+         */
+        void reconcile_item_wakeups();
         /**
          * Fast forward a submap that has just been loading into this map.
          * This is used to rot and remove rotten items, grow plants, fill funnels etc.
