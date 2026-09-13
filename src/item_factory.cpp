@@ -2232,21 +2232,6 @@ void conditional_name::deserialize( const JsonObject &jo )
     }
 }
 
-void subjective_name::deserialize(const JsonObject& jo)
-{
-    optional(jo, was_loaded, "type", type);
-    optional(jo, was_loaded, "condition", condition);
-    optional(jo, was_loaded, "value", value);
-    optional(jo, was_loaded, "skip_if_recipe_known", skip_if_recipe_known);
-    // A replacement name does not need to be specified, even if many entries will use one
-    bool name_present;
-    optional(jo, name_present = was_loaded, "name", name);
-    optional(jo, was_loaded, "description", description);
-    if (name_present) {
-        name = translation(translation::plural_tag());
-    }
-}
-
 bool Item_factory::check_ammo_type( std::string &msg, const ammotype &ammo ) const
 {
     if( ammo.is_null() ) {
@@ -3062,6 +3047,21 @@ void itype_variant_data::load( const JsonObject &jo )
     optional( jo, false, "weight", weight, 1 );
     optional( jo, false, "append", append );
     optional( jo, false, "expand_snippets", expand_snippets );
+}
+
+void subjective_info::deserialize(const JsonObject& jo)
+{
+    optional(jo, was_loaded, "type", type);
+    optional(jo, was_loaded, "condition", condition);
+    optional(jo, was_loaded, "value", value);
+    optional(jo, was_loaded, "skip_if_recipe_known", skip_if_recipe_known);
+    // A replacement name does not need to be specified, even if many entries will use one
+    bool name_present;
+    optional(jo, name_present = was_loaded, "name", name);
+    optional(jo, was_loaded, "description", description);
+    if (name_present) {
+        name = translation(translation::plural_tag());
+    }
 }
 
 
@@ -4200,7 +4200,7 @@ void itype::load( const JsonObject &jo, std::string_view src )
     mandatory( jo, was_loaded, "name", name );
     optional( jo, was_loaded, "conditional_names", conditional_names );
     optional( jo, was_loaded, "description", description );
-    optional( jo, was_loaded, "subjective_names", subjective_names );
+    optional( jo, was_loaded, "subjective_info", subjective_info_entries );
     //ACTION (use_function)
     optional( jo, was_loaded, "use_action", use_methods, use_function_reader_map{ ammo_scale, src } );
     optional( jo, was_loaded, "tick_action", tick_action, use_function_reader_map{ ammo_scale, src } );

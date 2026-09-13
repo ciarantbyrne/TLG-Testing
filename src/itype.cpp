@@ -63,31 +63,31 @@ std::string enum_to_string<condition_type>( condition_type data )
 }
 
 template<>
-std::string enum_to_string<subjective_name_type>(subjective_name_type data)
+std::string enum_to_string<subjective_info_type>(subjective_info_type data)
 {
     switch (data) {
-    case subjective_name_type::SUBJ_SKILL:
-        return "SKILL";
-    case subjective_name_type::SUBJ_STR:
-        return "STR";
-    case subjective_name_type::SUBJ_DEX:
-        return "DEX";
-    case subjective_name_type::SUBJ_INT:
-        return "INT";
-    case subjective_name_type::SUBJ_PER:
-        return "PER";
-    case subjective_name_type::SUBJ_PROFESSION:
-        return "PROFESSION";
-    case subjective_name_type::SUBJ_FLAG:
-        return "FLAG";
-    case subjective_name_type::SUBJ_MUTATION:
-        return "MUTATION";
-    case subjective_name_type::SUBJ_VAR:
-        return "VAR";
-    case subjective_name_type::num_subjective_name_types:
-        break;
+        case subjective_info_type::SUBJ_SKILL:
+            return "SKILL";
+        case subjective_info_type::SUBJ_STR:
+            return "STR";
+        case subjective_info_type::SUBJ_DEX:
+            return "DEX";
+        case subjective_info_type::SUBJ_INT:
+            return "INT";
+        case subjective_info_type::SUBJ_PER:
+            return "PER";
+        case subjective_info_type::SUBJ_PROFICIENCY:
+            return "PROFESSION";
+        case subjective_info_type::SUBJ_FLAG:
+            return "FLAG";
+        case subjective_info_type::SUBJ_MUTATION:
+            return "MUTATION";
+        case subjective_info_type::SUBJ_VAR:
+            return "VAR";
+        case subjective_info_type::num_subjective_info_types:
+            break;
     }
-    cata_fatal("Invalid subjective_name_type");
+    cata_fatal("Invalid subjective_info_type");
 }
 
 template<>

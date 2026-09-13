@@ -15541,7 +15541,7 @@ bool item::is_reloadable() const
 }
 
 std::string item::type_name( unsigned int quantity, bool use_variant, bool use_cond_name,
-                             bool use_corpse , bool use_subjective_names) const
+                             bool use_corpse , bool use_subjective) const
 {
     const auto iter = item_vars.find( "name" );
     std::string ret_name;
@@ -15631,8 +15631,8 @@ std::string item::type_name( unsigned int quantity, bool use_variant, bool use_c
 
 
     // Apply SUBJECTIVE names, in order. copied from the conditional names code above
-    std::vector<subjective_name> const& s_names =
-        use_subjective_names ? type->subjective_names : std::vector<subjective_name>{};
+    std::vector<subjective_info> const& s_names =
+        use_subjective ? type->subjective_info_entries : std::vector<subjective_info>{};
 
     // This intentionally gets whoever it is *right now*- the details can and should
     // change if you change characters
@@ -15641,10 +15641,10 @@ std::string item::type_name( unsigned int quantity, bool use_variant, bool use_c
     static skill_id skill_to_check;
     static trait_id mutation_to_check;
     // JSON priority bottom to top
-    for (const subjective_name& s_name : s_names) {
+    for (const subjective_info& s_name : s_names) {
         // Check skills, flags, etc. for each entry and apply names/desc/etc. if valid
         switch (s_name.type) {
-            case subjective_name_type::SUBJ_SKILL:
+            case subjective_info_type::SUBJ_SKILL:
                 skill_to_check = skill_id(s_name.condition);
                 if (skill_to_check.is_empty() || !skill_to_check.is_valid()) break;
                 if (pc.get_greater_skill_or_knowledge_level( skill_to_check )
@@ -15653,40 +15653,41 @@ std::string item::type_name( unsigned int quantity, bool use_variant, bool use_c
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_STR:
+            case subjective_info_type::SUBJ_STR:
                 if (pc.get_str() >= std::stof(s_name.value))
                 {
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_DEX:
+            case subjective_info_type::SUBJ_DEX:
                 if (pc.get_dex() >= std::stof(s_name.value))
                 {
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_INT:
+            case subjective_info_type::SUBJ_INT:
                 if (pc.get_int() >= std::stof(s_name.value))
                 {
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_PER:
+            case subjective_info_type::SUBJ_PER:
                 if (pc.get_per() >= std::stof(s_name.value))
                 {
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_PROFESSION:
+            case subjective_info_type::SUBJ_PROFICIENCY:
+                // to do
                 break;
-            case subjective_name_type::SUBJ_FLAG:
+            case subjective_info_type::SUBJ_FLAG:
                 flag_to_check = flag_id(s_name.condition);
                 if (flag_to_check.is_empty() || !flag_to_check.is_valid()) break;
                 if (pc.has_flag(flag_to_check)) {
                     ret_name = string_format(s_name.name.translated(quantity), ret_name);
                 }
                 break;
-            case subjective_name_type::SUBJ_MUTATION:
+            case subjective_info_type::SUBJ_MUTATION:
                 mutation_to_check = trait_id(s_name.condition);
                 for (trait_id tid : pc.get_mutations())
                 {
@@ -15697,7 +15698,7 @@ std::string item::type_name( unsigned int quantity, bool use_variant, bool use_c
                     }
                 }
                 break;
-            case subjective_name_type::num_subjective_name_types:
+            case subjective_info_type::num_subjective_info_types:
                 break;
         }
     }
