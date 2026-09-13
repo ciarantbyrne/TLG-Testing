@@ -1902,7 +1902,27 @@
     "price_postapoc": "2 USD",
     "quench": -1,
     "fun": 6,
-    "flags": [ "EATEN_HOT" ]
+    "flags": [ "EATEN_HOT" ],
+	"subjective_names": [
+	  {
+		"type": "SKILL",
+		"condition": "cooking",
+		"value": "4",
+        "name": { "str": "oil-fried meat" },
+		"description": " The water content of the muscle tissue has vaporized, thanks to the dehydrating process of deep-frying, with liquid fats taking their place."
+      },
+	  {
+		"type": "MUTATION",
+		"condition": "VEGETARIAN",
+        "name": { "str": "fried meat(!)" },
+		"description": "The flesh of a once-living creature, fried in oil to render it safe for consumption. The smell alone makes you a little nauseous."
+      },
+	  {
+		"type": "MUTATION",
+		"condition": "CARNIVORE",
+		"description": "The succulent flesh of something dead, fried in oil to make it even tastier and delightfully crispy."
+      }
+	]
   },
   {
     "type": "ITEM",
