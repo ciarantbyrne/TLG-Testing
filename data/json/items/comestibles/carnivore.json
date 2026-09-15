@@ -1914,7 +1914,7 @@
 	  {
 		"type": "MUTATION",
 		"condition": "VEGETARIAN",
-        "name": { "str": "fried meat(!)" },
+        "name": { "str": "greasy meat" },
 		"description": "The flesh of a once-living creature, fried in oil to render it safe for consumption. The smell alone makes you a little nauseous."
       },
 	  {

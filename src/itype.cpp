@@ -77,7 +77,7 @@ std::string enum_to_string<subjective_info_type>(subjective_info_type data)
         case subjective_info_type::SUBJ_PER:
             return "PER";
         case subjective_info_type::SUBJ_PROFICIENCY:
-            return "PROFESSION";
+            return "PROF";
         case subjective_info_type::SUBJ_FLAG:
             return "FLAG";
         case subjective_info_type::SUBJ_MUTATION:

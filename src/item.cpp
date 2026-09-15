@@ -9984,6 +9984,15 @@ void item::clear_itype_variant()
     _itype_variant = nullptr;
 }
 
+subjective_info _itype_subjective()
+{
+    for (JsonObject sjo : _subjective_infos)
+    {
+        sjo.get_string("id").;
+    }
+    return nullptr;
+}
+
 bool item::is_firearm() const
 {
     return is_gun() && !has_flag( flag_PRIMITIVE_RANGED_WEAPON );
@@ -15796,13 +15805,13 @@ bool item::has_label() const
 }
 
 std::string item::label( unsigned int quantity, bool use_variant,
-                         bool use_cond_name, bool use_corpse , bool use_override_names) const
+                         bool use_cond_name, bool use_corpse , bool use_subjective) const
 {
     if( has_label() ) {
         return get_var( "item_label" );
     }
 
-    return type_name( quantity, use_variant, use_cond_name, use_corpse );
+    return type_name( quantity, use_variant, use_cond_name, use_corpse, use_subjective);
 }
 
 bool item::has_infinite_charges() const

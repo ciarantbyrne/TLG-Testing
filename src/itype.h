@@ -737,13 +737,17 @@ enum subjective_info_type {
     num_subjective_info_types
 };
 
+template<>
+struct enum_traits<subjective_info_type> {
+    static constexpr subjective_info_type last = subjective_info_type::num_subjective_info_types;
+};
+
 struct subjective_info {
-    std::string id;
-    subjective_info_type type;
-    //what skill to test
-    std::string condition;
-    //value of the condition
-    std::string value;
+    std::string id; // can be input manually but will have fallback to generate it
+    subjective_info_type type; // skill, stat, flag, mutation, etc. to test
+    std::string condition; //condition of the type, eg. "cooking", "VEGETARIAN"
+    std::string value; // value of the condition numerically, if applicable
+
     // Should this description apply if the character knows how to craft it?
     bool skip_if_recipe_known = true;
 
@@ -756,6 +760,7 @@ struct subjective_info {
 
     bool was_loaded = false;
     void deserialize(const JsonObject& jo);
+    void load(const JsonObject& jo);
 };
 
 // TODO: this shares a lot with the ammo item type, merge into a separate slot type?
@@ -1258,11 +1263,6 @@ struct conditional_name {
 
     bool was_loaded = false;
     void deserialize( const JsonObject &jo );
-};
-
-template<>
-struct enum_traits<subjective_info_type> {
-    static constexpr subjective_info_type last = subjective_info_type::num_subjective_info_types;
 };
 
 class islot_milling
